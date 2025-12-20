@@ -3,6 +3,8 @@
 import { motion } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
+// 1. Import the Image component from Next.js
+import Image from "next/image" 
 import { 
   Code2, 
   Stethoscope, 
@@ -31,7 +33,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import React from "react"
+import React, { useState } from "react"
 
 // --- UTILS & COMPONENTS ---
 
@@ -79,7 +81,7 @@ export default function TeamPage() {
       
       icon: Crown, 
       color: "text-amber-400", 
-      borderColor: "group-hover:border-amber-500/50", // Added to fix TS error
+      borderColor: "group-hover:border-amber-500/50", 
       isFounder: true, 
       socials: {
         instagram: "https://www.instagram.com/prism_y4?igsh=aDF4aXN3cHNrdzI1",
@@ -101,7 +103,7 @@ export default function TeamPage() {
       
       icon: Stethoscope,
       color: "text-rose-500",
-      borderColor: "group-hover:border-rose-500/50", // Added to fix TS error
+      borderColor: "group-hover:border-rose-500/50", 
       socials: {
         email: "mailto:khadijaganandaji26@gmail.com",
         whatsapp: "https://wa.me/2348120607103",
@@ -120,7 +122,7 @@ export default function TeamPage() {
       
       icon: Terminal, 
       color: "text-cyan-500",
-      borderColor: "group-hover:border-cyan-500/50", // Added to fix TS error
+      borderColor: "group-hover:border-cyan-500/50", 
       socials: {
         instagram: "https://www.instagram.com/mbubadavid07?igsh=dW5tN253YnpwMzZt&utm_source=ig_contact_invite",
         facebook: "https://www.facebook.com/share/1AHJsi6NnV/?mibextid=wwXIfr",
@@ -141,7 +143,7 @@ export default function TeamPage() {
       
       icon: Database,
       color: "text-amber-500",
-      borderColor: "group-hover:border-amber-500/50", // Added to fix TS error
+      borderColor: "group-hover:border-amber-500/50", 
       socials: {
         email: "mailto:collinsudeh247@gmail.com",
         whatsapp: "https://wa.me/2347042788221",
@@ -160,7 +162,7 @@ export default function TeamPage() {
       
       icon: Palette, 
       color: "text-purple-500",
-      borderColor: "group-hover:border-purple-500/50", // Added to fix TS error
+      borderColor: "group-hover:border-purple-500/50", 
       socials: {
         instagram: "#",
         facebook: "#",
@@ -180,7 +182,7 @@ export default function TeamPage() {
       
       icon: ShieldAlert, 
       color: "text-emerald-500",
-      borderColor: "group-hover:border-emerald-500/50", // Added to fix TS error
+      borderColor: "group-hover:border-emerald-500/50", 
       socials: {
         facebook: "https://www.facebook.com/profile.php?id=61579818594870",
         email: "mailto:bigjimmy328@gmail.com",
@@ -273,7 +275,7 @@ export default function TeamPage() {
       <section className="py-20 bg-slate-900/20 border-b border-white/5">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
            <div className="grid md:grid-cols-2 gap-12 items-center">
-              <div>
+             <div>
                  <h2 className="text-3xl font-bold text-white mb-6">The Gap We Are Filling</h2>
                  <p className="text-slate-400 mb-4">
                    In Nigeria, the ratio of doctors to patients is critically low. On university campuses, clinics are often overwhelmed, leaving students vulnerable during late-night emergencies.
@@ -281,8 +283,8 @@ export default function TeamPage() {
                  <p className="text-slate-400">
                    We refused to accept this status quo. MedGuard AI steps in as the <strong>digital first responder</strong>, bridging the time between symptom onset and professional care.
                  </p>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+             </div>
+             <div className="grid grid-cols-2 gap-4">
                  <div className="p-6 bg-slate-900 rounded-2xl border border-slate-800">
                     <div className="text-4xl font-bold text-rose-500 mb-2">1:4000</div>
                     <div className="text-xs text-slate-500 uppercase tracking-widest">Doctor-Patient Ratio</div>
@@ -291,7 +293,7 @@ export default function TeamPage() {
                     <div className="text-4xl font-bold text-blue-500 mb-2">24/7</div>
                     <div className="text-xs text-slate-500 uppercase tracking-widest">MedGuard Availability</div>
                  </div>
-              </div>
+             </div>
            </div>
         </div>
       </section>
@@ -330,13 +332,14 @@ export default function TeamPage() {
                     {/* Image Container with Smart Resizing (Aspect Ratio 4:5) */}
                     <div className="relative w-full aspect-[4/5] bg-slate-950 overflow-hidden border-b border-slate-800 group">
                       <div className="absolute inset-0 bg-slate-800 flex items-center justify-center text-slate-600">
-                        <img 
+                        {/* 2. Replaced <img> with <Image /> */}
+                        <Image 
                           src={member.image} 
                           alt={member.name} 
-                          className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-110"
-                          onError={(e) => {
-                            e.currentTarget.src = `https://ui-avatars.com/api/?name=${member.name}&background=0f172a&color=fff&size=256`; 
-                          }}
+                          fill
+                          className="object-cover object-top transition-transform duration-700 group-hover:scale-110"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          quality={85}
                         />
                       </div>
                       
@@ -368,41 +371,41 @@ export default function TeamPage() {
 
                       {/* Tech Spec Profile Grid - Holographic Style */}
                       <div className={`grid grid-cols-1 gap-3 mb-5 p-4 rounded-xl border relative overflow-hidden ${isFounder ? 'bg-amber-950/30 border-amber-500/30' : 'bg-slate-950/50 border-slate-800'}`}>
-                         
-                         {/* Academics */}
-                         <div className="flex items-start gap-3">
-                            <div className={`mt-0.5 p-1 rounded ${isFounder ? 'bg-amber-500/20' : 'bg-slate-800'}`}>
-                              <GraduationCap className={`h-3 w-3 ${isFounder ? 'text-amber-400' : 'text-slate-400'}`} />
-                            </div>
-                            <div className="flex-1">
-                               <span className="text-slate-500 block text-[9px] uppercase tracking-wider font-bold">Academics</span>
-                               <span className="text-slate-300 text-xs font-medium leading-tight block mt-0.5">{member.education}</span>
-                            </div>
-                         </div>
-                         
-                         {/* Future Role */}
-                         <div className="flex items-start gap-3">
-                            <div className={`mt-0.5 p-1 rounded ${isFounder ? 'bg-amber-500/20' : 'bg-slate-800'}`}>
-                              <Cpu className={`h-3 w-3 ${isFounder ? 'text-amber-400' : 'text-blue-400'}`} />
-                            </div>
-                            <div className="flex-1">
-                               <span className="text-slate-500 block text-[9px] uppercase tracking-wider font-bold">Future Tech Class</span>
-                               <span className={`${isFounder ? 'text-amber-300' : 'text-blue-300'} text-xs font-bold leading-tight block mt-0.5`}>{member.aspiration}</span>
-                            </div>
-                         </div>
+                          
+                          {/* Academics */}
+                          <div className="flex items-start gap-3">
+                             <div className={`mt-0.5 p-1 rounded ${isFounder ? 'bg-amber-500/20' : 'bg-slate-800'}`}>
+                               <GraduationCap className={`h-3 w-3 ${isFounder ? 'text-amber-400' : 'text-slate-400'}`} />
+                             </div>
+                             <div className="flex-1">
+                                <span className="text-slate-500 block text-[9px] uppercase tracking-wider font-bold">Academics</span>
+                                <span className="text-slate-300 text-xs font-medium leading-tight block mt-0.5">{member.education}</span>
+                             </div>
+                          </div>
+                          
+                          {/* Future Role */}
+                          <div className="flex items-start gap-3">
+                             <div className={`mt-0.5 p-1 rounded ${isFounder ? 'bg-amber-500/20' : 'bg-slate-800'}`}>
+                               <Cpu className={`h-3 w-3 ${isFounder ? 'text-amber-400' : 'text-blue-400'}`} />
+                             </div>
+                             <div className="flex-1">
+                                <span className="text-slate-500 block text-[9px] uppercase tracking-wider font-bold">Future Tech Class</span>
+                                <span className={`${isFounder ? 'text-amber-300' : 'text-blue-300'} text-xs font-bold leading-tight block mt-0.5`}>{member.aspiration}</span>
+                             </div>
+                          </div>
 
-                         {/* Speciality for Founder */}
-                         {member.specialty && (
-                           <div className="flex items-start gap-3 pt-2 border-t border-amber-500/20 mt-1">
-                              <div className="mt-0.5 p-1 rounded bg-amber-500/20">
-                                <Wand2 className="h-3 w-3 text-amber-300" />
-                              </div>
-                              <div className="flex-1">
-                                 <span className="text-amber-500/60 block text-[9px] uppercase tracking-wider font-bold">Specialization</span>
-                                 <span className="text-white text-xs font-bold leading-tight block mt-0.5">{member.specialty}</span>
-                              </div>
-                           </div>
-                         )}
+                          {/* Speciality for Founder */}
+                          {member.specialty && (
+                            <div className="flex items-start gap-3 pt-2 border-t border-amber-500/20 mt-1">
+                               <div className="mt-0.5 p-1 rounded bg-amber-500/20">
+                                 <Wand2 className="h-3 w-3 text-amber-300" />
+                               </div>
+                               <div className="flex-1">
+                                  <span className="text-amber-500/60 block text-[9px] uppercase tracking-wider font-bold">Specialization</span>
+                                  <span className="text-white text-xs font-bold leading-tight block mt-0.5">{member.specialty}</span>
+                               </div>
+                            </div>
+                          )}
                       </div>
                       
                       <p className="text-sm text-slate-400 leading-relaxed mb-6 flex-grow border-t border-slate-800/50 pt-4">
@@ -489,17 +492,17 @@ export default function TeamPage() {
                     <div className={`absolute left-[-5px] top-1 h-3 w-3 rounded-full border-2 ${item.status === 'current' ? 'bg-blue-500 border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-slate-900 border-slate-700'} z-10`} />
                     
                     <div className="md:grid md:grid-cols-2 md:gap-16 items-center">
-                       <div className={`md:text-right ${index % 2 === 0 ? 'md:order-1' : 'md:order-2'}`}>
-                          <span className={`text-xs font-bold px-2 py-1 rounded border ${item.status === 'current' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' : 'bg-slate-900 text-slate-500 border-slate-800'}`}>
-                             {item.year}
-                          </span>
-                       </div>
-                       <div className={`${index % 2 === 0 ? 'md:order-2' : 'md:order-1'} mt-2 md:mt-0`}>
-                          <h3 className={`text-lg font-bold ${item.status === 'current' ? 'text-white' : 'text-slate-300'}`}>
-                             {item.title}
-                          </h3>
-                          <p className="text-sm text-slate-400 mt-1 max-w-sm">{item.desc}</p>
-                       </div>
+                        <div className={`md:text-right ${index % 2 === 0 ? 'md:order-1' : 'md:order-2'}`}>
+                           <span className={`text-xs font-bold px-2 py-1 rounded border ${item.status === 'current' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' : 'bg-slate-900 text-slate-500 border-slate-800'}`}>
+                              {item.year}
+                           </span>
+                        </div>
+                        <div className={`${index % 2 === 0 ? 'md:order-2' : 'md:order-1'} mt-2 md:mt-0`}>
+                           <h3 className={`text-lg font-bold ${item.status === 'current' ? 'text-white' : 'text-slate-300'}`}>
+                              {item.title}
+                           </h3>
+                           <p className="text-sm text-slate-400 mt-1 max-w-sm">{item.desc}</p>
+                        </div>
                     </div>
                  </div>
               ))}
@@ -531,15 +534,15 @@ export default function TeamPage() {
                   </p>
                   
                   <div className="space-y-4 mb-8">
-                     <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-                           <Target className="h-5 w-5 text-blue-400" />
-                        </div>
-                        <div>
-                           <h4 className="text-white font-bold">CSR Impact</h4>
-                           <p className="text-xs text-slate-400">Directly impact the health & safety of Nigerian youth.</p>
-                        </div>
-                     </div>
+                      <div className="flex items-center gap-4">
+                         <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                            <Target className="h-5 w-5 text-blue-400" />
+                         </div>
+                         <div>
+                            <h4 className="text-white font-bold">CSR Impact</h4>
+                            <p className="text-xs text-slate-400">Directly impact the health & safety of Nigerian youth.</p>
+                         </div>
+                      </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-4">
@@ -560,15 +563,15 @@ export default function TeamPage() {
                <div className="relative bg-slate-950 border border-slate-800 rounded-2xl p-8">
                   <h3 className="text-xl font-bold text-white mb-6">Our Funding Goals</h3>
                   <div className="space-y-6">
-                     <div>
-                        <div className="flex justify-between text-sm mb-2">
-                           <span className="text-slate-400">Server Infrastructure</span>
-                           <span className="text-blue-400">Priority 1</span>
-                        </div>
-                        <div className="h-2 w-full bg-slate-900 rounded-full overflow-hidden">
-                           <div className="h-full w-3/4 bg-blue-600 rounded-full" />
-                        </div>
-                     </div>
+                      <div>
+                         <div className="flex justify-between text-sm mb-2">
+                            <span className="text-slate-400">Server Infrastructure</span>
+                            <span className="text-blue-400">Priority 1</span>
+                         </div>
+                         <div className="h-2 w-full bg-slate-900 rounded-full overflow-hidden">
+                            <div className="h-full w-3/4 bg-blue-600 rounded-full" />
+                         </div>
+                      </div>
                   </div>
                   <div className="mt-8 p-4 bg-slate-900 rounded-xl border border-slate-800">
                      <p className="text-sm text-slate-300 italic">
