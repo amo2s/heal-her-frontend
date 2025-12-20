@@ -3,7 +3,6 @@
 import { motion } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
-// 1. Import the Image component from Next.js
 import Image from "next/image" 
 import { 
   Code2, 
@@ -332,7 +331,7 @@ export default function TeamPage() {
                     {/* Image Container with Smart Resizing (Aspect Ratio 4:5) */}
                     <div className="relative w-full aspect-[4/5] bg-slate-950 overflow-hidden border-b border-slate-800 group">
                       <div className="absolute inset-0 bg-slate-800 flex items-center justify-center text-slate-600">
-                        {/* 2. Replaced <img> with <Image /> */}
+                        {/* 2. UPDATED WITH PRIORITY FOR ALL IMAGES */}
                         <Image 
                           src={member.image} 
                           alt={member.name} 
@@ -340,6 +339,7 @@ export default function TeamPage() {
                           className="object-cover object-top transition-transform duration-700 group-hover:scale-110"
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                           quality={85}
+                          priority={true} // <--- Forces immediate loading for everyone!
                         />
                       </div>
                       
