@@ -45,7 +45,6 @@ const GrainOverlay = () => (
   />
 )
 
-// Custom WhatsApp Icon
 const WhatsAppIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className} xmlns="http://www.w3.org/2000/svg">
     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
@@ -73,7 +72,6 @@ export default function TeamPage() {
       image: "/sliver.png", 
       bio: "The Visionary. As the Founder and CEO, Sliverboy bridges the gap between complex algorithmic logic and user-centric design. He drives the technical roadmap, ensuring the platform remains robust, secure, and ready for mass adoption across African universities.",
       
-      // Full details
       education: "Student - B.Sc Computer Science",
       aspiration: "Full Stack Web Developer",
       specialty: "Expert AI Prompt Engineer", 
@@ -150,26 +148,6 @@ export default function TeamPage() {
       }
     },
     {
-      name: "Jacob Gyang Weng",
-      nickname: "JACOB DICE",
-      role: "Community & Ethics Liaison",
-      image: "/jacob.jpg",
-      bio: "The conscience of the platform. Jacob advocates for the user, overseeing data privacy protocols and managing community feedback. He ensures our technology remains inclusive.",
-      
-      education: "Student - B.Sc Quantity Surveying", 
-      aspiration: "UI/UX & Web Designer",
-      
-      icon: Palette, 
-      color: "text-purple-500",
-      borderColor: "group-hover:border-purple-500/50", 
-      socials: {
-        instagram: "#",
-        facebook: "#",
-        email: "#",
-        whatsapp: "#"
-      }
-    },
-    {
       name: "Ajilima Jimmy Oloche",
       nickname: "JIMMY CIPHER", 
       role: "Operations & Documentation",
@@ -191,7 +169,6 @@ export default function TeamPage() {
     },
   ]
 
-  // Timeline Data
   const roadmap = [
     {
       year: "Q4 2025",
@@ -256,7 +233,7 @@ export default function TeamPage() {
                 MedGuard AI is not merely a project; it is a movement born from the convergence of medical necessity and engineering brilliance.
               </p>
               <p>
-                Spearheaded by our <strong>Founder & CEO, Sliverboy</strong>, and grounded in clinical accuracy by our <strong>Medical Research Lead, Khadija</strong>, we are a cohesive unit of innovators. From <strong>Jimmy's</strong> operational rigor to <strong>Collins'</strong> strategic foresight, <strong>Jacob's</strong> ethical guardianship, and <strong>David's</strong> community outreach—we are united by a single, unshakeable resolve:
+                Spearheaded by our <strong>Founder & CEO, Sliverboy</strong>, and grounded in clinical accuracy by our <strong>Medical Research Lead, Khadija</strong>, we are a cohesive unit of innovators. From <strong>Jimmy's</strong> operational rigor to <strong>Collins'</strong> strategic foresight and <strong>David's</strong> community outreach—we are united by a single, unshakeable resolve:
               </p>
               <p className="text-white font-medium">
                 To democratize emergency medical guidance for every student, everywhere.
@@ -297,7 +274,7 @@ export default function TeamPage() {
         </div>
       </section>
 
-      {/* --- THE TEAM GRID --- */}
+      {/* --- THE TEAM GRID (REARRANGED) --- */}
       <section className="py-24 bg-slate-950 relative">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -307,7 +284,8 @@ export default function TeamPage() {
             </p>
           </div>
 
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+          {/* UPDATED CONTAINER: Flex Wrap + Justify Center for attractive layout */}
+          <div className="flex flex-wrap justify-center gap-8">
             {teamMembers.map((member, index) => {
               const isFounder = member.isFounder;
               const cardBorder = isFounder ? "border-amber-500/50" : "border-slate-800";
@@ -321,17 +299,17 @@ export default function TeamPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.1 }}
-                  className="group relative"
+                  // UPDATED ITEM WIDTH: Standardized widths to create 3-2 layout on large screens
+                  className="group relative w-full md:w-[calc(50%-2rem)] lg:w-[30%]"
                 >
                   {/* Hover Glow */}
                   <div className={`absolute -inset-0.5 rounded-2xl opacity-0 group-hover:opacity-100 transition duration-500 blur ${isFounder ? 'bg-gradient-to-b from-amber-500 to-yellow-600' : 'bg-gradient-to-b from-slate-800 to-slate-900'}`} />
                   
                   <div className={`relative h-full flex flex-col ${cardBg} border ${cardBorder} rounded-2xl overflow-hidden hover:bg-slate-900/90 transition-all duration-300 ${hoverBorder}`}>
                     
-                    {/* Image Container with Smart Resizing (Aspect Ratio 4:5) */}
+                    {/* Image Container */}
                     <div className="relative w-full aspect-[4/5] bg-slate-950 overflow-hidden border-b border-slate-800 group">
                       <div className="absolute inset-0 bg-slate-800 flex items-center justify-center text-slate-600">
-                        {/* 2. UPDATED WITH PRIORITY FOR ALL IMAGES */}
                         <Image 
                           src={member.image} 
                           alt={member.name} 
@@ -339,17 +317,15 @@ export default function TeamPage() {
                           className="object-cover object-top transition-transform duration-700 group-hover:scale-110"
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                           quality={85}
-                          priority={true} // <--- Forces immediate loading for everyone!
+                          priority={true} 
                         />
                       </div>
                       
-                      {/* Role Badge */}
                       <div className={`absolute bottom-4 left-4 inline-flex items-center gap-2 px-3 py-1 rounded-full backdrop-blur-sm border text-xs font-medium text-white shadow-lg z-10 ${isFounder ? 'bg-amber-500/90 border-amber-400' : 'bg-slate-950/90 border-slate-800'}`}>
                         <member.icon className={`h-3 w-3 ${isFounder ? 'text-white' : member.color}`} />
                         {member.role}
                       </div>
 
-                      {/* Founder Badge */}
                       {isFounder && (
                         <div className="absolute top-4 right-4 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-500 text-black text-xs font-bold uppercase tracking-wider shadow-xl z-10">
                            <Sparkles className="h-3 w-3" /> Visionary
@@ -360,7 +336,6 @@ export default function TeamPage() {
                     {/* Content */}
                     <div className="p-6 flex flex-col flex-grow">
                       <div>
-                        {/* Styled Nickname - Attractive Gradient */}
                         <div className={`text-xs font-bold uppercase tracking-[0.2em] mb-1 ${isFounder ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-500' : 'text-transparent bg-clip-text bg-gradient-to-r from-slate-400 to-slate-200'}`}>
                           {member.nickname}
                         </div>
@@ -369,10 +344,7 @@ export default function TeamPage() {
                         </h3>
                       </div>
 
-                      {/* Tech Spec Profile Grid - Holographic Style */}
                       <div className={`grid grid-cols-1 gap-3 mb-5 p-4 rounded-xl border relative overflow-hidden ${isFounder ? 'bg-amber-950/30 border-amber-500/30' : 'bg-slate-950/50 border-slate-800'}`}>
-                          
-                          {/* Academics */}
                           <div className="flex items-start gap-3">
                              <div className={`mt-0.5 p-1 rounded ${isFounder ? 'bg-amber-500/20' : 'bg-slate-800'}`}>
                                <GraduationCap className={`h-3 w-3 ${isFounder ? 'text-amber-400' : 'text-slate-400'}`} />
@@ -383,7 +355,6 @@ export default function TeamPage() {
                              </div>
                           </div>
                           
-                          {/* Future Role */}
                           <div className="flex items-start gap-3">
                              <div className={`mt-0.5 p-1 rounded ${isFounder ? 'bg-amber-500/20' : 'bg-slate-800'}`}>
                                <Cpu className={`h-3 w-3 ${isFounder ? 'text-amber-400' : 'text-blue-400'}`} />
@@ -394,7 +365,6 @@ export default function TeamPage() {
                              </div>
                           </div>
 
-                          {/* Speciality for Founder */}
                           {member.specialty && (
                             <div className="flex items-start gap-3 pt-2 border-t border-amber-500/20 mt-1">
                                <div className="mt-0.5 p-1 rounded bg-amber-500/20">
@@ -412,7 +382,6 @@ export default function TeamPage() {
                         {member.bio}
                       </p>
 
-                      {/* DYNAMIC SOCIAL ICONS */}
                       <div className="flex gap-3 pt-2 mt-auto">
                         {member.socials?.whatsapp && (
                           <SocialButton icon={WhatsAppIcon} href={member.socials.whatsapp} label="WhatsApp" />
@@ -488,7 +457,6 @@ export default function TeamPage() {
            <div className="relative border-l border-slate-800 ml-4 md:ml-1/2 space-y-12">
               {roadmap.map((item, index) => (
                  <div key={index} className="relative pl-8 md:pl-0">
-                    {/* Dot */}
                     <div className={`absolute left-[-5px] top-1 h-3 w-3 rounded-full border-2 ${item.status === 'current' ? 'bg-blue-500 border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-slate-900 border-slate-700'} z-10`} />
                     
                     <div className="md:grid md:grid-cols-2 md:gap-16 items-center">
@@ -512,7 +480,6 @@ export default function TeamPage() {
 
       {/* --- THE EXITON --- */}
       <section className="py-28 relative overflow-hidden bg-slate-900/20">
-        {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-blue-950/20 to-slate-950" />
         <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-500 to-transparent" />
         
@@ -559,7 +526,6 @@ export default function TeamPage() {
                   </div>
                </div>
 
-               {/* Right Side Vision Card */}
                <div className="relative bg-slate-950 border border-slate-800 rounded-2xl p-8">
                   <h3 className="text-xl font-bold text-white mb-6">Our Funding Goals</h3>
                   <div className="space-y-6">
