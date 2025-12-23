@@ -68,7 +68,7 @@ const SocialButton = ({ icon: Icon, href, label }: { icon: any, href: string, la
 export default function TeamPage() {
   const teamMembers = [
     {
-      name: "Nwaka Amos Chika",
+      name: "Nwaka Amos Chika kkkkkk",
       nickname: "SLIVERBOY",
       role: "Founder & Lead Engineer",
       image: "/sliver.png", 
