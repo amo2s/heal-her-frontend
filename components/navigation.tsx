@@ -2,9 +2,19 @@
 
 import React, { useState, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { Menu, X, ChevronDown, Activity, Zap, Shield, Heart, User, LogIn } from "lucide-react"
+import { 
+  Menu, 
+  X, 
+  ChevronDown, 
+  MessageCircle, // Updated for Chat
+  Heart, 
+  BookOpen, 
+  User, 
+  ArrowRight // Updated for Button
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import {
@@ -23,20 +33,18 @@ const NavLink = ({ href, children }: { href: string; children: React.ReactNode }
   return (
     <Link 
       href={href} 
-      // UPDATED: Added padding and background hover effect for a more "app-like" feel
       className={cn(
         "relative px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 group",
         isActive 
-          ? "text-white bg-white/10" 
-          : "text-slate-400 hover:text-white hover:bg-white/5"
+          ? "text-[#1C1246] bg-[#DA8CA0]" // Active: Dusty Rose bg, Indigo text
+          : "text-[#CCCCD9] hover:text-white hover:bg-white/5"
       )}
     >
       {children}
-      {/* UPDATED: Made the active indicator subtly glow */}
       {isActive && (
         <motion.div
           layoutId="navbar-indicator"
-          className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-400 shadow-[0_0_15px_rgba(59,130,246,1)]"
+          className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#FAFAFA] shadow-[0_0_15px_rgba(250,250,250,0.8)]"
           transition={{ duration: 0.3 }}
         />
       )}
@@ -48,7 +56,7 @@ const MobileNavLink = ({ href, onClick, children }: { href: string; onClick: () 
   <Link
     href={href}
     onClick={onClick}
-    className="block rounded-xl px-4 py-3 text-base font-medium text-slate-400 hover:bg-white/5 hover:text-white transition-all active:scale-[0.98]"
+    className="block rounded-xl px-4 py-3 text-base font-medium text-[#CCCCD9] hover:bg-white/5 hover:text-[#DA8CA0] transition-all active:scale-[0.98]"
   >
     {children}
   </Link>
@@ -58,9 +66,9 @@ const MobileNavLink = ({ href, onClick, children }: { href: string; onClick: () 
 const DropdownContentStyled = ({ children, className = "", ...props }: any) => (
   <DropdownMenuContent 
     align="center" 
-    // UPDATED: Added a blue glow shadow and tighter border integration
+    // UPDATED: Midnight Indigo bg, Dusty Rose border glow
     className={cn(
-      "w-48 border border-blue-500/10 bg-slate-900/95 backdrop-blur-2xl text-slate-300 shadow-[0_0_30px_-10px_rgba(59,130,246,0.3)]", 
+      "w-48 border border-[#DA8CA0]/20 bg-[#1C1246]/95 backdrop-blur-2xl text-[#CCCCD9] shadow-[0_0_30px_-10px_rgba(218,140,160,0.3)]", 
       className
     )}
     {...props}
@@ -90,29 +98,34 @@ export function Navigation() {
       className={cn(
         "fixed top-0 z-50 w-full border-b transition-all duration-500",
         isScrolled
-          // UPDATED: Deeper, more premium glass effect on scroll with subtle shadow
-          ? "border-white/[0.08] bg-slate-950/70 shadow-[0_4px_30px_rgba(0,0,0,0.1)] backdrop-blur-md supports-[backdrop-filter]:bg-slate-900/60"
+          ? "border-[#DA8CA0]/10 bg-[#1C1246]/80 shadow-[0_4px_30px_rgba(0,0,0,0.2)] backdrop-blur-md supports-[backdrop-filter]:bg-[#1C1246]/60"
           : "border-transparent bg-transparent"
       )}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-20 items-center justify-between">
           
-          {/* --- LOGO (ENHANCED PULSATING) --- */}
+          {/* --- LOGO (HEAL HER) --- */}
           <Link href="/" className="group flex items-center gap-3 relative z-10">
-            <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/30 transition-all duration-500 group-hover:shadow-blue-500/60 group-hover:scale-105">
+            {/* Logo Container with Subtle Glow */}
+            <div className="relative flex h-12 w-12 items-center justify-center transition-transform duration-500 group-hover:scale-105">
               
-              {/* UPDATED: Stronger, larger pulse effect that extends outside the box */}
-              <div className="absolute -inset-2 rounded-xl bg-blue-500/40 animate-ping" style={{ animationDuration: '2s' }} />
+              {/* Outer Glow (Dusty Rose) - Reduced Strength */}
+              <div className="absolute -inset-1 rounded-full bg-[#DA8CA0]/10 animate-pulse" style={{ animationDuration: '4s' }} />
               
-              {/* NEW: A subtle secondary "breathing" glow layer */}
-              <div className="absolute -inset-1 rounded-xl bg-indigo-500/20 animate-pulse blur-sm" style={{ animationDuration: '3s' }} />
-              
-              <Activity className="h-6 w-6 text-white animate-pulse relative z-10" /> 
-              <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-white/30 z-10" />
+              {/* Actual Image Logo - Increased Size */}
+              <div className="relative w-12 h-12">
+                 <Image 
+                    src="/heal-logo.png" 
+                    alt="Heal Her Logo" 
+                    fill 
+                    className="object-contain" 
+                 />
+              </div>
             </div>
-            <span className="text-xl font-bold tracking-tight text-white">
-              MedGuard <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 group-hover:from-blue-300 group-hover:to-indigo-300 transition-all">AI</span>
+
+            <span className="text-2xl font-bold tracking-tight text-white">
+              Heal <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#DA8CA0] to-[#E8B4C1] group-hover:from-[#E8B4C1] group-hover:to-white transition-all">Her</span>
             </span>
           </Link>
 
@@ -122,70 +135,69 @@ export function Navigation() {
             {/* Dropdown: About */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="px-3 py-2 rounded-lg flex items-center gap-1 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-all outline-none data-[state=open]:text-white data-[state=open]:bg-white/10">
+                <button className="px-3 py-2 rounded-lg flex items-center gap-1 text-sm font-medium text-[#CCCCD9] hover:text-white hover:bg-white/5 transition-all outline-none data-[state=open]:text-white data-[state=open]:bg-white/10">
                   About <ChevronDown className="h-3 w-3 opacity-50" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownContentStyled>
-                <DropdownMenuItem className="focus:bg-blue-600/20 focus:text-blue-200 cursor-pointer" asChild>
-                  <Link href="/about">Mission & Vision</Link>
+                <DropdownMenuItem className="focus:bg-[#DA8CA0]/20 focus:text-[#DA8CA0] cursor-pointer" asChild>
+                  <Link href="/about">Our Mission</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="focus:bg-blue-600/20 focus:text-blue-200 cursor-pointer" asChild>
-                  <Link href="/how-it-works">How AI Works</Link>
+                <DropdownMenuItem className="focus:bg-[#DA8CA0]/20 focus:text-[#DA8CA0] cursor-pointer" asChild>
+                  <Link href="/privacy">Privacy & Safety</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="focus:bg-blue-600/20 focus:text-blue-200 cursor-pointer" asChild>
-                  <Link href="/ethics">Ethical Standards</Link>
+                <DropdownMenuItem className="focus:bg-[#DA8CA0]/20 focus:text-[#DA8CA0] cursor-pointer" asChild>
+                  <Link href="/ethics">Parent's Guide</Link>
                 </DropdownMenuItem>
               </DropdownContentStyled>
             </DropdownMenu>
 
-            {/* Dropdown: Features */}
+            {/* Dropdown: Learn */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="px-3 py-2 rounded-lg flex items-center gap-1 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-all outline-none data-[state=open]:text-white data-[state=open]:bg-white/10">
-                  Platform <ChevronDown className="h-3 w-3 opacity-50" />
+                <button className="px-3 py-2 rounded-lg flex items-center gap-1 text-sm font-medium text-[#CCCCD9] hover:text-white hover:bg-white/5 transition-all outline-none data-[state=open]:text-white data-[state=open]:bg-white/10">
+                  Learn <ChevronDown className="h-3 w-3 opacity-50" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownContentStyled className="w-56">
-                <DropdownMenuItem className="focus:bg-blue-600/20 focus:text-blue-200 cursor-pointer gap-2" asChild>
-                  <Link href="/emergency-response">
-                    <Zap className="h-4 w-4 text-blue-400" /> Emergency Triage
+                <DropdownMenuItem className="focus:bg-[#DA8CA0]/20 focus:text-[#DA8CA0] cursor-pointer gap-2" asChild>
+                  <Link href="/chat">
+                    <MessageCircle className="h-4 w-4 text-[#DA8CA0]" /> AI Health Chat
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="focus:bg-blue-600/20 focus:text-blue-200 cursor-pointer gap-2" asChild>
-                  <Link href="/first-aid">
-                    <Heart className="h-4 w-4 text-rose-400" /> First Aid Guide
+                <DropdownMenuItem className="focus:bg-[#DA8CA0]/20 focus:text-[#DA8CA0] cursor-pointer gap-2" asChild>
+                  <Link href="/wellness">
+                    <Heart className="h-4 w-4 text-pink-400" /> Wellness Guide
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="focus:bg-blue-600/20 focus:text-blue-200 cursor-pointer gap-2" asChild>
-                  <Link href="/privacy">
-                    <Shield className="h-4 w-4 text-emerald-400" /> Security & Privacy
+                <DropdownMenuItem className="focus:bg-[#DA8CA0]/20 focus:text-[#DA8CA0] cursor-pointer gap-2" asChild>
+                  <Link href="/library">
+                    <BookOpen className="h-4 w-4 text-purple-400" /> Body Library
                   </Link>
                 </DropdownMenuItem>
               </DropdownContentStyled>
             </DropdownMenu>
 
-            <NavLink href="/pricing">Pricing</NavLink>
-            <NavLink href="/contact">Contact</NavLink>
-            <NavLink href="/team">Team</NavLink>
+            <NavLink href="/community">Community</NavLink>
+            <NavLink href="/contact">Support</NavLink>
           </div>
 
           {/* --- CTA BUTTONS --- */}
           <div className="hidden items-center gap-4 md:flex">
-            <Link href="/staff/login" className="text-sm font-medium text-slate-400 hover:text-white transition-colors px-3 py-2 hover:bg-white/5 rounded-lg">
-              Staff Login
+            <Link href="/staff/login" className="text-sm font-medium text-[#CCCCD9] hover:text-white transition-colors px-3 py-2 hover:bg-white/5 rounded-lg">
+              Staff Portal
             </Link>
-            {/* UPDATED: More prominent launch button with stronger glow */}
-            <Button asChild className="relative h-11 overflow-hidden rounded-full bg-gradient-to-b from-white to-blue-50 px-8 text-sm font-bold text-blue-900 transition-all hover:to-white hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] border border-blue-100/50 hover:scale-105 active:scale-95">
+            {/* CTA: Dusty Rose Gradient with Arrow */}
+            <Button asChild className="relative h-11 overflow-hidden rounded-full bg-gradient-to-b from-[#DA8CA0] to-[#d47890] px-8 text-sm font-bold text-[#1C1246] transition-all hover:to-[#DA8CA0] hover:shadow-[0_0_30px_rgba(218,140,160,0.5)] border border-[#DA8CA0]/50 hover:scale-105 active:scale-95">
               <Link href="/launch">
-                Launch App
+                Start Chat <ArrowRight className="w-4 h-4 ml-2" />
               </Link>
             </Button>
           </div>
 
           {/* --- MOBILE TOGGLE --- */}
           <button 
-            className="md:hidden relative z-50 p-2 -mr-2 text-slate-300 hover:text-white transition-colors rounded-lg hover:bg-white/10"
+            className="md:hidden relative z-50 p-2 -mr-2 text-[#CCCCD9] hover:text-white transition-colors rounded-lg hover:bg-white/10"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle menu"
           >
@@ -202,33 +214,33 @@ export function Navigation() {
             animate={{ opacity: 1, height: "100vh" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed inset-0 top-0 z-40 bg-slate-950/95 backdrop-blur-xl pt-24 md:hidden"
+            className="fixed inset-0 top-0 z-40 bg-[#1C1246]/98 backdrop-blur-xl pt-24 md:hidden"
           >
              {/* Background Gradients for Mobile */}
              <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none opacity-50">
-                <div className="absolute top-[-10%] right-[-20%] w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-3xl animate-pulse" style={{animationDuration: '8s'}} />
-                <div className="absolute bottom-[-10%] left-[-20%] w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-3xl animate-pulse" style={{animationDuration: '10s'}}/>
+                <div className="absolute top-[-10%] right-[-20%] w-[500px] h-[500px] bg-[#DA8CA0]/20 rounded-full blur-3xl animate-pulse" style={{animationDuration: '8s'}} />
+                <div className="absolute bottom-[-10%] left-[-20%] w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-3xl animate-pulse" style={{animationDuration: '10s'}}/>
              </div>
 
             <div className="flex flex-col h-full px-6 pb-10 overflow-y-auto">
               <div className="flex-1 space-y-2">
-                <div className="px-4 pb-4 text-xs font-bold uppercase tracking-widest text-blue-500">Menu</div>
-                <MobileNavLink href="/about" onClick={() => setMobileMenuOpen(false)}>About MedGuard</MobileNavLink>
-                <MobileNavLink href="/how-it-works" onClick={() => setMobileMenuOpen(false)}>How It Works</MobileNavLink>
-                <MobileNavLink href="/team" onClick={() => setMobileMenuOpen(false)}>Meet The Team</MobileNavLink>
-                <MobileNavLink href="/pricing" onClick={() => setMobileMenuOpen(false)}>Pricing</MobileNavLink>
+                <div className="px-4 pb-4 text-xs font-bold uppercase tracking-widest text-[#DA8CA0]">Menu</div>
+                <MobileNavLink href="/about" onClick={() => setMobileMenuOpen(false)}>About Heal Her</MobileNavLink>
+                <MobileNavLink href="/chat" onClick={() => setMobileMenuOpen(false)}>AI Health Chat</MobileNavLink>
+                <MobileNavLink href="/wellness" onClick={() => setMobileMenuOpen(false)}>Wellness Guide</MobileNavLink>
+                <MobileNavLink href="/community" onClick={() => setMobileMenuOpen(false)}>Community</MobileNavLink>
                 <MobileNavLink href="/contact" onClick={() => setMobileMenuOpen(false)}>Contact Support</MobileNavLink>
               </div>
 
               <div className="mt-auto space-y-4 border-t border-white/10 pt-8">
-                <Button variant="outline" asChild className="w-full justify-start gap-2 border-slate-800 bg-slate-900/50 text-slate-300 hover:bg-slate-800 hover:text-white h-12 rounded-xl font-semibold">
+                <Button variant="outline" asChild className="w-full justify-start gap-2 border-[#2a2259] bg-[#231854] text-[#CCCCD9] hover:bg-[#2a2259] hover:text-white h-12 rounded-xl font-semibold">
                   <Link href="/staff/login" onClick={() => setMobileMenuOpen(false)}>
                     <User className="h-5 w-5" /> Staff Portal
                   </Link>
                 </Button>
-                <Button asChild className="w-full justify-start gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-500 hover:to-indigo-500 shadow-lg shadow-blue-900/30 h-12 rounded-xl font-bold text-lg">
+                <Button asChild className="w-full justify-start gap-2 bg-gradient-to-r from-[#DA8CA0] to-[#E8B4C1] text-[#1C1246] hover:from-[#d47890] hover:to-[#DA8CA0] shadow-lg shadow-[#DA8CA0]/30 h-12 rounded-xl font-bold text-lg">
                   <Link href="/launch" onClick={() => setMobileMenuOpen(false)}>
-                    <Zap className="h-5 w-5 fill-white" /> Launch AI
+                    Start Chatting <ArrowRight className="h-5 w-5 ml-2" />
                   </Link>
                 </Button>
               </div>

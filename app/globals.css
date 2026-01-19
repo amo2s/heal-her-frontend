@@ -4,93 +4,106 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Updated to exact healthcare color palette from design brief */
-  --background: #ffffff;
-  --foreground: #1a202c;
-  --card: #ffffff;
-  --card-foreground: #1a202c;
-  --popover: #ffffff;
-  --popover-foreground: #1a202c;
+  /* Brand Palette: Girls' Health AI */
+  /* Background: Midnight Indigo */
+  --background: #1C1246;
+  /* Foreground: Text Light */
+  --foreground: #FAFAFA;
+  
+  /* Cards: Slightly lighter indigo for depth or same as bg */
+  --card: #231854; 
+  --card-foreground: #FAFAFA;
+  
+  --popover: #1C1246;
+  --popover-foreground: #FAFAFA;
 
-  /* Primary blue #0F6FC1 */
-  --primary: #0f6fc1;
-  --primary-foreground: #ffffff;
+  /* Primary: Dusty Rose */
+  --primary: #DA8CA0;
+  --primary-foreground: #1C1246;
 
-  /* Soft neutral secondary */
-  --secondary: #f7fafc;
-  --secondary-foreground: #2d3748;
+  /* Secondary: Muted Lavender (Auxiliary) */
+  --secondary: #CCCCD9;
+  --secondary-foreground: #1C1246;
 
-  --muted: #f7fafc;
-  --muted-foreground: #718096;
+  /* Muted: Low opacity lavender or dark indigo */
+  --muted: #2a2259;
+  --muted-foreground: #CCCCD9;
 
-  /* Accent teal #21B6A8 */
-  --accent: #21b6a8;
-  --accent-foreground: #ffffff;
+  /* Accent: Variation of Dusty Rose */
+  --accent: #E8B4C1;
+  --accent-foreground: #1C1246;
 
-  /* Red for emergencies only #E53E3E */
-  --destructive: #e53e3e;
-  --destructive-foreground: #ffffff;
+  /* Destructive: Keep standard or soften to rose-red */
+  --destructive: #ef4444;
+  --destructive-foreground: #FAFAFA;
 
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #0f6fc1;
+  --border: #2a2259;
+  --input: #2a2259;
+  --ring: #DA8CA0;
 
-  --chart-1: #0f6fc1;
-  --chart-2: #21b6a8;
-  --chart-3: #4299e1;
-  --chart-4: #38b2ac;
-  --chart-5: #3182ce;
+  /* Chart colors adapted to Rose/Indigo/Lavender theme */
+  --chart-1: #DA8CA0; /* Dusty Rose */
+  --chart-2: #CCCCD9; /* Lavender */
+  --chart-3: #E8B4C1; /* Light Rose */
+  --chart-4: #8E84B8; /* Muted Purple */
+  --chart-5: #FAFAFA; /* White */
 
-  /* Increased border radius to 2xl (1rem) for softer look */
+  /* Radius preserved */
   --radius: 1rem;
 
-  --sidebar: #ffffff;
-  --sidebar-foreground: #1a202c;
-  --sidebar-primary: #0f6fc1;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f7fafc;
-  --sidebar-accent-foreground: #2d3748;
-  --sidebar-border: #e2e8f0;
-  --sidebar-ring: #0f6fc1;
+  /* Sidebar vars mapped to main theme */
+  --sidebar: #1C1246;
+  --sidebar-foreground: #FAFAFA;
+  --sidebar-primary: #DA8CA0;
+  --sidebar-primary-foreground: #1C1246;
+  --sidebar-accent: #231854;
+  --sidebar-accent-foreground: #FAFAFA;
+  --sidebar-border: #2a2259;
+  --sidebar-ring: #DA8CA0;
 }
 
+/* Since the default is now Dark (Midnight Indigo), 
+   .dark can either be the same or a pure black OLED optimized version.
+   For now, we map it to match the root to ensure consistency.
+*/
 .dark {
-  --background: #1a202c;
-  --foreground: #f7fafc;
-  --card: #2d3748;
-  --card-foreground: #f7fafc;
-  --popover: #2d3748;
-  --popover-foreground: #f7fafc;
-  --primary: #4299e1;
-  --primary-foreground: #1a202c;
-  --secondary: #2d3748;
-  --secondary-foreground: #f7fafc;
-  --muted: #374151;
-  --muted-foreground: #a0aec0;
-  --accent: #38b2ac;
-  --accent-foreground: #1a202c;
-  --destructive: #fc8181;
-  --destructive-foreground: #1a202c;
-  --border: #4a5568;
-  --input: #4a5568;
-  --ring: #4299e1;
-  --chart-1: #4299e1;
-  --chart-2: #38b2ac;
-  --chart-3: #63b3ed;
-  --chart-4: #4fd1c5;
-  --chart-5: #3182ce;
-  --sidebar: #2d3748;
-  --sidebar-foreground: #f7fafc;
-  --sidebar-primary: #4299e1;
-  --sidebar-primary-foreground: #1a202c;
-  --sidebar-accent: #374151;
-  --sidebar-accent-foreground: #f7fafc;
-  --sidebar-border: #4a5568;
-  --sidebar-ring: #4299e1;
+  --background: #1C1246;
+  --foreground: #FAFAFA;
+  --card: #231854;
+  --card-foreground: #FAFAFA;
+  --popover: #1C1246;
+  --popover-foreground: #FAFAFA;
+  --primary: #DA8CA0;
+  --primary-foreground: #1C1246;
+  --secondary: #CCCCD9;
+  --secondary-foreground: #1C1246;
+  --muted: #2a2259;
+  --muted-foreground: #CCCCD9;
+  --accent: #E8B4C1;
+  --accent-foreground: #1C1246;
+  --destructive: #ef4444;
+  --destructive-foreground: #FAFAFA;
+  --border: #2a2259;
+  --input: #2a2259;
+  --ring: #DA8CA0;
+  --chart-1: #DA8CA0;
+  --chart-2: #CCCCD9;
+  --chart-3: #E8B4C1;
+  --chart-4: #8E84B8;
+  --chart-5: #FAFAFA;
+  --sidebar: #1C1246;
+  --sidebar-foreground: #FAFAFA;
+  --sidebar-primary: #DA8CA0;
+  --sidebar-primary-foreground: #1C1246;
+  --sidebar-accent: #231854;
+  --sidebar-accent-foreground: #FAFAFA;
+  --sidebar-border: #2a2259;
+  --sidebar-ring: #DA8CA0;
 }
 
 @theme inline {
-  /* optional: --font-sans, --font-serif, --font-mono if they are applied in the layout.tsx */
+  --font-sans: 'Nunito', sans-serif; /* Explicitly added Nunito */
+  
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -135,15 +148,10 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
   }
-  /* Improved typography with better line height and spacing */
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    @apply font-bold tracking-tight;
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight text-primary; /* Applied Primary Dusty Rose to headings */
   }
   p {
     @apply leading-relaxed;

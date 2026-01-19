@@ -9,17 +9,14 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import {
   Shield,
-  Globe,
-  MessageSquare,
-  Activity,
+  Heart, // Replaced Activity with Heart
+  MessageCircle, // Replaced MessageSquare
   ArrowRight,
   Lock,
   Sparkles,
-  Mic,
-  Home,
+  BookOpen, // Added for education
   Star,
   Quote,
-  Briefcase,
   Baby,
   GraduationCap,
   ChevronLeft,
@@ -29,8 +26,8 @@ import {
   Signal,
   CheckCircle,
   Send,
-  Heart,
-  Users
+  Users,
+  Feather // Added for softness
 } from "lucide-react"
 
 // --- UI COMPONENTS ---
@@ -48,7 +45,7 @@ function SpotlightCard({ children, className = "" }: { children: React.ReactNode
   return (
     <div
       className={cn(
-        "group relative border border-white/10 bg-slate-900/50 overflow-hidden rounded-3xl",
+        "group relative border border-white/10 bg-[#231854]/50 overflow-hidden rounded-3xl",
         className
       )}
       onMouseMove={handleMouseMove}
@@ -59,7 +56,7 @@ function SpotlightCard({ children, className = "" }: { children: React.ReactNode
           background: useMotionTemplate`
             radial-gradient(
               650px circle at ${mouseX}px ${mouseY}px,
-              rgba(59, 130, 246, 0.15),
+              rgba(218, 140, 160, 0.15),
               transparent 80%
             )
           `,
@@ -71,21 +68,22 @@ function SpotlightCard({ children, className = "" }: { children: React.ReactNode
 }
 
 const AuroraBackground = () => (
-  <div className="absolute inset-0 -z-10 overflow-hidden bg-slate-950">
-    <div className="absolute top-[-50%] left-[-50%] h-[200%] w-[200%] animate-spin-slow rounded-full bg-[conic-gradient(from_0deg,transparent_0deg,#1e293b_120deg,transparent_180deg)] opacity-30 blur-3xl" />
-    <div className="absolute top-[0%] left-[0%] h-[100%] w-[100%] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/40 via-slate-950 to-slate-950" />
+  <div className="absolute inset-0 -z-10 overflow-hidden bg-[#1C1246]">
+    {/* Updated gradients to Dusty Rose (#DA8CA0) and Indigo */}
+    <div className="absolute top-[-50%] left-[-50%] h-[200%] w-[200%] animate-spin-slow rounded-full bg-[conic-gradient(from_0deg,transparent_0deg,#231854_120deg,transparent_180deg)] opacity-30 blur-3xl" />
+    <div className="absolute top-[0%] left-[0%] h-[100%] w-[100%] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#DA8CA0]/20 via-[#1C1246] to-[#1C1246]" />
     <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-soft-light" />
   </div>
 )
 
 const GlowingBadge = ({ children, icon: Icon }: { children: React.ReactNode; icon?: any }) => (
-  <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 text-sm font-medium text-blue-400 backdrop-blur-md transition-all hover:bg-blue-500/20 hover:shadow-[0_0_20px_rgba(59,130,246,0.3)]">
+  <div className="inline-flex items-center gap-2 rounded-full border border-[#DA8CA0]/30 bg-[#DA8CA0]/10 px-4 py-1.5 text-sm font-medium text-[#DA8CA0] backdrop-blur-md transition-all hover:bg-[#DA8CA0]/20 hover:shadow-[0_0_20px_rgba(218,140,160,0.3)]">
     {Icon && <Icon className="h-3.5 w-3.5 animate-pulse" />}
     {children}
   </div>
 )
 
-// --- CHAT SIMULATION COMPONENT (FIXED) ---
+// --- CHAT SIMULATION COMPONENT (UPDATED FOR GIRLS HEALTH) ---
 const PhoneScreen = () => {
   const [step, setStep] = useState(0)
 
@@ -99,16 +97,16 @@ const PhoneScreen = () => {
         setStep(1) // User Message
         await new Promise(r => setTimeout(r, 800))
         if(!mounted) break;
-        setStep(2) // AI Thinking
+        setStep(2) // Typing Dots
         await new Promise(r => setTimeout(r, 2000)) 
         if(!mounted) break;
         setStep(3) // AI Response
         await new Promise(r => setTimeout(r, 1000))
         if(!mounted) break;
-        setStep(4) // AI Thinking again
+        setStep(4) // Typing Dots again
         await new Promise(r => setTimeout(r, 1500))
         if(!mounted) break;
-        setStep(5) // AI Action Card
+        setStep(5) // Action Card
         await new Promise(r => setTimeout(r, 8000)) 
       }
     }
@@ -117,17 +115,17 @@ const PhoneScreen = () => {
   }, [])
 
   return (
-    <div className="flex-1 flex flex-col relative px-5 pt-4 pb-8 h-full">
+    <div className="flex-1 flex flex-col relative px-5 pt-4 pb-8 h-full font-nunito">
       {/* App Header */}
       <div className="flex items-center gap-3 mb-6 pl-1 border-b border-white/5 pb-4">
-        <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-900/50">
-          <Activity className="w-5 h-5 text-white" />
+        <div className="w-10 h-10 rounded-full bg-[#DA8CA0] flex items-center justify-center shadow-lg shadow-[#DA8CA0]/30">
+          <Heart className="w-5 h-5 text-[#1C1246] fill-[#1C1246]" />
         </div>
         <div>
-          <div className="text-sm font-bold text-white">MedGuard AI</div>
-          <div className="text-[10px] text-emerald-400 font-medium flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/> 
-            Online
+          <div className="text-sm font-bold text-white">HerHealth AI</div>
+          <div className="text-[10px] text-[#CCCCD9] font-medium flex items-center gap-1.5">
+            <Lock className="w-3 h-3 text-[#DA8CA0]" />
+            Private Mode
           </div>
         </div>
       </div>
@@ -143,24 +141,25 @@ const PhoneScreen = () => {
               transition={{ duration: 0.3 }}
               className="flex justify-end"
             >
-              <div className="bg-blue-600 text-white text-sm p-4 rounded-2xl rounded-tr-sm max-w-[85%] shadow-md">
-                <p>I feel dizzy... vision is blurry.</p>
+              {/* User Bubble: Midnight Indigo Lighter */}
+              <div className="bg-[#2a2259] text-white text-sm p-4 rounded-2xl rounded-tr-sm max-w-[85%] shadow-md border border-white/5">
+                <p>I&apos;ve been feeling really emotional lately and my skin is breaking out. Is something wrong with me?</p>
               </div>
             </motion.div>
           )}
 
           {step === 2 && (
             <motion.div 
-              key="chat-thinking-1"
+              key="chat-typing-1"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
               className="flex justify-start"
             >
-              <div className="bg-slate-800 text-slate-400 text-xs p-3 rounded-2xl rounded-tl-sm shadow-sm flex gap-1">
-                <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" />
-                <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce delay-100" />
-                <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce delay-200" />
+              <div className="bg-[#DA8CA0]/10 text-[#DA8CA0] text-xs p-3 rounded-2xl rounded-tl-sm shadow-sm flex gap-1">
+                <span className="w-1.5 h-1.5 bg-[#DA8CA0] rounded-full animate-bounce" />
+                <span className="w-1.5 h-1.5 bg-[#DA8CA0] rounded-full animate-bounce delay-100" />
+                <span className="w-1.5 h-1.5 bg-[#DA8CA0] rounded-full animate-bounce delay-200" />
               </div>
             </motion.div>
           )}
@@ -173,24 +172,25 @@ const PhoneScreen = () => {
               transition={{ duration: 0.3 }}
               className="flex justify-start"
             >
-              <div className="bg-[#1e293b] text-slate-200 text-sm p-4 rounded-2xl rounded-tl-sm max-w-[90%] border border-slate-800 shadow-sm">
-                <p>Please sit or lie down immediately to prevent falling. Are you currently in a hot environment or have you skipped meals?</p>
+              {/* AI Bubble: Dusty Rose */}
+              <div className="bg-[#DA8CA0] text-[#1C1246] text-sm p-4 rounded-2xl rounded-tl-sm max-w-[90%] shadow-lg">
+                <p>It is completely normal! ❤️ You are likely seeing signs of puberty. Hormonal changes can affect your mood and skin. You are perfectly healthy.</p>
               </div>
             </motion.div>
           )}
 
           {step === 4 && (
              <motion.div 
-             key="chat-thinking-2"
+             key="chat-typing-2"
              initial={{ opacity: 0, y: 10 }}
              animate={{ opacity: 1, y: 0 }}
              exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
              className="flex justify-start"
            >
-             <div className="bg-slate-800 text-slate-400 text-xs p-3 rounded-2xl rounded-tl-sm shadow-sm flex gap-1">
-               <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" />
-               <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce delay-100" />
-               <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce delay-200" />
+             <div className="bg-[#DA8CA0]/10 text-[#DA8CA0] text-xs p-3 rounded-2xl rounded-tl-sm shadow-sm flex gap-1">
+               <span className="w-1.5 h-1.5 bg-[#DA8CA0] rounded-full animate-bounce" />
+               <span className="w-1.5 h-1.5 bg-[#DA8CA0] rounded-full animate-bounce delay-100" />
+               <span className="w-1.5 h-1.5 bg-[#DA8CA0] rounded-full animate-bounce delay-200" />
              </div>
            </motion.div>
           )}
@@ -201,16 +201,16 @@ const PhoneScreen = () => {
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.3 }}
-              className="mt-4 p-4 bg-[#0f172a] border border-blue-500/30 rounded-xl flex gap-3 items-start relative overflow-hidden"
+              className="mt-4 p-4 bg-[#231854] border border-[#DA8CA0]/30 rounded-xl flex gap-3 items-start relative overflow-hidden"
             >
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500" />
+              <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#DA8CA0]" />
               <div className="mt-0.5">
-                <CheckCircle className="w-5 h-5 text-blue-400" />
+                <Sparkles className="w-5 h-5 text-[#DA8CA0]" />
               </div>
               <div>
-                <h4 className="text-blue-400 text-xs font-bold uppercase tracking-wider mb-1">Safety Protocol</h4>
-                <p className="text-slate-300 text-xs leading-relaxed">
-                  Loosen tight clothing. Sip water slowly if conscious. Do not stand up quickly.
+                <h4 className="text-[#DA8CA0] text-xs font-bold uppercase tracking-wider mb-1">Wellness Tip</h4>
+                <p className="text-[#CCCCD9] text-xs leading-relaxed">
+                  Try gentle cleansing and drinking more water. Be kind to yourself today! 🌸
                 </p>
               </div>
             </motion.div>
@@ -219,12 +219,12 @@ const PhoneScreen = () => {
       </div>
 
       {/* Input Area (Visual Only) */}
-      <div className="mt-4 flex gap-2 items-center opacity-50">
-         <div className="h-10 flex-1 bg-slate-900 rounded-full border border-slate-800 px-4 flex items-center text-xs text-slate-500">
-            Type a message...
+      <div className="mt-4 flex gap-2 items-center opacity-70">
+         <div className="h-10 flex-1 bg-[#231854] rounded-full border border-white/10 px-4 flex items-center text-xs text-[#CCCCD9]">
+           Type a message...
          </div>
-         <div className="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center">
-            <Send className="w-4 h-4 text-white" />
+         <div className="h-10 w-10 bg-[#DA8CA0] rounded-full flex items-center justify-center hover:scale-105 transition-transform">
+            <Send className="w-4 h-4 text-[#1C1246]" />
          </div>
       </div>
 
@@ -237,80 +237,43 @@ const PhoneScreen = () => {
 export default function HomePage() {
   const allTestimonials = [
     {
-      name: "Chidinma Okafor",
-      role: "Medical Student, UniJos",
-      content: "The calm voice feature is a lifesaver. My roommate had a panic attack during exams, and this helped us calm down. But honestly, typing the URL every time is stress. We really need a mobile app.",
-      rating: 4,
-      initials: "CO",
+      name: "Amina Yusuf",
+      role: "High School Student, Lagos",
+      content: "I was too shy to ask my teacher about my period pain, but HerHealth explained everything without making me feel weird. It feels like a big sister.",
+      rating: 5,
+      initials: "AY",
       color: "bg-pink-500/20 text-pink-400",
       icon: <GraduationCap className="w-3 h-3" />,
-      badge: "Waiting for App"
+      badge: "Verified User"
     },
     {
       name: "Mrs. Ngozi Adeleke",
-      role: "Mother of 3, Lagos",
-      content: "My baby had a high fever at 2 AM. I was shaking. MedGuard just told me exactly how to cool him down before we got to the hospital. Every mum needs this.",
+      role: "Mother of 2, Abuja",
+      content: "My daughter is entering puberty and has so many questions. This AI gives her accurate, safe answers when I'm not around. It's a blessing.",
       rating: 5,
       initials: "NA",
       color: "bg-orange-500/20 text-orange-400",
       icon: <Baby className="w-3 h-3" />,
-      badge: "Verified Parent"
+      badge: "Parent"
     },
     {
-      name: "Ibrahim Sani",
-      role: "Computer Science, ABU Zaria",
-      content: "The AI is very fast and the instructions are clear. It doesn't confuse you with big medical grammar. It just tells you what to do instantly.",
+      name: "Ms. Sarah Okon",
+      role: "Biology Teacher, PH",
+      content: "I use this to supplement my health classes. The information is accurate, age-appropriate, and very gentle. The girls love it.",
       rating: 5,
-      initials: "IS",
+      initials: "SO",
       color: "bg-emerald-500/20 text-emerald-400",
-      icon: <GraduationCap className="w-3 h-3" />
+      icon: <BookOpen className="w-3 h-3" />
     },
     {
-      name: "Mr. Johnson Kalu",
-      role: "HR Manager, Zenith Tech",
-      content: "We deployed this to our staff internal portal. It makes the office feel safer knowing we have a 'digital medic' on standby for emergencies.",
-      rating: 5,
-      initials: "JK",
-      color: "bg-slate-500/20 text-slate-400",
-      icon: <Briefcase className="w-3 h-3" />
-    },
-    {
-      name: "David Etim",
-      role: "Law Student, UniJos",
-      content: "I love the platform, seriously. But opening my browser when I'm in a rush is annoying. Please, I'm begging you guys, launch the app version. The browser process is too long.",
-      rating: 4,
-      initials: "DE",
-      color: "bg-blue-500/20 text-blue-400",
-      icon: <GraduationCap className="w-3 h-3" />,
-      badge: "Feature Request"
-    },
-      {
-      name: "Sarah Musa",
-      role: "Teacher, Abuja",
-      content: "A student fell on the playground. I used MedGuard to check for concussion signs while waiting for the nurse. It gave me so much confidence.",
-      rating: 5,
-      initials: "SM",
-      color: "bg-teal-500/20 text-teal-400",
-      icon: <Briefcase className="w-3 h-3" />
-    },
-    {
-      name: "Tolu Adebayo",
+      name: "Chidinma O.",
       role: "Student, UNILAG",
-      content: "I didn't believe an AI could sound this human. It felt like talking to a big sister who knows exactly what to do. 10/10 recommended.",
+      content: "Finally, an app that doesn't sell my data. I can ask personal questions about my body and know it stays private.",
       rating: 5,
-      initials: "TA",
+      initials: "CO",
       color: "bg-purple-500/20 text-purple-400",
-      icon: <GraduationCap className="w-3 h-3" />
-    },
-    {
-      name: "Emeka O.",
-      role: "Banker, Lagos",
-      content: "Great tool, but sometimes the network in my office is bad and the site loads slow. An offline app would be perfect.",
-      rating: 4,
-      initials: "EO",
-      color: "bg-indigo-500/20 text-indigo-400",
-      icon: <Briefcase className="w-3 h-3" />,
-      badge: "Waiting for App"
+      icon: <GraduationCap className="w-3 h-3" />,
+      badge: "Privacy First"
     }
   ]
 
@@ -335,7 +298,7 @@ export default function HomePage() {
 
 
   return (
-    <div className="relative min-h-screen bg-slate-950 text-slate-200 selection:bg-blue-500/30 selection:text-blue-200">
+    <div className="relative min-h-screen bg-[#1C1246] text-[#FAFAFA] selection:bg-[#DA8CA0]/30 selection:text-[#DA8CA0]">
       <Navigation />
       
       {/* --- HERO SECTION --- */}
@@ -358,39 +321,40 @@ export default function HomePage() {
                 transition={{ delay: 0.5 }}
                 className="mb-8 flex justify-center lg:justify-start"
               >
-                <GlowingBadge icon={Sparkles}>Your Digital Companion</GlowingBadge>
+                <GlowingBadge icon={Sparkles}>Your Private Health Companion</GlowingBadge>
               </motion.div>
               
-              <h1 className="text-5xl font-extrabold tracking-tight sm:text-7xl lg:text-8xl text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-slate-400">
-                A Calm Voice in <br />
-                <span className="bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">The Chaos.</span>
+              <h1 className="text-5xl font-extrabold tracking-tight sm:text-7xl lg:text-8xl text-transparent bg-clip-text bg-gradient-to-b from-[#FAFAFA] via-[#FAFAFA] to-[#CCCCD9]">
+                Your Body. <br />
+                Your Questions. <br />
+                <span className="bg-gradient-to-r from-[#DA8CA0] to-[#E8B4C1] bg-clip-text text-transparent">Your Safe Space.</span>
               </h1>
               
-              <p className="mt-8 text-lg sm:text-xl text-slate-400 leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                Medical emergencies are terrifying. MedGuard AI is your steady anchor.
-                <span className="text-white font-medium"> We provide a sense of home, </span> 
-                translating panic into clear, gentle guidance—in any language.
+              <p className="mt-8 text-lg sm:text-xl text-[#CCCCD9] leading-relaxed max-w-2xl mx-auto lg:mx-0">
+                Growing up is a journey. <span className="text-[#DA8CA0] font-medium">HerHealth AI</span> is your judgment-free companion for learning about your body, health, and wellness. Accurate, private, and always here for you.
               </p>
 
               <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Button size="lg" className="h-14 rounded-full bg-blue-600 px-8 text-base font-semibold text-white shadow-[0_0_40px_-10px_rgba(37,99,235,0.5)] hover:bg-blue-500 hover:shadow-[0_0_60px_-10px_rgba(37,99,235,0.6)] hover:scale-105 transition-all duration-300">
-                  {/* UPDATED: Internal Link to /launch */}
-                  <Link href="/launch" className="flex items-center gap-2">
-                    Start MedGuard <ArrowRight className="h-4 w-4" />
+                <Button size="lg" className="h-14 rounded-full bg-[#DA8CA0] px-8 text-base font-bold text-[#1C1246] shadow-[0_0_40px_-10px_rgba(218,140,160,0.5)] hover:bg-[#E8B4C1] hover:shadow-[0_0_60px_-10px_rgba(218,140,160,0.6)] hover:scale-105 transition-all duration-300">
+                  <Link href="/chat" className="flex items-center gap-2">
+                    Start Chatting <ArrowRight className="h-4 w-4" />
                   </Link>
+                </Button>
+                <Button variant="ghost" className="h-14 rounded-full text-[#FAFAFA] hover:bg-white/5 border border-white/10">
+                    <Link href="/about">For Parents & Schools</Link>
                 </Button>
               </div>
 
               {/* Stats Strip */}
-              <div className="mt-16 border-t border-white/5 pt-8 flex flex-wrap justify-center lg:justify-start gap-12 pb-10 lg:pb-32">
+              <div className="mt-16 border-t border-[#CCCCD9]/10 pt-8 flex flex-wrap justify-center lg:justify-start gap-12 pb-10 lg:pb-32">
                 {[
-                  { label: "Language Support", value: "50+" },
+                  { label: "Privacy", value: "100%" },
                   { label: "Guidance", value: "Real-time" },
-                  { label: "Availability", value: "24/7" },
+                  { label: "Community", value: "Safe" },
                 ].map((stat, i) => (
                   <div key={i}>
-                    <div className="text-2xl font-bold text-white">{stat.value}</div>
-                    <div className="text-sm text-slate-500 font-medium tracking-wide uppercase">{stat.label}</div>
+                    <div className="text-2xl font-bold text-[#FAFAFA]">{stat.value}</div>
+                    <div className="text-sm text-[#DA8CA0] font-medium tracking-wide uppercase">{stat.label}</div>
                   </div>
                 ))}
               </div>
@@ -399,49 +363,49 @@ export default function HomePage() {
             {/* --- ULTRA-REALISTIC PHONE --- */}
             <div className="w-full lg:w-[420px] relative">
                <div className="relative lg:sticky lg:top-24 w-full flex items-start justify-center">
-                  
-                  {/* Phone Chassis */}
-                  <motion.div 
-                    initial={{ y: 100, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ duration: 0.8, delay: 0.2 }}
-                    className="relative w-[360px] h-[720px] bg-black rounded-[55px] border-[8px] border-[#2a2a2a] shadow-[0_0_0_4px_#1a1a1a,0_20px_50px_-12px_rgba(0,0,0,0.8)] overflow-hidden ring-1 ring-white/10"
-                  >
-                    {/* Physical Buttons (Side) */}
-                    <div className="absolute top-28 -left-[12px] w-[4px] h-8 bg-[#1a1a1a] rounded-l-md" /> {/* Silent Switch */}
-                    <div className="absolute top-44 -left-[12px] w-[4px] h-16 bg-[#1a1a1a] rounded-l-md" /> {/* Vol Up */}
-                    <div className="absolute top-64 -left-[12px] w-[4px] h-16 bg-[#1a1a1a] rounded-l-md" /> {/* Vol Down */}
-                    <div className="absolute top-52 -right-[12px] w-[4px] h-24 bg-[#1a1a1a] rounded-r-md" /> {/* Power */}
+                 
+                 {/* Phone Chassis */}
+                 <motion.div 
+                   initial={{ y: 100, opacity: 0 }}
+                   animate={{ y: 0, opacity: 1 }}
+                   transition={{ duration: 0.8, delay: 0.2 }}
+                   className="relative w-[360px] h-[720px] bg-[#1a1a1a] rounded-[55px] border-[8px] border-[#2a2a2a] shadow-[0_0_0_4px_#1a1a1a,0_20px_50px_-12px_rgba(0,0,0,0.8)] overflow-hidden ring-1 ring-white/10"
+                 >
+                   {/* Physical Buttons (Side) */}
+                   <div className="absolute top-28 -left-[12px] w-[4px] h-8 bg-[#1a1a1a] rounded-l-md" /> 
+                   <div className="absolute top-44 -left-[12px] w-[4px] h-16 bg-[#1a1a1a] rounded-l-md" /> 
+                   <div className="absolute top-64 -left-[12px] w-[4px] h-16 bg-[#1a1a1a] rounded-l-md" /> 
+                   <div className="absolute top-52 -right-[12px] w-[4px] h-24 bg-[#1a1a1a] rounded-r-md" /> 
 
-                    {/* Screen Bezel (Inner Black Border) */}
-                    <div className="absolute inset-0 border-[10px] border-black rounded-[48px] z-20 pointer-events-none" />
+                   {/* Screen Bezel (Inner Black Border) */}
+                   <div className="absolute inset-0 border-[10px] border-black rounded-[48px] z-20 pointer-events-none" />
 
-                    {/* Dynamic Island */}
-                    <div className="absolute top-3 left-1/2 -translate-x-1/2 w-32 h-9 bg-black rounded-full z-30 flex items-center justify-center gap-3">
-                       <div className="w-2 h-2 rounded-full bg-[#1a1a1a]/80" /> {/* Camera Lens */}
-                    </div>
+                   {/* Dynamic Island */}
+                   <div className="absolute top-3 left-1/2 -translate-x-1/2 w-32 h-9 bg-black rounded-full z-30 flex items-center justify-center gap-3">
+                       <div className="w-2 h-2 rounded-full bg-[#1a1a1a]/80" /> 
+                   </div>
 
-                    {/* Screen Content */}
-                    <div className="relative w-full h-full bg-slate-950 overflow-hidden flex flex-col">
-                        
-                        {/* Status Bar */}
-                        <div className="h-14 px-8 flex justify-between items-center text-white/90 text-xs font-medium z-20 pt-2">
-                           <span>9:41</span>
-                           <div className="flex gap-1.5 items-center">
-                              <Signal className="w-3.5 h-3.5" />
-                              <Wifi className="w-3.5 h-3.5" />
-                              <Battery className="w-4 h-4" />
-                           </div>
-                        </div>
+                   {/* Screen Content */}
+                   <div className="relative w-full h-full bg-[#1C1246] overflow-hidden flex flex-col">
+                       
+                       {/* Status Bar */}
+                       <div className="h-14 px-8 flex justify-between items-center text-white/90 text-xs font-medium z-20 pt-2">
+                          <span>9:41</span>
+                          <div className="flex gap-1.5 items-center">
+                             <Signal className="w-3.5 h-3.5" />
+                             <Wifi className="w-3.5 h-3.5" />
+                             <Battery className="w-4 h-4" />
+                          </div>
+                       </div>
 
-                        {/* Glass Reflection Overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-50 pointer-events-none z-40" />
+                       {/* Glass Reflection Overlay */}
+                       <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-50 pointer-events-none z-40" />
 
-                        {/* RENDER THE CHAT SIMULATION */}
-                        <PhoneScreen />
+                       {/* RENDER THE CHAT SIMULATION */}
+                       <PhoneScreen />
 
-                    </div>
-                  </motion.div>
+                   </div>
+                 </motion.div>
                </div>
             </div>
 
@@ -449,8 +413,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* --- THE CRISIS --- */}
-      <section className="relative py-32 bg-slate-950">
+      {/* --- THE GAP --- */}
+      <section className="relative py-32 bg-[#1C1246]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
               <motion.div
@@ -459,21 +423,21 @@ export default function HomePage() {
                 viewport={{ once: true }}
                 className="order-2 lg:order-1"
               >
-                 <SpotlightCard className="p-8 h-full bg-slate-900/50 backdrop-blur-sm border-slate-800">
+                 <SpotlightCard className="p-8 h-full bg-[#231854] backdrop-blur-sm border-[#CCCCD9]/10">
                     <div className="flex items-center gap-4 mb-6">
-                       <div className="p-3 bg-indigo-500/10 rounded-lg text-indigo-400">
-                          <Activity className="w-8 h-8" />
+                       <div className="p-3 bg-[#DA8CA0]/10 rounded-lg text-[#DA8CA0]">
+                          <BookOpen className="w-8 h-8" />
                        </div>
-                       <h3 className="text-2xl font-bold text-white">The Clarity Gap</h3>
+                       <h3 className="text-2xl font-bold text-white">The Knowledge Gap</h3>
                     </div>
                     <div className="space-y-6">
                        <div className="flex gap-4 items-start">
-                          <span className="text-5xl font-bold text-slate-800">01</span>
-                          <p className="text-slate-400 mt-2">Panic freezes the brain. Even improved speakers struggle to communicate in a second language during emergencies.</p>
+                          <span className="text-5xl font-bold text-[#DA8CA0]/20">01</span>
+                          <p className="text-[#CCCCD9] mt-2">The internet is full of misinformation. Girls often find scary or wrong advice when searching for health topics online.</p>
                        </div>
                        <div className="flex gap-4 items-start">
-                          <span className="text-5xl font-bold text-slate-800">02</span>
-                          <p className="text-slate-400 mt-2">Standard emergency services can feel cold and robotic. We provide the warmth of a human connection with the speed of AI.</p>
+                          <span className="text-5xl font-bold text-[#DA8CA0]/20">02</span>
+                          <p className="text-[#CCCCD9] mt-2">Asking adults can feel awkward. We bridge the gap by providing a safe, non-judgmental place to ask anything.</p>
                        </div>
                     </div>
                  </SpotlightCard>
@@ -486,96 +450,96 @@ export default function HomePage() {
                 className="order-1 lg:order-2"
               >
                  <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">
-                   Seconds feel like <br />
-                   <span className="text-blue-500">Hours.</span>
+                   Fear comes from <br />
+                   <span className="text-[#DA8CA0]">Not Knowing.</span>
                  </h2>
-                 <p className="text-lg text-slate-400 mb-8">
-                   When fear takes over, you don't need a complex tool. You need a calm, steady voice that knows exactly what to do, step by gentle step.
+                 <p className="text-lg text-[#CCCCD9] mb-8">
+                   We replace anxiety with understanding. Whether it&apos;s puberty, mental health, or hygiene, HerHealth AI explains it all simply and gently.
                  </p>
-                 <div className="h-1 w-24 bg-gradient-to-r from-blue-500 to-transparent rounded-full" />
+                 <div className="h-1 w-24 bg-gradient-to-r from-[#DA8CA0] to-transparent rounded-full" />
               </motion.div>
           </div>
         </div>
       </section>
 
       {/* --- FEATURES --- */}
-      <section className="relative py-32 bg-slate-950">
+      <section className="relative py-32 bg-[#1C1246]">
          <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
          
          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="text-center max-w-3xl mx-auto mb-20">
                <h2 className="text-3xl font-bold tracking-tight text-white sm:text-5xl mb-6">
-                  Engineered for <span className="text-blue-500">Comfort</span>
+                  Engineered for <span className="text-[#DA8CA0]">Comfort</span>
                </h2>
-               <p className="text-lg text-slate-400">
-                  We stripped away the noise. MedGuard AI is a precision instrument designed to ground you when you feel untethered.
+               <p className="text-lg text-[#CCCCD9]">
+                  We stripped away the complexity. HerHealth AI is a digital big sister designed to guide you through growing up.
                </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-6 gap-6 auto-rows-[300px]">
-               <SpotlightCard className="md:col-span-4 row-span-2 p-10 flex flex-col justify-between overflow-hidden group">
-                  <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-blue-500/20 transition-all duration-700" />
+               <SpotlightCard className="md:col-span-4 row-span-2 p-10 flex flex-col justify-between overflow-hidden group bg-[#231854]">
+                  <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#DA8CA0]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-[#DA8CA0]/20 transition-all duration-700" />
                   
                   <div className="relative z-10">
-                      <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center mb-6">
-                         <MessageSquare className="w-6 h-6 text-blue-400" />
+                      <div className="w-12 h-12 rounded-xl bg-[#DA8CA0]/20 flex items-center justify-center mb-6">
+                         <MessageCircle className="w-6 h-6 text-[#DA8CA0]" />
                       </div>
-                      <h3 className="text-3xl font-bold text-white mb-4">We Listen. We Guide.</h3>
-                      <p className="text-slate-400 text-lg max-w-md">
-                         Don't worry about perfect grammar or English. Just speak. Our AI understands panic and responds with simple, calming instructions.
+                      <h3 className="text-3xl font-bold text-white mb-4">No Question is "Too Weird"</h3>
+                      <p className="text-[#CCCCD9] text-lg max-w-md">
+                          Don&apos;t worry about grammar or phrasing. Just ask. Our AI understands your curiosity and responds with kindness, not medical jargon.
                       </p>
                   </div>
                   
                   <div className="relative w-full h-48 mt-8">
                       <div className="absolute bottom-0 left-0 right-0 space-y-3 opacity-50">
-                         <div className="bg-slate-800 p-3 rounded-lg w-3/4">My dad... he's clutching his chest!</div>
-                         <div className="bg-blue-900/50 p-3 rounded-lg w-3/4 ml-auto border border-blue-500/30">I understand. Stay close to him. Let's help him sit down.</div>
+                         <div className="bg-[#2a2259] p-3 rounded-lg w-3/4 text-[#CCCCD9]">Is it normal to feel sad for no reason?</div>
+                         <div className="bg-[#DA8CA0]/20 p-3 rounded-lg w-3/4 ml-auto border border-[#DA8CA0]/30 text-white">Yes! Hormones can change your mood. Let&apos;s talk about it.</div>
                       </div>
                   </div>
                </SpotlightCard>
 
-               <SpotlightCard className="md:col-span-2 row-span-2 p-8 bg-gradient-to-b from-slate-900 to-slate-900/50">
+               <SpotlightCard className="md:col-span-2 row-span-2 p-8 bg-gradient-to-b from-[#231854] to-[#1C1246]">
                   <div className="h-full flex flex-col items-center text-center">
-                      <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mb-6 ring-1 ring-green-500/30">
-                         <Shield className="w-8 h-8 text-green-400" />
+                      <div className="w-16 h-16 rounded-full bg-[#DA8CA0]/10 flex items-center justify-center mb-6 ring-1 ring-[#DA8CA0]/30">
+                         <Shield className="w-8 h-8 text-[#DA8CA0]" />
                       </div>
                       <h3 className="text-2xl font-bold text-white mb-2">Private & Safe</h3>
-                      <p className="text-slate-400 text-sm leading-relaxed mb-8">
-                        Your vulnerability is protected. No data leaves your device without encryption.
+                      <p className="text-[#CCCCD9] text-sm leading-relaxed mb-8">
+                        Your secrets are safe here. No data is shared with advertisers or third parties.
                       </p>
                       
-                      <div className="mt-auto w-full bg-slate-800/50 rounded-xl p-4 border border-white/5">
+                      <div className="mt-auto w-full bg-[#2a2259] rounded-xl p-4 border border-white/5">
                          <div className="flex items-center gap-3 mb-2">
-                            <Lock className="w-4 h-4 text-green-400" />
+                            <Lock className="w-4 h-4 text-[#DA8CA0]" />
                             <span className="text-xs text-white font-mono">End-to-End Encrypted</span>
                          </div>
-                         <div className="h-1 w-full bg-slate-700 rounded-full overflow-hidden">
-                            <div className="h-full w-full bg-green-500 animate-pulse" />
+                         <div className="h-1 w-full bg-[#1C1246] rounded-full overflow-hidden">
+                            <div className="h-full w-full bg-[#DA8CA0] animate-pulse" />
                          </div>
                       </div>
                   </div>
                </SpotlightCard>
 
-               <SpotlightCard className="md:col-span-3 p-8 flex items-center gap-6">
+               <SpotlightCard className="md:col-span-3 p-8 flex items-center gap-6 bg-[#231854]">
                   <div className="flex-shrink-0 w-14 h-14 rounded-full bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
-                     <Home className="w-7 h-7 text-orange-400" />
+                     <Feather className="w-7 h-7 text-orange-400" />
                   </div>
                   <div>
-                      <h3 className="text-xl font-bold text-white">A Sense of Home</h3>
-                      <p className="text-slate-400 text-sm mt-1">
-                        A reassuring interface that feels safe and familiar, grounded in stability when your world feels chaotic.
+                      <h3 className="text-xl font-bold text-white">Gentle Guidance</h3>
+                      <p className="text-[#CCCCD9] text-sm mt-1">
+                        A reassuring interface that feels safe and familiar, grounded in kindness.
                       </p>
                   </div>
                </SpotlightCard>
 
-               <SpotlightCard className="md:col-span-3 p-8 flex items-center gap-6">
+               <SpotlightCard className="md:col-span-3 p-8 flex items-center gap-6 bg-[#231854]">
                   <div className="flex-shrink-0 w-14 h-14 rounded-full bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
-                     <Globe className="w-7 h-7 text-purple-400" />
+                     <Heart className="w-7 h-7 text-purple-400" />
                   </div>
                   <div>
-                      <h3 className="text-xl font-bold text-white">Universal Language</h3>
-                      <p className="text-slate-400 text-sm mt-1">
-                        We speak your language. Real-time translation so you can think and speak naturally.
+                      <h3 className="text-xl font-bold text-white">Body Positivity</h3>
+                      <p className="text-[#CCCCD9] text-sm mt-1">
+                        We celebrate your growth and help you build confidence in your changing body.
                       </p>
                   </div>
                </SpotlightCard>
@@ -584,11 +548,11 @@ export default function HomePage() {
       </section>
 
       {/* --- TESTIMONIALS SECTION --- */}
-      <section className="py-24 bg-slate-950 relative overflow-hidden">
+      <section className="py-24 bg-[#1C1246] relative overflow-hidden">
         <div className="relative z-10 mb-12 text-center px-4">
           <h2 className="text-3xl font-bold text-white mb-4">Voices from the Community</h2>
-          <p className="text-slate-400 max-w-2xl mx-auto">
-            Trusted by mothers, students, and professionals across Nigeria.
+          <p className="text-[#CCCCD9] max-w-2xl mx-auto">
+            Trusted by girls, mothers, and educators across the country.
           </p>
           
           <div className="flex justify-center gap-4 mt-6">
@@ -616,11 +580,11 @@ export default function HomePage() {
             >
               {allTestimonials.map((item, idx) => (
                 <div key={idx} className="w-full flex-shrink-0 px-4">
-                  <SpotlightCard className="bg-slate-900/60 backdrop-blur-md border border-white/10 p-8 md:p-10 rounded-3xl shadow-xl">
+                  <SpotlightCard className="bg-[#231854]/80 backdrop-blur-md border border-white/10 p-8 md:p-10 rounded-3xl shadow-xl">
                     <div className="flex flex-col items-center text-center">
-                      <Quote className="w-10 h-10 text-slate-700 opacity-25 mb-5" />
+                      <Quote className="w-10 h-10 text-[#DA8CA0] opacity-25 mb-5" />
 
-                      <p className="text-lg md:text-xl text-slate-200 leading-relaxed font-light italic mb-8">
+                      <p className="text-lg md:text-xl text-[#FAFAFA] leading-relaxed font-light italic mb-8">
                         "{item.content}"
                       </p>
 
@@ -630,7 +594,7 @@ export default function HomePage() {
                         </div>
                         
                         <h4 className="text-lg font-semibold text-white">{item.name}</h4>
-                        <p className="text-sm text-slate-400 mt-1 flex items-center gap-2">
+                        <p className="text-sm text-[#CCCCD9] mt-1 flex items-center gap-2">
                           {item.icon}
                           <span>{item.role}</span>
                         </p>
@@ -641,14 +605,14 @@ export default function HomePage() {
                               key={star}
                               className={cn(
                                 "w-4.5 h-4.5",
-                                star <= item.rating ? "fill-yellow-500 text-yellow-500" : "fill-slate-700 text-slate-700"
+                                star <= item.rating ? "fill-[#DA8CA0] text-[#DA8CA0]" : "fill-[#2a2259] text-[#2a2259]"
                               )}
                             />
                           ))}
                         </div>
 
                         {item.badge && (
-                          <div className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-blue-500/10 text-xs text-blue-300 font-medium border border-blue-500/20">
+                          <div className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#DA8CA0]/10 text-xs text-[#DA8CA0] font-medium border border-[#DA8CA0]/20">
                             {item.badge}
                           </div>
                         )}
@@ -667,7 +631,7 @@ export default function HomePage() {
                 onClick={() => setIndex(i)}
                 className={cn(
                   "w-2 h-2 rounded-full transition-all duration-300",
-                  i === index ? "bg-blue-500 w-8" : "bg-slate-600"
+                  i === index ? "bg-[#DA8CA0] w-8" : "bg-[#2a2259]"
                 )}
                 aria-label={`Go to testimonial ${i + 1}`}
               />
@@ -677,23 +641,23 @@ export default function HomePage() {
       </section>
 
       {/* --- ETHICS --- */}
-      <section className="py-24 bg-slate-950 border-t border-white/5">
+      <section className="py-24 bg-[#1C1246] border-t border-white/5">
          <div className="mx-auto max-w-7xl px-4 text-center">
-            <h2 className="text-sm font-semibold tracking-widest text-blue-500 uppercase mb-16">Core Promises</h2>
+            <h2 className="text-sm font-semibold tracking-widest text-[#DA8CA0] uppercase mb-16">Our Core Values</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-12">
                {[
-                  { icon: Heart, title: "Empathy", text: "Calm Voice Synthesis" },
-                  { icon: Users, title: "Accessibility", text: "Simple Instructions" },
-                  { icon: Shield, title: "Safety", text: "Verified Guidance" },
-                  { icon: CheckCircle, title: "Clarity", text: "Step-by-Step Focus" },
+                  { icon: Heart, title: "Empathy", text: "Always Kind" },
+                  { icon: BookOpen, title: "Education", text: "Fact-Based" },
+                  { icon: Shield, title: "Safety", text: "Private & Secure" },
+                  { icon: CheckCircle, title: "Clarity", text: "Easy to Read" },
                ].map((item, i) => (
                   <div key={i} className="group flex flex-col items-center gap-4">
-                     <div className="p-4 rounded-2xl bg-slate-900 border border-white/5 group-hover:border-blue-500/30 transition-colors">
-                        <item.icon className="w-6 h-6 text-slate-400 group-hover:text-blue-400 transition-colors" />
+                     <div className="p-4 rounded-2xl bg-[#231854] border border-white/5 group-hover:border-[#DA8CA0]/30 transition-colors">
+                        <item.icon className="w-6 h-6 text-[#CCCCD9] group-hover:text-[#DA8CA0] transition-colors" />
                      </div>
                      <div>
                         <h4 className="text-white font-bold">{item.title}</h4>
-                        <p className="text-slate-500 text-sm mt-1">{item.text}</p>
+                        <p className="text-[#CCCCD9] text-sm mt-1">{item.text}</p>
                      </div>
                   </div>
                ))}
@@ -703,25 +667,24 @@ export default function HomePage() {
 
       {/* --- CTA --- */}
       <section className="relative py-32 overflow-hidden">
-         <div className="absolute inset-0 bg-blue-600">
-            <div className="absolute inset-0 bg-slate-950/90" />
+         <div className="absolute inset-0 bg-[#DA8CA0]">
+            <div className="absolute inset-0 bg-[#1C1246]/90" />
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-blue-500/30 blur-[120px] rounded-full pointer-events-none" />
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-[#DA8CA0]/30 blur-[120px] rounded-full pointer-events-none" />
          </div>
 
          <div className="relative z-10 mx-auto max-w-4xl px-4 text-center">
             <h2 className="text-5xl md:text-7xl font-bold text-white tracking-tight mb-8">
-               Peace of mind, <br/> in your pocket.
+               Confidence in <br/> every question.
             </h2>
-            <p className="text-xl text-blue-100 mb-12 max-w-2xl mx-auto">
-               When the unexpected happens, MedGuard AI is your voice of reason.
+            <p className="text-xl text-[#CCCCD9] mb-12 max-w-2xl mx-auto">
+               You are not alone in this journey. HerHealth AI is here to help you grow with confidence.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-               <Button className="h-16 px-10 rounded-full bg-white text-blue-900 text-lg font-bold hover:bg-blue-50 hover:scale-105 transition-all shadow-xl">
-                  {/* UPDATED: Internal Link to /launch */}
-                  <Link href="/launch">Launch MedGuard AI</Link>
+               <Button className="h-16 px-10 rounded-full bg-[#DA8CA0] text-[#1C1246] text-lg font-bold hover:bg-[#E8B4C1] hover:scale-105 transition-all shadow-xl">
+                  <Link href="/chat">Start Learning Now</Link>
                </Button>
-               <span className="text-blue-200 text-sm">Always free for families</span>
+               <span className="text-[#CCCCD9] text-sm">Always free for girls</span>
             </div>
          </div>
       </section>

@@ -6,26 +6,13 @@ import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-// Import React Markdown
 import ReactMarkdown from 'react-markdown'
 import {
-  Zap,
-  Globe,
-  Shield,
-  Server,
-  Activity,
-  Check,
-  AlertOctagon,
-  Command,
-  Play,
-  PhoneCall,
-  MapPin,
-  Loader2,
-  Terminal as TerminalIcon,
-  Cpu,
-  Wifi,
-  AlertCircle,
-  Trash2 // <--- Added Icon for Clear
+  Zap, Globe, Shield, Activity, Check, AlertOctagon,
+  PhoneCall, MapPin, Loader2, Terminal as TerminalIcon,
+  Wifi, AlertCircle, Trash2, Heart, MessageCircle,
+  Lock, Sparkles, ArrowUp, Plus, Mic, Image as ImageIcon,
+  FileText, X
 } from "lucide-react"
 import Link from "next/link"
 
@@ -60,25 +47,412 @@ function TextReveal({ text, className, delay = 0 }: { text: string; className?: 
   )
 }
 
-// --- SYSTEM CHECK COMPONENT ---
-function SystemReadyCheck() {
-  const [step, setStep] = useState(0)
+function SpotlightCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  const mouseX = useMotionValue(0)
+  const mouseY = useMotionValue(0)
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setStep((prev) => (prev < 3 ? prev + 1 : prev))
-    }, 600)
-    return () => clearInterval(interval)
-  }, [])
-
-  const items = [
-    { label: "Core Neural Engine", icon: Server },
-    { label: "Global Node Network", icon: Globe },
-    { label: "Secure Uplink", icon: Shield },
-  ]
+  function handleMouseMove({ currentTarget, clientX, clientY }: React.MouseEvent) {
+    const { left, top } = currentTarget.getBoundingClientRect()
+    mouseX.set(clientX - left)
+    mouseY.set(clientY - top)
+  }
 
   return (
-    <div className="flex flex-col sm:flex-row gap-4 justify-center text-xs font-mono text-slate-500 mb-8">
+    <div
+      className={cn(
+        "group relative border border-white/10 bg-[#231854]/50 overflow-hidden rounded-3xl",
+        className
+      )}
+      onMouseMove={handleMouseMove}
+    >
+      <motion.div
+        className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 transition duration-300 group-hover:opacity-100"
+        style={{
+          background: useMotionTemplate`
+            radial-gradient(
+              650px circle at ${mouseX}px ${mouseY}px,
+              rgba(218, 140, 160, 0.15),
+              transparent 80%
+            )
+          `,
+        }}
+      />
+      <div className="relative h-full">{children}</div>
+    </div>
+  )
+}
+
+// --- COMING SOON MODAL ---
+function ComingSoonModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-[#160d33]/80 backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            className="relative w-full max-w-sm bg-[#231854] border border-[#DA8CA0]/30 rounded-3xl p-6 shadow-2xl overflow-hidden"
+          >
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#DA8CA0]/20 blur-3xl rounded-full" />
+            <button 
+              type="button"
+              onClick={onClose} 
+              aria-label="Close modal"
+              className="absolute top-4 right-4 text-[#CCCCD9] hover:text-white"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-[#DA8CA0]/10 border border-[#DA8CA0]/30 flex items-center justify-center mb-2">
+                <Sparkles className="h-8 w-8 text-[#DA8CA0] animate-pulse" />
+              </div>
+              <h3 className="text-xl font-bold text-white">Upgrade Incoming</h3>
+              <p className="text-[#CCCCD9] text-sm leading-relaxed">
+                This feature is currently in development. <br/>
+                Stay tuned for <span className="text-[#DA8CA0] font-bold">Heal Her v2.0</span>.
+              </p>
+              <div className="w-full h-1 bg-white/5 rounded-full mt-4 overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-[#DA8CA0] to-purple-500 w-2/3 animate-[shimmer_2s_infinite]" />
+              </div>
+              <Button onClick={onClose} className="w-full bg-white/10 hover:bg-white/20 text-white mt-4 border border-white/5">
+                Got it
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  )
+}
+
+// --- LIVE TERMINAL COMPONENT ---
+function LiveTerminal() {
+  const [input, setInput] = useState("")
+  const [history, setHistory] = useState<{ type: 'user' | 'system' | 'ai' | 'error', content: string }[]>([])
+  const [loading, setLoading] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [isBooted, setIsBooted] = useState(false)
+  
+  const [showPlusMenu, setShowPlusMenu] = useState(false)
+  const [showComingSoon, setShowComingSoon] = useState(false)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsBooted(true)
+    }, 800)
+    return () => clearTimeout(timer)
+  }, [])
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [history, loading])
+
+  const handleClear = () => setHistory([])
+
+  const handleFeatureClick = () => {
+    setShowPlusMenu(false)
+    setShowComingSoon(true)
+  }
+
+  const handleSend = async () => {
+    if (!input.trim() || !isBooted) return
+
+    const userMsg = input
+    setInput("")
+    setHistory(prev => [...prev, { type: 'user', content: userMsg }])
+    setLoading(true)
+
+    try {
+      const res = await fetch("https://medguard-back-end.onrender.com/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ prompt: userMsg }),
+      })
+
+      if (!res.ok) throw new Error(`Server Error (${res.status})`);
+
+      const data = await res.json()
+      const aiResponse = data.response || data.message || data.reply || JSON.stringify(data)
+
+      setHistory(prev => [...prev, { type: 'ai', content: aiResponse }])
+    } catch (error: any) {
+      setHistory(prev => [...prev, { type: 'error', content: "Connection failed. Please try again." }])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !loading) handleSend()
+  }
+
+  return (
+    <>
+      <style jsx global>{`
+        .custom-scroll::-webkit-scrollbar {
+          width: 5px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.01);
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+          background: rgba(218, 140, 160, 0.2);
+          border-radius: 10px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(218, 140, 160, 0.4);
+        }
+      `}</style>
+
+      <div className="rounded-3xl border border-[#DA8CA0]/20 bg-[#160d33]/80 backdrop-blur-xl overflow-hidden shadow-2xl relative group h-[600px] flex flex-col">
+        {/* Decorative Background Elements */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#DA8CA0]/10 rounded-full blur-[80px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-600/10 rounded-full blur-[80px] pointer-events-none" />
+
+        <ComingSoonModal isOpen={showComingSoon} onClose={() => setShowComingSoon(false)} />
+
+        {/* --- HEADER --- */}
+        <div className="bg-[#1C1246]/50 px-6 py-4 border-b border-white/5 flex items-center justify-between relative z-10 backdrop-blur-md">
+          <div className="flex items-center gap-4">
+             <div className="flex gap-1.5">
+               <div className="w-2.5 h-2.5 rounded-full bg-red-400/80" />
+               <div className="w-2.5 h-2.5 rounded-full bg-amber-400/80" />
+               <div className="w-2.5 h-2.5 rounded-full bg-emerald-400/80" />
+             </div>
+             
+             <div className="flex flex-col">
+                <span className="text-sm text-white font-bold tracking-wide flex items-center gap-2">
+                  Heal Her <span className="text-[10px] bg-[#DA8CA0]/20 text-[#DA8CA0] px-1.5 rounded uppercase tracking-wider">v1.0</span>
+                </span>
+                <span className="text-[10px] text-[#CCCCD9] opacity-60">
+                   Secure End-to-End Encryption
+                </span>
+             </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+             <button onClick={handleClear} className="p-2 hover:bg-white/5 rounded-full transition-colors text-[#CCCCD9] hover:text-white" title="Clear Chat">
+               <Trash2 className="h-4 w-4" />
+             </button>
+             <div className="h-4 w-[1px] bg-white/10" />
+             <Wifi className={cn("h-4 w-4", isBooted ? "text-emerald-500" : "text-slate-600")} />
+          </div>
+        </div>
+
+        {/* --- CHAT AREA --- */}
+        <div 
+          ref={scrollRef}
+          className="flex-1 p-6 overflow-y-auto custom-scroll space-y-6 relative z-10"
+        >
+          {/* --- EMPTY STATE (Emotional & Visible) --- */}
+          {history.length === 0 && (
+             <motion.div 
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               exit={{ opacity: 0 }}
+               className="h-full flex flex-col items-center justify-center text-center gap-6 select-none"
+             >
+                <div className="relative">
+                   {/* Background Glow */}
+                   <div className="absolute inset-0 bg-[#DA8CA0]/20 blur-[40px] rounded-full animate-pulse" />
+                   {/* LOGO */}
+                   <img 
+                      src="/heal-logo.png" 
+                      alt="Heal Her Logo" 
+                      className="w-20 h-20 rounded-full object-cover border-2 border-white/10 shadow-[0_0_30px_rgba(218,140,160,0.3)] relative z-10"
+                   />
+                </div>
+                
+                <div className="space-y-2 max-w-xs mx-auto">
+                   <h3 className="text-xl font-bold text-white tracking-tight">I'm here for you, sis. 🌸</h3>
+                   <p className="text-sm text-[#CCCCD9]/80 font-mono leading-relaxed">
+                     This is a safe, judgment-free space to vent, cry, or just chat. <br/>
+                     <span className="text-[#DA8CA0]">How are you feeling today? 💖</span>
+                   </p>
+                </div>
+             </motion.div>
+          )}
+
+          <AnimatePresence>
+            {history.map((msg, i) => (
+              <motion.div 
+                key={i}
+                initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.3 }}
+                className={cn("flex w-full", msg.type === 'user' ? "justify-end" : "justify-start")}
+              >
+                <div className={cn("flex gap-3 max-w-[85%] items-start", msg.type === 'user' ? "flex-row-reverse" : "flex-row")}>
+                  
+                  {/* Avatar Area (Only AI) */}
+                  {msg.type !== 'user' && (
+                    <div className="shrink-0 mt-1 relative group">
+                       {msg.type === 'ai' || msg.type === 'system' ? (
+                         <img 
+                           src="/heal-logo.png" 
+                           alt="Heal Her" 
+                           className="w-9 h-9 rounded-full object-cover border border-white/10 shadow-[0_0_15px_rgba(218,140,160,0.2)]"
+                         />
+                       ) : (
+                         <div className="w-9 h-9 rounded-full bg-red-900/20 border border-red-500/20 flex items-center justify-center">
+                            <AlertCircle className="h-4 w-4 text-red-400" />
+                         </div>
+                       )}
+                    </div>
+                  )}
+
+                  {/* Message Content */}
+                  <div className={cn(
+                    "text-sm leading-relaxed",
+                    msg.type === 'user' 
+                      ? "bg-[#2A1F5E] border border-white/10 text-gray-100 font-medium rounded-2xl rounded-tr-sm p-3.5 backdrop-blur-sm shadow-md"
+                      : msg.type === 'error'
+                      ? "bg-red-950/50 border border-red-500/20 text-red-200 rounded-2xl p-3.5"
+                      : "bg-transparent text-[#FAFAFA] px-1 py-1.5" 
+                  )}>
+                     {msg.type === 'ai' ? (
+                       <div className="prose prose-invert prose-sm max-w-none">
+                         <ReactMarkdown components={{
+                            p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                            a: ({node, ...props}) => <a className="text-[#DA8CA0] hover:underline" {...props} />
+                         }}>
+                           {msg.content}
+                         </ReactMarkdown>
+                       </div>
+                     ) : (
+                       msg.content
+                     )}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+
+          {/* --- LOADING STATE (Spinning around Logo) --- */}
+          {loading && (
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }}
+              className="flex justify-start w-full mt-2"
+            >
+               <div className="flex gap-3 items-center">
+                   <div className="relative">
+                      {/* Spinning Ring */}
+                      <div className="absolute -inset-1 rounded-full border-2 border-transparent border-t-[#DA8CA0] border-r-[#DA8CA0]/50 animate-spin" />
+                      <img 
+                          src="/heal-logo.png" 
+                          alt="Heal Her" 
+                          className="w-9 h-9 rounded-full object-cover border border-white/10 relative z-10"
+                      />
+                   </div>
+                   <span className="text-xs text-[#CCCCD9]/50 animate-pulse font-mono tracking-widest">THINKING...</span>
+               </div>
+            </motion.div>
+          )}
+        </div>
+
+        {/* --- INPUT AREA --- */}
+        <div className="p-4 relative z-20">
+           {/* Plus Menu Popup */}
+           <AnimatePresence>
+             {showPlusMenu && (
+               <motion.div
+                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                 animate={{ opacity: 1, y: 0, scale: 1 }}
+                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                 className="absolute bottom-20 left-6 bg-[#1C1246]/95 border border-[#DA8CA0]/20 backdrop-blur-xl rounded-2xl p-2 shadow-2xl flex flex-col gap-1 w-48 z-50"
+               >
+                 {/* Updated Colors: Pink/Purple theme */}
+                 <button onClick={handleFeatureClick} className="flex items-center gap-3 w-full p-2 hover:bg-white/10 rounded-xl text-left text-sm text-[#CCCCD9] hover:text-white transition-colors">
+                    <div className="p-1.5 bg-[#DA8CA0]/20 rounded-lg text-[#DA8CA0]"><ImageIcon className="h-4 w-4"/></div>
+                    Upload Images
+                 </button>
+                 <button onClick={handleFeatureClick} className="flex items-center gap-3 w-full p-2 hover:bg-white/10 rounded-xl text-left text-sm text-[#CCCCD9] hover:text-white transition-colors">
+                    <div className="p-1.5 bg-purple-500/20 rounded-lg text-purple-300"><FileText className="h-4 w-4"/></div>
+                    Add Files
+                 </button>
+               </motion.div>
+             )}
+           </AnimatePresence>
+
+          <div className="relative flex items-end gap-2 bg-[#1C1246] border border-[#DA8CA0]/20 rounded-3xl p-2 shadow-xl transition-all duration-300 focus-within:border-[#DA8CA0]/50 focus-within:shadow-[0_0_20px_rgba(218,140,160,0.1)]">
+             
+             {/* Plus Button */}
+             <button 
+               onClick={() => setShowPlusMenu(!showPlusMenu)}
+               className={cn(
+                 "h-10 w-10 rounded-full flex items-center justify-center transition-all duration-300 hover:bg-white/10 shrink-0",
+                 showPlusMenu ? "bg-white/10 rotate-45 text-white" : "text-[#CCCCD9]"
+               )}
+             >
+               <Plus className="h-5 w-5" />
+             </button>
+
+             {/* Text Input */}
+             <textarea 
+               value={input}
+               onChange={(e) => setInput(e.target.value)}
+               onKeyDown={handleKeyDown}
+               disabled={loading || !isBooted}
+               placeholder={isBooted ? "Type your message here..." : "Initializing..."}
+               className="flex-1 bg-transparent border-none text-white focus:ring-0 placeholder:text-gray-500 text-sm py-3 min-h-[44px] max-h-[120px] resize-none outline-none custom-scroll"
+               rows={1}
+             />
+
+             <div className="flex items-center gap-1 pb-1">
+                {/* Mic Button */}
+                <button 
+                  onClick={handleFeatureClick}
+                  className="h-8 w-8 rounded-full flex items-center justify-center text-[#CCCCD9] hover:text-white hover:bg-white/10 transition-colors"
+                  title="Voice Note"
+                >
+                  <Mic className="h-4 w-4" />
+                </button>
+
+                {/* Send Button */}
+                <Button 
+                  onClick={handleSend} 
+                  disabled={loading || !isBooted || !input.trim()}
+                  size="icon"
+                  className={cn(
+                    "rounded-full h-9 w-9 transition-all duration-300",
+                    input.trim() ? "bg-[#DA8CA0] hover:bg-[#c76b85] text-[#1C1246]" : "bg-[#2A1F5E] text-gray-500"
+                  )}
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
+                </Button>
+             </div>
+          </div>
+          
+          <div className="text-center mt-2 flex justify-center gap-4">
+             <span className="text-[10px] text-[#CCCCD9]/40 font-mono">Press Enter to send</span>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
+// --- SYSTEM READY & EMERGENCY COMPS (UNCHANGED) ---
+function SystemReadyCheck() {
+  const [step, setStep] = useState(0)
+  useEffect(() => {
+    const interval = setInterval(() => setStep((prev) => (prev < 3 ? prev + 1 : prev)), 600)
+    return () => clearInterval(interval)
+  }, [])
+  const items = [{ label: "Empathy Engine", icon: Heart }, { label: "Privacy Core", icon: Lock }, { label: "Knowledge Base", icon: Globe }]
+  return (
+    <div className="flex flex-col sm:flex-row gap-4 justify-center text-xs font-mono text-[#CCCCD9] mb-8">
       {items.map((item, i) => (
         <div key={i} className={cn("flex items-center gap-2 transition-opacity duration-500", step >= i + 1 ? "opacity-100" : "opacity-30")}>
            <div className={cn("h-4 w-4 rounded-full flex items-center justify-center border", step >= i + 1 ? "border-emerald-500 bg-emerald-500/10 text-emerald-500" : "border-slate-700")}>
@@ -91,291 +465,38 @@ function SystemReadyCheck() {
   )
 }
 
-// --- LIVE TERMINAL COMPONENT ---
-function LiveTerminal() {
-  const [input, setInput] = useState("")
-  const [history, setHistory] = useState<{ type: 'user' | 'system' | 'ai' | 'error', content: string }[]>([])
-  const [loading, setLoading] = useState(false)
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const [isBooted, setIsBooted] = useState(false)
-
-  // Boot Effect
-  useEffect(() => {
-    const bootSequence = async () => {
-      const msgs = [
-        "initializing medguard_kernel_v2.4...",
-        "establishing secure handshake...",
-        "connecting to neural_core @ onrender...",
-        "system_ready. awaiting input."
-      ]
-      
-      for (const msg of msgs) {
-        await new Promise(r => setTimeout(r, 600))
-        setHistory(prev => [...prev, { type: 'system', content: msg }])
-      }
-      setIsBooted(true)
-    }
-    bootSequence()
-  }, [])
-
-  // Auto-scroll to bottom
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
-  }, [history, loading])
-
-  // --- NEW: CLEAR CHAT FUNCTION ---
-  const handleClear = () => {
-    // Keep only the "System Ready" message to maintain context, remove conversation
-    setHistory([{ type: 'system', content: 'system_ready. memory flushed. awaiting new input.' }])
-  }
-
-  const handleSend = async () => {
-    if (!input.trim() || !isBooted) return
-
-    const userMsg = input
-    setInput("")
-    setHistory(prev => [...prev, { type: 'user', content: userMsg }])
-    setLoading(true)
-
-    try {
-      console.log("Sending Request to API...");
-      
-      const res = await fetch("https://medguard-back-end.onrender.com/ask", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Accept": "application/json" 
-        },
-        body: JSON.stringify({ prompt: userMsg }),
-      })
-
-      if (!res.ok) {
-        const errText = await res.text().catch(() => res.statusText);
-        throw new Error(`Server Error (${res.status}): ${errText}`);
-      }
-
-      const data = await res.json()
-      const aiResponse = data.response || data.message || data.reply || JSON.stringify(data)
-
-      setHistory(prev => [...prev, { type: 'ai', content: aiResponse }])
-
-    } catch (error: any) {
-      console.error("Fetch Error:", error);
-      let errorMessage = "Connection Failed";
-      
-      if (error.name === "TypeError" && error.message === "Failed to fetch") {
-        errorMessage = "Network Error: Could not connect to MedGuard server. Check your connection.";
-      } else {
-        errorMessage = error.message || "Unknown Error";
-      }
-
-      setHistory(prev => [...prev, { type: 'error', content: `CRITICAL ERROR: ${errorMessage}` }])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !loading) {
-      handleSend()
-    }
-  }
-
-  return (
-    <div className="rounded-xl border border-slate-800 bg-[#0a0a0a] overflow-hidden shadow-2xl font-mono text-sm relative group">
-      {/* Decorative Glow */}
-      <div className="absolute inset-0 bg-blue-500/5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-
-      {/* Terminal Header */}
-      <div className="bg-[#111] px-4 py-3 border-b border-slate-800 flex items-center justify-between relative z-10">
-        <div className="flex items-center gap-4">
-          <div className="flex gap-2">
-            <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50" />
-            <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
-            <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50" />
-          </div>
-          <div className="text-[10px] text-slate-500 font-bold tracking-widest hidden sm:block">
-            MEDGUARD_LIVE_KERNEL // SSH_SECURE
-          </div>
-        </div>
-
-        {/* Header Actions */}
-        <div className="flex items-center gap-4">
-           {/* Clear Button */}
-           <button 
-             onClick={handleClear}
-             className="text-slate-600 hover:text-red-400 transition-colors flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider"
-             title="Clear Terminal"
-           >
-             <Trash2 className="h-3 w-3" /> Clear
-           </button>
-           
-           <Wifi className={cn("h-3 w-3", isBooted ? "text-emerald-500" : "text-slate-600")} />
-        </div>
-      </div>
-
-      {/* Terminal Body */}
-      <div 
-        ref={scrollRef}
-        className="p-6 h-[320px] overflow-y-auto space-y-4 font-mono relative z-10 scroll-smooth"
-      >
-        {history.map((msg, i) => (
-          <motion.div 
-            key={i}
-            initial={{ opacity: 0, x: -5 }}
-            animate={{ opacity: 1, x: 0 }}
-            className={cn(
-              "leading-relaxed break-words",
-              msg.type === 'system' && "text-slate-500 text-xs italic",
-              msg.type === 'user' && "text-blue-400 font-bold mt-6 border-l-2 border-blue-500/50 pl-3",
-              msg.type === 'ai' && "text-emerald-400 border-l-2 border-emerald-500/50 pl-3",
-              msg.type === 'error' && "text-red-400 bg-red-950/20 p-2 rounded border border-red-900/50 flex gap-2 items-start mt-2"
-            )}
-          >
-            {msg.type === 'system' && <span className="text-slate-700 mr-2">$</span>}
-            
-            {msg.type === 'user' && (
-              <span className="text-blue-600 mr-2 text-[10px] uppercase tracking-wider block mb-1">
-                User Input
-              </span>
-            )}
-            
-            {msg.type === 'ai' && (
-              <span className="text-emerald-600 mr-2 text-[10px] uppercase tracking-wider block mb-1">
-                MedGuard Diagnostics
-              </span>
-            )}
-
-            {msg.type === 'error' && <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />}
-            
-            {/* RENDER CONTENT */}
-            {msg.type === 'ai' ? (
-              <div className="prose prose-invert prose-sm max-w-none text-emerald-400">
-                <ReactMarkdown
-                  components={{
-                    p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
-                    ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-2 space-y-1" {...props} />,
-                    ol: ({node, ...props}) => <ol className="list-decimal pl-4 mb-2 space-y-1" {...props} />,
-                    li: ({node, ...props}) => <li className="pl-1" {...props} />,
-                    strong: ({node, ...props}) => <strong className="font-bold text-emerald-300" {...props} />,
-                    a: ({node, ...props}) => <a className="underline decoration-emerald-500/50 hover:text-emerald-300" {...props} />,
-                  }}
-                >
-                  {msg.content}
-                </ReactMarkdown>
-              </div>
-            ) : (
-              msg.content
-            )}
-          </motion.div>
-        ))}
-        
-        {loading && (
-          <div className="flex items-center gap-2 text-slate-500 mt-4 animate-pulse">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            <span>processing_triage_algorithms...</span>
-          </div>
-        )}
-        
-        {/* Blinking Cursor at bottom */}
-        {!loading && isBooted && (
-           <div className="h-4 w-2 bg-slate-500 animate-pulse mt-2" />
-        )}
-      </div>
-
-      {/* Input Area */}
-      <div className="p-4 border-t border-slate-800 bg-[#0f0f0f] flex gap-4 relative z-10">
-        <div className="flex-1 relative">
-          <input 
-            type="text" 
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={loading || !isBooted}
-            placeholder={isBooted ? "Enter symptoms (e.g., 'Severe headache and fever')" : "Booting..."}
-            className="w-full bg-transparent border-none text-white focus:ring-0 placeholder:text-slate-700 font-mono text-sm h-full"
-            autoFocus
-          />
-        </div>
-        <Button 
-          onClick={handleSend} 
-          disabled={loading || !isBooted}
-          size="sm"
-          className="bg-blue-600 hover:bg-blue-500 text-white font-mono min-w-[80px]"
-        >
-          {loading ? "..." : "RUN"} <Play className="h-3 w-3 ml-2 fill-current" />
-        </Button>
-      </div>
-    </div>
-  )
-}
-
-// --- SMART EMERGENCY BUTTON ---
 function SmartEmergencyButton() {
   const [location, setLocation] = useState("Detecting Region...")
   const [number, setNumber] = useState("...")
   const [isReady, setIsReady] = useState(false)
-
   useEffect(() => {
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
     const timer = setTimeout(() => {
       if (timeZone.includes("Lagos") || timeZone.includes("Africa")) {
-        setLocation("NIGERIA DETECTED")
-        setNumber("112")
+        setLocation("NIGERIA DETECTED"); setNumber("112")
       } else {
-        setLocation("GLOBAL GSM DETECTED")
-        setNumber("112") 
+        setLocation("GLOBAL GSM DETECTED"); setNumber("112") 
       }
       setIsReady(true)
     }, 1500) 
-
     return () => clearTimeout(timer)
   }, [])
-
   return (
     <div className="w-full flex flex-col items-center">
-      <Button 
-        asChild
-        variant="destructive" 
-        size="lg" 
-        className={cn(
-          "h-24 px-8 text-lg font-bold rounded-2xl shadow-[0_0_30px_rgba(225,29,72,0.4)] w-full sm:w-auto transition-all duration-500",
-          isReady ? "animate-pulse" : "opacity-80 cursor-wait"
-        )}
-      >
-         <a href={`tel:${number}`}>
-           <div className="flex flex-col items-center justify-center gap-1">
+      <Button asChild variant="destructive" size="lg" className={cn("h-24 px-8 text-lg font-bold rounded-2xl shadow-[0_0_30px_rgba(225,29,72,0.4)] w-full sm:w-auto transition-all duration-500", isReady ? "animate-pulse" : "opacity-80 cursor-wait")}>
+          <a href={`tel:${number}`}>
+            <div className="flex flex-col items-center justify-center gap-1">
               <div className="flex items-center gap-2">
                  <PhoneCall className="h-6 w-6" />
-                 {isReady ? (
-                   <span>DIAL {number} NOW</span>
-                 ) : (
-                   <span className="flex items-center gap-2">
-                     CONNECTING <Loader2 className="h-4 w-4 animate-spin" />
-                   </span>
-                 )}
+                 {isReady ? <span>DIAL {number} NOW</span> : <span className="flex items-center gap-2">CONNECTING <Loader2 className="h-4 w-4 animate-spin" /></span>}
               </div>
-              
               <div className="text-[10px] opacity-80 font-mono font-normal flex items-center gap-2 mt-1">
-                 {isReady ? (
-                   <>
-                     <MapPin className="h-3 w-3" /> {location}
-                   </>
-                 ) : (
-                   <>
-                     <Globe className="h-3 w-3 animate-pulse" /> TRIANGULATING LOCATION...
-                   </>
-                 )}
+                 {isReady ? <><MapPin className="h-3 w-3" /> {location}</> : <><Globe className="h-3 w-3 animate-pulse" /> TRIANGULATING LOCATION...</>}
               </div>
-           </div>
-         </a>
+            </div>
+          </a>
       </Button>
-      
-      <p className="mt-4 text-xs text-slate-500 font-mono">
-        {isReady && number === "112" ? "Routing via NCC Emergency Gateway" : "Secure Emergency Line"}
-      </p>
+      <p className="mt-4 text-xs text-[#CCCCD9] font-mono">{isReady && number === "112" ? "Routing via NCC Emergency Gateway" : "Secure Emergency Line"}</p>
     </div>
   )
 }
@@ -384,96 +505,86 @@ function SmartEmergencyButton() {
 
 export default function LaunchPage() {
   return (
-    <div className="relative min-h-screen bg-slate-950 text-slate-200 selection:bg-blue-500/30 selection:text-blue-200">
+    <div className="relative min-h-screen bg-[#1C1246] text-[#FAFAFA] selection:bg-[#DA8CA0]/30 selection:text-[#DA8CA0]">
       <GrainOverlay />
       <Navigation />
 
       {/* --- HERO: INITIALIZE --- */}
       <section className="relative pt-32 pb-20 overflow-hidden min-h-[85vh] flex flex-col justify-center items-center">
-        {/* Background pulses */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-3xl animate-pulse" />
-        
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#DA8CA0]/10 rounded-full blur-3xl animate-pulse" />
         <div className="relative z-10 text-center px-4 w-full max-w-5xl">
            <SystemReadyCheck />
-
-           <motion.div
-             initial={{ scale: 0.9, opacity: 0 }}
-             animate={{ scale: 1, opacity: 1 }}
-             transition={{ duration: 0.8 }}
-           >
-             <TextReveal 
-               text="Initialize MedGuard." 
-               className="text-6xl md:text-8xl font-black tracking-tighter text-white mb-8"
-             />
+           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.8 }}>
+             <TextReveal text="Start Healing." className="text-6xl md:text-8xl font-black tracking-tighter text-white mb-8"/>
            </motion.div>
-
-           <motion.p 
-             initial={{ y: 20, opacity: 0 }}
-             animate={{ y: 0, opacity: 1 }}
-             transition={{ delay: 0.5 }}
-             className="text-xl text-slate-400 mb-12 max-w-2xl mx-auto"
-           >
-             Emergency protocols loaded. Standby for input. Select your interface to begin.
+           <motion.p initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }} className="text-xl text-[#CCCCD9] mb-12 max-w-2xl mx-auto">
+             You are safe here. No judgment, just support. Click below to begin your chat with Heal Her.
            </motion.p>
-
-           {/* THE BIG BUTTON */}
-           <motion.div
-             initial={{ scale: 0.8, opacity: 0 }}
-             animate={{ scale: 1, opacity: 1 }}
-             transition={{ delay: 0.8, type: "spring" }}
-             className="relative group inline-block"
-           >
-              <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200" />
-              <Button asChild size="lg" className="relative h-24 px-12 rounded-full bg-white text-slate-950 text-2xl font-bold hover:bg-blue-50 hover:scale-105 transition-all shadow-2xl flex items-center gap-4 cursor-pointer">
-                 {/* UPDATED LINK */}
-                 <Link href="https://med-guard-ai.vercel.app">
-                    <Zap className="h-8 w-8 text-blue-600 fill-blue-600" />
-                    LAUNCH WEB APP
-                 </Link>
-              </Button>
+           <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.8, type: "spring" }} className="relative group inline-block">
+             <div className="absolute -inset-1 bg-gradient-to-r from-[#DA8CA0] to-purple-500 rounded-full blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200" />
+             <Button asChild size="lg" className="relative h-24 px-12 rounded-full bg-white text-[#1C1246] text-2xl font-bold hover:bg-[#DA8CA0] hover:text-white hover:scale-105 transition-all shadow-2xl flex items-center gap-4 cursor-pointer">
+                 <Link href="https://med-guard-ai.vercel.app"><MessageCircle className="h-8 w-8 text-[#DA8CA0] fill-current" /> LAUNCH CHAT</Link>
+             </Button>
            </motion.div>
-           
-           <p className="mt-8 text-sm text-slate-500 font-mono">
-              v2.4.0 (Stable) • No Install Required • Global Access
-           </p>
+           <p className="mt-8 text-sm text-[#CCCCD9] font-mono">v1.0 (Beta) • Free Forever • Anonymous</p>
         </div>
       </section>
 
       {/* --- LIVE SIMULATION TERMINAL --- */}
-      <section className="py-24 border-t border-white/5 bg-slate-900/20">
+      <section className="py-24 border-t border-[#DA8CA0]/10 bg-[#231854]/30">
          <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between mb-8">
                <div>
                   <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                     <TerminalIcon className="h-6 w-6 text-blue-500" /> Live Diagnostics Kernel
+                     <TerminalIcon className="h-6 w-6 text-[#DA8CA0]" /> Live Preview
                   </h2>
-                  <p className="text-slate-400 text-sm">Direct connection to MedGuard Neural Core.</p>
+                  <p className="text-[#CCCCD9] text-sm">Test the AI right here before launching the full app.</p>
                </div>
                <div className="flex items-center gap-2 px-3 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono animate-pulse">
-                  <Activity className="h-3 w-3" /> API: ONLINE
+                  <Activity className="h-3 w-3" /> ONLINE
                </div>
             </div>
-
             {/* THE NEW LIVE TERMINAL */}
             <LiveTerminal />
-            
+         </div>
+      </section>
+
+      {/* --- YOUR SAFE SPACE --- */}
+      <section className="py-24 border-t border-[#DA8CA0]/10 bg-[#1C1246]">
+         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-3xl font-bold text-white mb-8">Your Safe Space</h2>
+            <div className="grid md:grid-cols-3 gap-8">
+               <SpotlightCard className="p-6 bg-[#231854] border-[#DA8CA0]/10">
+                  <Lock className="h-8 w-8 text-[#DA8CA0] mb-4 mx-auto" />
+                  <h3 className="text-lg font-bold text-white mb-2">Encrypted</h3>
+                  <p className="text-[#CCCCD9] text-sm">Your words are locked away. Only you see them.</p>
+               </SpotlightCard>
+               <SpotlightCard className="p-6 bg-[#231854] border-[#DA8CA0]/10">
+                  <Sparkles className="h-8 w-8 text-purple-400 mb-4 mx-auto" />
+                  <h3 className="text-lg font-bold text-white mb-2">Judgment Free</h3>
+                  <p className="text-[#CCCCD9] text-sm">Ask anything. We are here to help, not to judge.</p>
+               </SpotlightCard>
+               <SpotlightCard className="p-6 bg-[#231854] border-[#DA8CA0]/10">
+                  <Heart className="h-8 w-8 text-rose-400 mb-4 mx-auto" />
+                  <h3 className="text-lg font-bold text-white mb-2">Always Here</h3>
+                  <p className="text-[#CCCCD9] text-sm">24/7 support whenever you need a friend.</p>
+               </SpotlightCard>
+            </div>
          </div>
       </section>
 
       {/* --- SAFETY OVERRIDE --- */}
-      <section className="pb-24 pt-12">
+      <section className="pb-24 pt-12 border-t border-[#DA8CA0]/10">
          <div className="mx-auto max-w-3xl px-4 text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded bg-rose-950/30 border border-rose-900/50 text-rose-400 mb-6">
                <AlertOctagon className="h-5 w-5" />
-               <span className="font-bold tracking-wide uppercase text-sm">Critical Override</span>
+               <span className="font-bold tracking-wide uppercase text-sm">Emergency Mode</span>
             </div>
-            <h3 className="text-2xl font-bold text-white mb-4">Is this a life-threatening emergency?</h3>
-            <p className="text-slate-400 mb-8 max-w-lg mx-auto">
-               If the patient is not breathing, has no pulse, or is bleeding heavily, use the emergency line.
+            <h3 className="text-2xl font-bold text-white mb-4">Are you in immediate danger?</h3>
+            <p className="text-[#CCCCD9] mb-8 max-w-lg mx-auto">
+               If you or someone else is being hurt, or if you feel unsafe right now, please use this button to call for help.
             </p>
-            
             <SmartEmergencyButton />
-            
          </div>
       </section>
 
