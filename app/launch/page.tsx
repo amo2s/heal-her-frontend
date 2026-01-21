@@ -320,18 +320,18 @@ function LiveTerminal() {
                       ? "bg-red-950/50 border border-red-500/20 text-red-200 rounded-2xl p-3.5"
                       : "bg-transparent text-[#FAFAFA] px-1 py-1.5" 
                   )}>
-                     {msg.type === 'ai' ? (
-                       <div className="prose prose-invert prose-sm max-w-none">
-                         <ReactMarkdown components={{
+                      {msg.type === 'ai' ? (
+                        <div className="prose prose-invert prose-sm max-w-none">
+                          <ReactMarkdown components={{
                             p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
                             a: ({node, ...props}) => <a className="text-[#DA8CA0] hover:underline" {...props} />
-                         }}>
-                           {msg.content}
-                         </ReactMarkdown>
-                       </div>
-                     ) : (
-                       msg.content
-                     )}
+                          }}>
+                            {msg.content}
+                          </ReactMarkdown>
+                        </div>
+                      ) : (
+                        msg.content
+                      )}
                   </div>
                 </div>
               </motion.div>
@@ -386,56 +386,57 @@ function LiveTerminal() {
            </AnimatePresence>
 
           <div className="relative flex items-end gap-2 bg-[#1C1246] border border-[#DA8CA0]/20 rounded-3xl p-2 shadow-xl transition-all duration-300 focus-within:border-[#DA8CA0]/50 focus-within:shadow-[0_0_20px_rgba(218,140,160,0.1)]">
-             
-             {/* Plus Button */}
-             <button 
-               onClick={() => setShowPlusMenu(!showPlusMenu)}
-               className={cn(
-                 "h-10 w-10 rounded-full flex items-center justify-center transition-all duration-300 hover:bg-white/10 shrink-0",
-                 showPlusMenu ? "bg-white/10 rotate-45 text-white" : "text-[#CCCCD9]"
-               )}
-             >
-               <Plus className="h-5 w-5" />
-             </button>
+              
+              {/* Plus Button */}
+              <button 
+                onClick={() => setShowPlusMenu(!showPlusMenu)}
+                title="Add attachments"
+                className={cn(
+                  "h-10 w-10 rounded-full flex items-center justify-center transition-all duration-300 hover:bg-white/10 shrink-0",
+                  showPlusMenu ? "bg-white/10 rotate-45 text-white" : "text-[#CCCCD9]"
+                )}
+              >
+                <Plus className="h-5 w-5" />
+              </button>
 
-             {/* Text Input */}
-             <textarea 
-               value={input}
-               onChange={(e) => setInput(e.target.value)}
-               onKeyDown={handleKeyDown}
-               disabled={loading || !isBooted}
-               placeholder={isBooted ? "Type your message here..." : "Initializing..."}
-               className="flex-1 bg-transparent border-none text-white focus:ring-0 placeholder:text-gray-500 text-sm py-3 min-h-[44px] max-h-[120px] resize-none outline-none custom-scroll"
-               rows={1}
-             />
+              {/* Text Input */}
+              <textarea 
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={loading || !isBooted}
+                placeholder={isBooted ? "Type your message here..." : "Initializing..."}
+                className="flex-1 bg-transparent border-none text-white focus:ring-0 placeholder:text-gray-500 text-sm py-3 min-h-[44px] max-h-[120px] resize-none outline-none custom-scroll"
+                rows={1}
+              />
 
-             <div className="flex items-center gap-1 pb-1">
-                {/* Mic Button */}
-                <button 
-                  onClick={handleFeatureClick}
-                  className="h-8 w-8 rounded-full flex items-center justify-center text-[#CCCCD9] hover:text-white hover:bg-white/10 transition-colors"
-                  title="Voice Note"
-                >
-                  <Mic className="h-4 w-4" />
-                </button>
+              <div className="flex items-center gap-1 pb-1">
+                 {/* Mic Button */}
+                 <button 
+                   onClick={handleFeatureClick}
+                   className="h-8 w-8 rounded-full flex items-center justify-center text-[#CCCCD9] hover:text-white hover:bg-white/10 transition-colors"
+                   title="Voice Note"
+                 >
+                   <Mic className="h-4 w-4" />
+                 </button>
 
-                {/* Send Button */}
-                <Button 
-                  onClick={handleSend} 
-                  disabled={loading || !isBooted || !input.trim()}
-                  size="icon"
-                  className={cn(
-                    "rounded-full h-9 w-9 transition-all duration-300",
-                    input.trim() ? "bg-[#DA8CA0] hover:bg-[#c76b85] text-[#1C1246]" : "bg-[#2A1F5E] text-gray-500"
-                  )}
-                >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
-                </Button>
-             </div>
+                 {/* Send Button */}
+                 <Button 
+                   onClick={handleSend} 
+                   disabled={loading || !isBooted || !input.trim()}
+                   size="icon"
+                   className={cn(
+                     "rounded-full h-9 w-9 transition-all duration-300",
+                     input.trim() ? "bg-[#DA8CA0] hover:bg-[#c76b85] text-[#1C1246]" : "bg-[#2A1F5E] text-gray-500"
+                   )}
+                 >
+                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
+                 </Button>
+              </div>
           </div>
           
           <div className="text-center mt-2 flex justify-center gap-4">
-             <span className="text-[10px] text-[#CCCCD9]/40 font-mono">Press Enter to send</span>
+              <span className="text-[10px] text-[#CCCCD9]/40 font-mono">Press Enter to send</span>
           </div>
         </div>
       </div>
@@ -523,7 +524,7 @@ export default function LaunchPage() {
            <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.8, type: "spring" }} className="relative group inline-block">
              <div className="absolute -inset-1 bg-gradient-to-r from-[#DA8CA0] to-purple-500 rounded-full blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200" />
              <Button asChild size="lg" className="relative h-24 px-12 rounded-full bg-white text-[#1C1246] text-2xl font-bold hover:bg-[#DA8CA0] hover:text-white hover:scale-105 transition-all shadow-2xl flex items-center gap-4 cursor-pointer">
-                 <Link href="https://med-guard-ai.vercel.app"><MessageCircle className="h-8 w-8 text-[#DA8CA0] fill-current" /> LAUNCH CHAT</Link>
+                 <Link href="/login"><MessageCircle className="h-8 w-8 text-[#DA8CA0] fill-current" /> LAUNCH CHAT</Link>
              </Button>
            </motion.div>
            <p className="mt-8 text-sm text-[#CCCCD9] font-mono">v1.0 (Beta) • Free Forever • Anonymous</p>
