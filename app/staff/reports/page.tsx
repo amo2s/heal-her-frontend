@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { FileText, Download, Eye, Calendar } from "lucide-react"
 import { StaffNav } from "@/components/staff-nav"
 import { getCurrentUser } from "@/lib/auth"
-import { mockReports, type Report } from "@/lib/mock-data"
+import { mockReports, type Report } from "@/lib/chat-api"
 
 export default function ReportsPage() {
   const router = useRouter()

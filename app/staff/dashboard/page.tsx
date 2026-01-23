@@ -19,7 +19,7 @@ import {
 } from "lucide-react"
 import { StaffNav } from "@/components/staff-nav"
 import { getCurrentUser } from "@/lib/auth"
-import { mockPatients, mockAlerts, mockStats, type Patient, type Alert } from "@/lib/mock-data"
+import { mockPatients, mockAlerts, mockStats, type Patient, type Alert } from "@/lib/chat-api"
 
 export default function StaffDashboardPage() {
   const router = useRouter()

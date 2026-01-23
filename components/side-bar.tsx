@@ -2,32 +2,45 @@
 
 import React, { useState, useEffect } from "react"
 import Image from "next/image"
-import { useRouter } from "next/navigation" 
-import { SquarePen, Settings, User, Search, LogOut, Loader2 } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation" 
+import { SquarePen, Settings, User, Search, LogOut, Loader2, MessageSquare, Trash2, MoreHorizontal } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { FloatingCells } from "@/components/ui/floating-cells" 
 import { ProfileSettingsModal } from "@/components/modals/profile-settings-modal"
+import { motion, AnimatePresence } from "framer-motion"
 
 interface SidebarProps {
   className?: string
   onClose?: () => void
 }
 
+interface ChatSession {
+  id: string
+  title: string
+  created_at: string
+}
+
 export function Sidebar({ className, onClose }: SidebarProps) {
   const [showProfileModal, setShowProfileModal] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [sessions, setSessions] = useState<ChatSession[]>([])
+  const [sessionsLoading, setSessionsLoading] = useState(true)
+  
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const currentSessionId = searchParams.get("session_id")
 
   const [userData, setUserData] = useState({
+    id: "",
     name: "Heal User",
     email: "",
     phone: "",
     avatar: ""
   })
 
-  // --- FETCH USER DETAILS ---
+  // --- 1. FETCH PROFILE & SESSIONS ---
   useEffect(() => {
-    const fetchUser = async () => {
+    const initData = async () => {
       const token = localStorage.getItem("sb-access-token")
       if (!token) {
         setLoading(false)
@@ -35,28 +48,78 @@ export function Sidebar({ className, onClose }: SidebarProps) {
       }
 
       try {
-        const response = await fetch("http://127.0.0.1:8000/profile/me", {
+        // A. Fetch Profile
+        const profileRes = await fetch("http://127.0.0.1:8000/auth/me", {
           headers: { "Authorization": `Bearer ${token}` }
         })
         
-        if (response.ok) {
-          const data = await response.json()
-          
+        let userId = ""
+        
+        if (profileRes.ok) {
+          const data = await profileRes.json()
+          userId = data.id
           setUserData({
-            name: data.full_name || "Heal User", 
+            id: data.id,
+            name: data.full_name || data.name || "Heal User", 
             email: data.email || "",
             phone: data.phone || "",
             avatar: data.avatar_url || "" 
           })
         }
+
+        // B. Fetch Sessions (Only if we have a User ID)
+        if (userId) {
+          const sessionRes = await fetch(`http://127.0.0.1:8000/sessions?user_id=${userId}`)
+          if (sessionRes.ok) {
+            const sessionData = await sessionRes.json()
+            setSessions(sessionData)
+          }
+        }
+
       } catch (error) {
-        console.error("Failed to load profile:", error)
+        console.error("Failed to load sidebar data:", error)
       } finally {
         setLoading(false)
+        setSessionsLoading(false)
       }
     }
-    fetchUser()
+    
+    initData()
   }, [])
+
+  // --- 2. HANDLERS ---
+  const handleSessionClick = (sessionId: string) => {
+    // Navigate to the chat page with the session ID
+    // This allows the main ChatPage to read the ID and load the history
+    router.push(`/chat?session_id=${sessionId}`)
+    if (onClose) onClose() // Close sidebar on mobile
+  }
+
+  const handleNewChat = () => {
+    router.push("/chat") // Remove query params to start fresh
+    if (onClose) onClose()
+  }
+
+  const handleDeleteSession = async (e: React.MouseEvent, sessionId: string) => {
+    e.stopPropagation() // Prevent clicking the chat item
+    if (!confirm("Are you sure you want to delete this chat?")) return
+
+    // Optimistic update (remove from UI immediately)
+    setSessions(prev => prev.filter(s => s.id !== sessionId))
+
+    try {
+      await fetch(`http://127.0.0.1:8000/sessions/${sessionId}?user_id=${userData.id}`, {
+        method: "DELETE"
+      })
+      
+      // If we deleted the active chat, go to new chat
+      if (currentSessionId === sessionId) {
+        router.push("/chat")
+      }
+    } catch (error) {
+      console.error("Failed to delete session", error)
+    }
+  }
 
   const handleLogout = () => {
     localStorage.removeItem("sb-access-token") 
@@ -77,7 +140,13 @@ export function Sidebar({ className, onClose }: SidebarProps) {
                <button onClick={onClose} className="relative h-10 w-10 hover:scale-105 transition-transform">
                  <Image src="/heal-logo.png" alt="Logo" fill className="object-contain" priority />
                </button>
-               <button onClick={() => window.location.reload()} className="p-2 text-[#CCCCD9] hover:text-[#DA8CA0] hover:bg-white/5 rounded-lg transition-all">
+               
+               {/* NEW CHAT BUTTON */}
+               <button 
+                onClick={handleNewChat} 
+                className="p-2 text-[#CCCCD9] hover:text-[#DA8CA0] hover:bg-white/5 rounded-lg transition-all tooltip"
+                title="New Chat"
+               >
                  <SquarePen className="w-5 h-5" />
                </button>
             </div>
@@ -92,9 +161,65 @@ export function Sidebar({ className, onClose }: SidebarProps) {
             </div>
           </div>
 
-          {/* CHAT HISTORY AREA */}
-          <div className="flex-1 overflow-y-auto mt-4 flex flex-col items-center justify-center text-center opacity-40">
-             <p className="text-xs text-[#CCCCD9]">No previous chats</p>
+          {/* CHAT HISTORY LIST */}
+          <div className="flex-1 overflow-y-auto mt-2 -mr-2 pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+            
+            {sessionsLoading ? (
+               <div className="flex justify-center py-10">
+                 <Loader2 className="w-6 h-6 animate-spin text-[#DA8CA0]/50" />
+               </div>
+            ) : sessions.length === 0 ? (
+               <div className="flex flex-col items-center justify-center text-center opacity-40 mt-10">
+                  <MessageSquare className="w-8 h-8 mb-2" />
+                  <p className="text-xs text-[#CCCCD9]">No previous chats</p>
+               </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <p className="text-[10px] font-bold text-[#CCCCD9]/30 uppercase tracking-widest pl-2 mb-1">Recent</p>
+                <AnimatePresence initial={false}>
+                  {sessions.map((session) => (
+                    <motion.div 
+                      key={session.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, height: 0 }}
+                      onClick={() => handleSessionClick(session.id)}
+                      className={cn(
+                        "group relative flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border border-transparent",
+                        currentSessionId === session.id 
+                          ? "bg-[#DA8CA0]/10 border-[#DA8CA0]/20" 
+                          : "hover:bg-white/5 hover:border-white/5"
+                      )}
+                    >
+                      <MessageSquare className={cn(
+                        "w-4 h-4 shrink-0 transition-colors",
+                        currentSessionId === session.id ? "text-[#DA8CA0]" : "text-[#CCCCD9]/40 group-hover:text-[#CCCCD9]"
+                      )} />
+                      
+                      <div className="flex-1 min-w-0">
+                        <p className={cn(
+                          "text-sm truncate transition-colors",
+                          currentSessionId === session.id ? "text-white font-medium" : "text-[#CCCCD9]/80 group-hover:text-white"
+                        )}>
+                          {session.title || "New Conversation"}
+                        </p>
+                        <p className="text-[10px] text-[#CCCCD9]/30 truncate">
+                          {new Date(session.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+
+                      {/* DELETE BUTTON (Visible on Hover) */}
+                      <button 
+                        onClick={(e) => handleDeleteSession(e, session.id)}
+                        className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-500/10 hover:text-red-400 rounded-md transition-all"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
           </div>
 
           {/* FOOTER - USER PROFILE AREA */}
@@ -105,7 +230,7 @@ export function Sidebar({ className, onClose }: SidebarProps) {
                 className="flex items-center gap-3 overflow-hidden cursor-pointer"
                 onClick={() => setShowProfileModal(true)}
               >
-                {/* IMPROVED AVATAR CONTAINER */}
+                {/* AVATAR */}
                 <div className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center shrink-0 border border-[#DA8CA0]/20 shadow-sm relative overflow-hidden group-hover:border-[#DA8CA0]/50 transition-colors">
                   {loading ? (
                     <Loader2 className="w-4 h-4 animate-spin text-[#DA8CA0]" />
@@ -114,12 +239,11 @@ export function Sidebar({ className, onClose }: SidebarProps) {
                       src={userData.avatar} 
                       alt="Avatar" 
                       fill 
-                      unoptimized // Use this if your Supabase domain isn't in next.config.js
                       className="object-cover" 
                     />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-tr from-[#DA8CA0] to-[#1C1246] flex items-center justify-center">
-                      <User className="w-4 h-4 text-white" />
+                      <span className="text-xs font-bold text-white">{userData.name.charAt(0)}</span>
                     </div>
                   )}
                 </div>

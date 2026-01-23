@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Filter, Clock, Activity } from "lucide-react"
 import { StaffNav } from "@/components/staff-nav"
 import { getCurrentUser } from "@/lib/auth"
-import { mockPatients, type Patient } from "@/lib/mock-data"
+import { mockPatients, type Patient } from "@/lib/chat-api"
 
 export default function PatientsPage() {
   const router = useRouter()

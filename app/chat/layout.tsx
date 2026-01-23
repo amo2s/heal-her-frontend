@@ -115,7 +115,7 @@ export default function ChatLayout({
       {/* 1. Global Background */}
       <AuroraBackground />
 
-      {/* 2. Desktop Sidebar (Always visible on MD+, no close action needed) */}
+      {/* 2. Desktop Sidebar */}
       <aside className="hidden md:block w-64 h-full relative z-20 border-r border-white/5 bg-[#1C1246]/30 backdrop-blur-md">
          <Sidebar />
       </aside>
@@ -123,15 +123,11 @@ export default function ChatLayout({
       {/* 3. Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
         <div className="absolute inset-0 z-50 md:hidden flex">
-          {/* Backdrop - Click to Close */}
           <div 
             className="absolute inset-0 bg-[#1C1246]/90 backdrop-blur-sm"
             onClick={() => setIsMobileMenuOpen(false)}
           />
-          
-          {/* Sidebar Panel */}
           <div className="relative w-3/4 max-w-[280px] h-full bg-[#1C1246] border-r border-white/10 shadow-2xl">
-            {/* Pass the close function here */}
             <Sidebar onClose={() => setIsMobileMenuOpen(false)} />
           </div>
         </div>
@@ -145,7 +141,24 @@ export default function ChatLayout({
           onSidebarToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         />
 
-        <main className="flex-1 relative flex flex-col overflow-hidden">
+        {/* SCROLLBAR ADJUSTMENTS:
+            - w-2: Slightly wider total area (8px)
+            - border-r-2: Adds a 2px invisible border to the right of the thumb
+            - border-transparent + bg-clip-content: Makes the color stop before the border
+            Result: A scrollbar that looks like it has 2px of padding on the right.
+        */}
+        <main className="flex-1 relative flex flex-col overflow-y-auto pt-24 pr-1
+          [&::-webkit-scrollbar]:w-2
+          [&::-webkit-scrollbar-track]:bg-transparent
+          [&::-webkit-scrollbar-track]:mt-24
+          [&::-webkit-scrollbar-thumb]:bg-[#DA8CA0]/20
+          [&::-webkit-scrollbar-thumb]:rounded-full
+          [&::-webkit-scrollbar-thumb]:border-r-2
+          [&::-webkit-scrollbar-thumb]:border-transparent
+          [&::-webkit-scrollbar-thumb]:bg-clip-content
+          hover:[&::-webkit-scrollbar-thumb]:bg-[#DA8CA0]/40
+          [scrollbar-width:thin]
+          [scrollbar-color:rgba(218,140,160,0.2)_transparent]">
           {children}
         </main>
       
