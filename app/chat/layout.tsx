@@ -1,12 +1,13 @@
 "use client"
 
 import React, { useRef, useEffect, useState } from "react"
+import { useRouter } from "next/navigation" 
+import { Loader2 } from "lucide-react" 
 import { Header } from "@/components/header"
 import { Sidebar } from "@/components/side-bar"
-// --- FIXED IMPORT PATH ---
 import { ChatProvider } from "@/components/context/chat-context" 
 
-// --- BACKGROUND COMPONENTS ---
+// --- BACKGROUND COMPONENTS (UNCHANGED) ---
 
 const FloatingCells = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -102,7 +103,7 @@ const AuroraBackground = () => (
   </div>
 )
 
-// --- CHAT LAYOUT ---
+// --- SECURE CHAT LAYOUT ---
 
 export default function ChatLayout({
   children,
@@ -110,21 +111,75 @@ export default function ChatLayout({
   children: React.ReactNode
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const router = useRouter()
+
+  useEffect(() => {
+    const verifySession = async () => {
+      // 1. CHANGE: Check sessionStorage (It is unique to this tab only)
+      const token = sessionStorage.getItem("sb-access-token")
+
+      // 2. FAST CHECK: If no token in THIS tab, redirect immediately
+      if (!token) {
+        window.location.replace("/login?error=unauthorized")
+        return
+      }
+
+      try {
+        // 3. DEEP CHECK: Token validity (The Handshake)
+        const response = await fetch("http://127.0.0.1:8000/auth/me", {
+           method: "GET",
+           headers: { 
+             "Authorization": `Bearer ${token}`,
+             "Content-Type": "application/json"
+           }
+        })
+
+        if (!response.ok) {
+          throw new Error("Invalid token")
+        }
+
+        // 4. SUCCESS: Allow the page to load
+        setIsAuthenticated(true)
+
+      } catch (error) {
+        // 5. SECURITY BREACH: Kill session immediately
+        console.warn("🔒 Security Guard: Invalid session detected.")
+        
+        // CHANGE: Clear sessionStorage
+        sessionStorage.removeItem("sb-access-token") 
+        
+        // Hard redirect
+        window.location.replace("/login?error=session_expired")
+      }
+    }
+
+    verifySession()
+  }, [router])
+
+  // SHOW LOADER INSTEAD OF NULL
+  if (!isAuthenticated) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-[#1C1246]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-10 h-10 animate-spin text-[#DA8CA0]" />
+          <p className="text-[#DA8CA0]/60 font-serif italic animate-pulse">Verifying Security...</p>
+        </div>
+        <AuroraBackground />
+      </div>
+    )
+  }
 
   return (
-    // 2. WRAP THE ENTIRE LAYOUT WITH THE PROVIDER
     <ChatProvider>
       <div className="relative flex h-screen w-full bg-[#1C1246] text-[#FAFAFA] overflow-hidden selection:bg-[#DA8CA0]/30 selection:text-[#DA8CA0]">
         
-        {/* 1. Global Background */}
         <AuroraBackground />
 
-        {/* 2. Desktop Sidebar */}
         <aside className="hidden md:block w-64 h-full relative z-20 border-r border-white/5 bg-[#1C1246]/30 backdrop-blur-md">
            <Sidebar />
         </aside>
 
-        {/* 3. Mobile Sidebar Overlay */}
         {isMobileMenuOpen && (
           <div className="absolute inset-0 z-50 md:hidden flex">
             <div 
@@ -137,7 +192,6 @@ export default function ChatLayout({
           </div>
         )}
 
-        {/* 4. Main Content Wrapper */}
         <div className="flex-1 flex flex-col relative z-10 min-w-0">
           
           <Header
@@ -145,7 +199,6 @@ export default function ChatLayout({
             onSidebarToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           />
 
-          {/* SCROLLBAR ADJUSTMENTS */}
           <main className="flex-1 relative flex flex-col overflow-y-auto pt-24 pr-1
             [&::-webkit-scrollbar]:w-2
             [&::-webkit-scrollbar-track]:bg-transparent

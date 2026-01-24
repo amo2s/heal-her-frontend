@@ -105,10 +105,10 @@ export default function Login() {
 
       if (!response.ok) throw new Error(data.detail || "Login failed")
 
-      // 2. SAVE DATA TO LOCAL STORAGE
-      localStorage.setItem("sb-access-token", data.access_token)
-      // Save the user object (contains is_verified) so other pages can check it
-      localStorage.setItem("user-data", JSON.stringify(data.user))
+      // 2. SAVE DATA TO SESSION STORAGE (CRITICAL UPDATE)
+      // This ensures data is only available in THIS specific tab.
+      sessionStorage.setItem("sb-access-token", data.access_token)
+      sessionStorage.setItem("user-data", JSON.stringify(data.user))
 
       // 3. THE GATEKEEPER LOGIC (Redirect based on verification)
       const isVerified = data.user.is_verified;
@@ -121,7 +121,7 @@ export default function Login() {
           }, 1500)
       } else {
           // Case B: Not Verified -> Go to The Trap (Voice Verification)
-          setStatus({ type: 'error', message: "Verification required. Redirecting..." }) // Using 'error' style just to grab attention, or 'success' if preferred
+          setStatus({ type: 'error', message: "Verification required. Redirecting..." }) 
           setTimeout(() => {
             router.push("/verify-voice")
           }, 1500)

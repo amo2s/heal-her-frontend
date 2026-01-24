@@ -7,10 +7,11 @@ import { ChatMessage } from "@/components/chat-message"
 import { Loader2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
-// 1. IMPORT API BRIDGE
+// 1. IMPORT API BRIDGE & SECURE PROXY
 import { sendMessage, type Message } from "@/lib/chat-api" 
+import { api } from "@/lib/proxy" // <--- CRITICAL IMPORT
 
-// 2. IMPORT CONTEXT (The "Brain" we just moved)
+// 2. IMPORT CONTEXT
 import { useChatContext } from "@/components/context/chat-context"
 
 export default function ChatPage() {
@@ -25,12 +26,10 @@ export default function ChatPage() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   
-  // --- HOOKS ---
   const searchParams = useSearchParams()
   const router = useRouter()
   const urlSessionId = searchParams.get("session_id")
   
-  // Get the refresh function from our Global Brain
   const { refreshSessions } = useChatContext()
 
   const scrollToBottom = () => {
@@ -41,7 +40,7 @@ export default function ChatPage() {
     scrollToBottom()
   }, [messages, isGenerating])
 
-  // --- 3. FETCH USER DATA & HISTORY ---
+  // --- 3. FETCH USER DATA & HISTORY (SECURE VERSION) ---
   useEffect(() => {
     const initData = async () => {
       const token = localStorage.getItem("sb-access-token") 
@@ -52,36 +51,33 @@ export default function ChatPage() {
       }
 
       try {
-        // A. Get User ID (If not already set)
+        // A. Get User ID (Using Secure API)
         let currentUserId = userId
         
         if (!currentUserId) {
-          const response = await fetch("http://127.0.0.1:8000/auth/me", {
-            headers: { "Authorization": `Bearer ${token}` }
-          })
+          // FIX: Use api.get() instead of fetch()
+          // This automatically handles the "Bearer token" headers
+          const { data } = await api.get("/auth/me")
 
-          if (response.ok) {
-            const data = await response.json()
-            const name = data.full_name || data.name
-            if (name) setUserName(name)
-            
-            if (data.id) {
-              setUserId(data.id)
-              currentUserId = data.id
-            }
+          // Axios returns data directly
+          const name = data.full_name || data.name
+          if (name) setUserName(name)
+          
+          if (data.id) {
+            setUserId(data.id)
+            currentUserId = data.id
           }
         }
 
-        // B. Handle Session Loading (Sidebar Click Logic)
+        // B. Handle Session Loading
         if (currentUserId) {
           if (urlSessionId) {
-            // Case 1: URL has ID -> Fetch History
             if (urlSessionId !== sessionId) {
               setSessionId(urlSessionId)
+              // Pass currentUserId to ensure we fetch the right history
               await fetchHistory(urlSessionId, currentUserId)
             }
           } else {
-            // Case 2: No URL -> Clear Chat (New Session)
             if (sessionId !== null) {
               setSessionId(null)
               setMessages([])
@@ -92,7 +88,6 @@ export default function ChatPage() {
       } catch (error) {
         console.error("Failed to load data:", error)
       } finally {
-        // Small delay to prevent flickering
         setTimeout(() => setIsDataLoading(false), 500)
       }
     }
@@ -101,16 +96,20 @@ export default function ChatPage() {
   }, [urlSessionId]) 
 
 
-  // --- 4. HELPER: FETCH HISTORY ---
+  // --- 4. HELPER: FETCH HISTORY (FIXED) ---
   const fetchHistory = async (sessId: string, uid: string) => {
     try {
       setIsDataLoading(true) 
-      const res = await fetch(`http://127.0.0.1:8000/history/${sessId}?user_id=${uid}`)
       
-      if (res.ok) {
-        const historyData = await res.json()
-        
-        // Convert Backend Messages -> Frontend Message Format
+      // FIX: Replaced raw fetch with api.get
+      // This attaches the token so the backend knows who is asking
+      const response = await api.get(`/history/${sessId}`, {
+        params: { user_id: uid }
+      })
+      
+      const historyData = response.data
+      
+      if (historyData) {
         const formattedMessages: Message[] = historyData.map((msg: any) => ({
           id: msg.id || Math.random().toString(),
           role: msg.role,
@@ -178,7 +177,7 @@ export default function ChatPage() {
   }, [text, isDeleting, loopNum, phrases, typingSpeed, isDataLoading, messages.length])
 
 
-  // --- 5. MESSAGE HANDLER (INTELLIGENT UPDATE) ---
+  // --- 5. MESSAGE HANDLER ---
   const handleSendMessage = async (content: string) => {
     if (!content.trim()) return
     
@@ -198,18 +197,11 @@ export default function ChatPage() {
     setIsGenerating(true)
 
     try {
-      // Call API
       const { message: aiMsg, newSessionId } = await sendMessage(content, userId, sessionId)
       
-      // --- INTELLIGENT SIDEBAR UPDATE ---
-      // If we just created a NEW session (sessionId was null, but we got a new ID back)
       if (!sessionId && newSessionId) {
         setSessionId(newSessionId)
-        
-        // 1. Update URL silently
         window.history.pushState(null, '', `?session_id=${newSessionId}`)
-        
-        // 2. TELL THE SIDEBAR TO WAKE UP AND REFRESH!
         await refreshSessions() 
       }
 
@@ -239,7 +231,6 @@ export default function ChatPage() {
       <div className="flex-1 overflow-y-auto w-full p-4 md:p-6 scrollbar-none">
         
         {showTypewriter ? (
-          // TYPEWRITER VIEW
           <div className="h-full flex flex-col items-center justify-center text-center px-4">
             <div className="max-w-4xl min-h-[120px] flex items-center justify-center">
               <AnimatePresence mode="wait">
@@ -271,7 +262,6 @@ export default function ChatPage() {
             </div>
           </div>
         ) : (
-          // ACTIVE CHAT VIEW
           <div className="flex flex-col gap-2 pb-4">
             {messages.map((msg) => (
               <ChatMessage 
@@ -281,7 +271,6 @@ export default function ChatPage() {
               />
             ))}
             
-            {/* Thinking Bubble */}
             {isGenerating && (
               <ChatMessage 
                 message={{ 
