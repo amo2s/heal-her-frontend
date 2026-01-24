@@ -1,6 +1,8 @@
+"use client"
+
 import React, { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-// @ts-ignore - react-speech-kit lacks types, this ignores the warning
+// @ts-ignore - react-speech-kit lacks types
 import { useSpeechSynthesis } from "react-speech-kit"
 import { 
   Copy, 
@@ -14,6 +16,10 @@ import {
 } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils" 
+
+// --- SMART TEXT IMPORTS ---
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 interface Message {
   id: string
@@ -32,11 +38,10 @@ export function ChatMessage({ message, isThinking, onDelete }: ChatMessageProps)
   const isUser = message.role === "user"
   const [isCopied, setIsCopied] = useState(false)
   
-  // --- LIBRARY INTEGRATION ---
+  // --- SPEECH LOGIC ---
   const { speak, cancel, speaking } = useSpeechSynthesis()
   const [isThisMessageTalking, setIsThisMessageTalking] = useState(false)
 
-  // Reset local speaking state if the global speech stops
   useEffect(() => {
     if (!speaking) {
       setIsThisMessageTalking(false)
@@ -71,16 +76,14 @@ export function ChatMessage({ message, isThinking, onDelete }: ChatMessageProps)
   return (
     <div className={cn(
       "group flex w-full gap-4 p-2 md:gap-6 md:p-4",
-      // Flex-row-reverse makes the user items align right automatically
       isUser ? "flex-row-reverse" : "flex-row"
     )}>
       
-      {/* --- AVATAR & SPINNER AREA (AI ONLY) --- */}
+      {/* --- AVATAR AREA (AI ONLY) --- */}
       {!isUser && (
         <div className="flex-shrink-0 flex flex-col relative mt-1">
           <div className="relative w-9 h-9 md:w-11 md:h-11 flex items-center justify-center">
             
-            {/* Gradient Spinner */}
             {isThinking && (
               <motion.div
                 className="absolute inset-[-6px] z-0"
@@ -107,7 +110,6 @@ export function ChatMessage({ message, isThinking, onDelete }: ChatMessageProps)
               </motion.div>
             )}
             
-            {/* Logo */}
             <div className={cn(
               "relative z-10 w-full h-full rounded-full overflow-hidden border border-white/10 shadow-lg",
               isThinking ? "shadow-[#DA8CA0]/20" : "bg-black/20"
@@ -131,32 +133,54 @@ export function ChatMessage({ message, isThinking, onDelete }: ChatMessageProps)
         
         {/* TEXT BUBBLE */}
         <div className={cn(
-          "prose prose-invert max-w-none text-base md:text-[17px] leading-relaxed font-light tracking-wide text-white/90",
+          "text-base md:text-[17px] leading-relaxed font-light tracking-wide text-white/90 overflow-hidden",
           isUser 
-            ? "text-left bg-white/5 backdrop-blur-sm p-3.5 px-5 rounded-2xl rounded-tr-sm border border-white/5" // User: Glass bubble
-            : "px-0 py-1" // AI: Plain text, no background
+            ? "text-left bg-white/5 backdrop-blur-sm p-3.5 px-5 rounded-2xl rounded-tr-sm border border-white/5" 
+            : "px-0 py-1"
         )}>
-           {message.content}
+           {/* FIX: We moved the 'className' from ReactMarkdown to this wrapper div.
+              This applies the 'prose' styling safely without confusing TypeScript.
+           */}
+           <div className="prose prose-invert max-w-none break-words">
+             <ReactMarkdown 
+               remarkPlugins={[remarkGfm]}
+               components={{
+                  p: ({children}) => <p className="mb-2 last:mb-0">{children}</p>,
+                  ul: ({children}) => <ul className="list-disc pl-4 mb-2 space-y-1">{children}</ul>,
+                  ol: ({children}) => <ol className="list-decimal pl-4 mb-2 space-y-1">{children}</ol>,
+                  li: ({children}) => <li className="pl-1">{children}</li>,
+                  strong: ({children}) => <span className="font-semibold text-white">{children}</span>,
+                  a: ({children, href}) => (
+                    <a href={href} target="_blank" rel="noopener noreferrer" className="text-[#DA8CA0] hover:underline">
+                      {children}
+                    </a>
+                  ),
+                  code: ({children}) => (
+                    <code className="bg-white/10 px-1.5 py-0.5 rounded text-sm font-mono text-[#DA8CA0]">
+                      {children}
+                    </code>
+                  ),
+               }}
+             >
+               {message.content}
+             </ReactMarkdown>
+           </div>
         </div>
 
         {/* --- ACTION TOOLBAR --- */}
         {!isThinking && (
           <div className={cn(
             "flex items-center gap-1 transition-all duration-300",
-            // VISIBILITY: Always visible on mobile, hover on desktop
             "opacity-100 md:opacity-0 md:group-hover:opacity-100", 
-            // Reverses icon order for user so they stay near the edge
             isUser ? "flex-row-reverse pr-1" : "flex-row pl-1"
           )}>
             
-            {/* Copy (Both) */}
             <ActionButton 
               onClick={handleCopy} 
               icon={isCopied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
               label="Copy"
             />
 
-            {/* Delete (Both) */}
             <ActionButton 
               onClick={() => onDelete?.(message.id)} 
               icon={<Trash2 className="w-3.5 h-3.5" />}
@@ -164,7 +188,6 @@ export function ChatMessage({ message, isThinking, onDelete }: ChatMessageProps)
               label="Delete"
             />
 
-            {/* AI Only Icons */}
             {!isUser && (
               <>
                 <div className="w-px h-3 bg-white/10 mx-1" /> 

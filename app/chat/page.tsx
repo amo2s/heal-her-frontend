@@ -1,13 +1,17 @@
 "use client"
 
 import React, { useState, useEffect, useMemo, useRef } from "react"
-import { useSearchParams, useRouter } from "next/navigation" // <--- 1. NEW IMPORTS
+import { useSearchParams, useRouter } from "next/navigation" 
 import { ChatInput } from "@/components/chat-input"
 import { ChatMessage } from "@/components/chat-message" 
 import { Loader2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
+// 1. IMPORT API BRIDGE
 import { sendMessage, type Message } from "@/lib/chat-api" 
+
+// 2. IMPORT CONTEXT (The "Brain" we just moved)
+import { useChatContext } from "@/components/context/chat-context"
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]) 
@@ -21,11 +25,13 @@ export default function ChatPage() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   
-  // --- 2. HOOKS FOR URL MANAGEMENT ---
+  // --- HOOKS ---
   const searchParams = useSearchParams()
   const router = useRouter()
-  // This grabs "?session_id=123" from the browser URL
   const urlSessionId = searchParams.get("session_id")
+  
+  // Get the refresh function from our Global Brain
+  const { refreshSessions } = useChatContext()
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -38,9 +44,6 @@ export default function ChatPage() {
   // --- 3. FETCH USER DATA & HISTORY ---
   useEffect(() => {
     const initData = async () => {
-      // Don't set loading true immediately to avoid flicker on simple updates
-      // setIsDataLoading(true) 
-
       const token = localStorage.getItem("sb-access-token") 
       
       if (!token) {
@@ -49,7 +52,7 @@ export default function ChatPage() {
       }
 
       try {
-        // A. Get User ID (If we don't have it yet)
+        // A. Get User ID (If not already set)
         let currentUserId = userId
         
         if (!currentUserId) {
@@ -69,7 +72,7 @@ export default function ChatPage() {
           }
         }
 
-        // B. Handle Session Loading
+        // B. Handle Session Loading (Sidebar Click Logic)
         if (currentUserId) {
           if (urlSessionId) {
             // Case 1: URL has ID -> Fetch History
@@ -89,18 +92,18 @@ export default function ChatPage() {
       } catch (error) {
         console.error("Failed to load data:", error)
       } finally {
+        // Small delay to prevent flickering
         setTimeout(() => setIsDataLoading(false), 500)
       }
     }
 
     initData()
-  }, [urlSessionId]) // <--- Re-run whenever the URL changes (Sidebar Click)
+  }, [urlSessionId]) 
 
 
-  // --- 4. HELPER: FETCH HISTORY FUNCTION ---
+  // --- 4. HELPER: FETCH HISTORY ---
   const fetchHistory = async (sessId: string, uid: string) => {
     try {
-      // Show loading state while fetching history
       setIsDataLoading(true) 
       const res = await fetch(`http://127.0.0.1:8000/history/${sessId}?user_id=${uid}`)
       
@@ -124,7 +127,7 @@ export default function ChatPage() {
     }
   }
 
-  // --- SMART TYPEWRITER (Unchanged) ---
+  // --- TYPEWRITER LOGIC (Unchanged) ---
   const [text, setText] = useState("")
   const [isDeleting, setIsDeleting] = useState(false)
   const [loopNum, setLoopNum] = useState(0)
@@ -174,7 +177,8 @@ export default function ChatPage() {
     return () => clearTimeout(timer)
   }, [text, isDeleting, loopNum, phrases, typingSpeed, isDataLoading, messages.length])
 
-  // --- 5. MESSAGE HANDLER ---
+
+  // --- 5. MESSAGE HANDLER (INTELLIGENT UPDATE) ---
   const handleSendMessage = async (content: string) => {
     if (!content.trim()) return
     
@@ -197,11 +201,16 @@ export default function ChatPage() {
       // Call API
       const { message: aiMsg, newSessionId } = await sendMessage(content, userId, sessionId)
       
-      // If this was a new chat, update the URL so the user can refresh without losing it
+      // --- INTELLIGENT SIDEBAR UPDATE ---
+      // If we just created a NEW session (sessionId was null, but we got a new ID back)
       if (!sessionId && newSessionId) {
         setSessionId(newSessionId)
-        // Soft update of URL (doesn't reload page)
+        
+        // 1. Update URL silently
         window.history.pushState(null, '', `?session_id=${newSessionId}`)
+        
+        // 2. TELL THE SIDEBAR TO WAKE UP AND REFRESH!
+        await refreshSessions() 
       }
 
       setMessages(prev => [...prev, aiMsg])

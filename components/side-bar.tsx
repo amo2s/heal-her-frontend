@@ -3,33 +3,30 @@
 import React, { useState, useEffect } from "react"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation" 
-import { SquarePen, Settings, User, Search, LogOut, Loader2, MessageSquare, Trash2, MoreHorizontal } from "lucide-react"
+import { SquarePen, Settings, User, Search, LogOut, Loader2, MessageSquare, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { FloatingCells } from "@/components/ui/floating-cells" 
 import { ProfileSettingsModal } from "@/components/modals/profile-settings-modal"
 import { motion, AnimatePresence } from "framer-motion"
+
+// 1. IMPORT THE SHARED BRAIN (CONTEXT)
+import { useChatContext } from "@/components/context/chat-context"
 
 interface SidebarProps {
   className?: string
   onClose?: () => void
 }
 
-interface ChatSession {
-  id: string
-  title: string
-  created_at: string
-}
-
 export function Sidebar({ className, onClose }: SidebarProps) {
   const [showProfileModal, setShowProfileModal] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [sessions, setSessions] = useState<ChatSession[]>([])
-  const [sessionsLoading, setSessionsLoading] = useState(true)
-  
   const router = useRouter()
   const searchParams = useSearchParams()
   const currentSessionId = searchParams.get("session_id")
 
+  // 2. GET DATA FROM CONTEXT (This makes it "Smart" and automatic)
+  const { sessions, isLoading: sessionsLoading, refreshSessions } = useChatContext()
+
+  // Local state for User Profile (Avatar/Name)
   const [userData, setUserData] = useState({
     id: "",
     name: "Heal User",
@@ -37,27 +34,24 @@ export function Sidebar({ className, onClose }: SidebarProps) {
     phone: "",
     avatar: ""
   })
+  const [userLoading, setUserLoading] = useState(true)
 
-  // --- 1. FETCH PROFILE & SESSIONS ---
+  // --- FETCH USER PROFILE ---
   useEffect(() => {
-    const initData = async () => {
+    const fetchProfile = async () => {
       const token = localStorage.getItem("sb-access-token")
       if (!token) {
-        setLoading(false)
+        setUserLoading(false)
         return
       }
 
       try {
-        // A. Fetch Profile
-        const profileRes = await fetch("http://127.0.0.1:8000/auth/me", {
+        const response = await fetch("http://127.0.0.1:8000/auth/me", {
           headers: { "Authorization": `Bearer ${token}` }
         })
         
-        let userId = ""
-        
-        if (profileRes.ok) {
-          const data = await profileRes.json()
-          userId = data.id
+        if (response.ok) {
+          const data = await response.json()
           setUserData({
             id: data.id,
             name: data.full_name || data.name || "Heal User", 
@@ -66,53 +60,40 @@ export function Sidebar({ className, onClose }: SidebarProps) {
             avatar: data.avatar_url || "" 
           })
         }
-
-        // B. Fetch Sessions (Only if we have a User ID)
-        if (userId) {
-          const sessionRes = await fetch(`http://127.0.0.1:8000/sessions?user_id=${userId}`)
-          if (sessionRes.ok) {
-            const sessionData = await sessionRes.json()
-            setSessions(sessionData)
-          }
-        }
-
       } catch (error) {
-        console.error("Failed to load sidebar data:", error)
+        console.error("Failed to load profile:", error)
       } finally {
-        setLoading(false)
-        setSessionsLoading(false)
+        setUserLoading(false)
       }
     }
     
-    initData()
+    fetchProfile()
   }, [])
 
-  // --- 2. HANDLERS ---
+  // --- HANDLERS ---
   const handleSessionClick = (sessionId: string) => {
-    // Navigate to the chat page with the session ID
-    // This allows the main ChatPage to read the ID and load the history
     router.push(`/chat?session_id=${sessionId}`)
-    if (onClose) onClose() // Close sidebar on mobile
+    if (onClose) onClose()
   }
 
   const handleNewChat = () => {
-    router.push("/chat") // Remove query params to start fresh
+    router.push("/chat")
     if (onClose) onClose()
   }
 
   const handleDeleteSession = async (e: React.MouseEvent, sessionId: string) => {
-    e.stopPropagation() // Prevent clicking the chat item
-    if (!confirm("Are you sure you want to delete this chat?")) return
-
-    // Optimistic update (remove from UI immediately)
-    setSessions(prev => prev.filter(s => s.id !== sessionId))
+    e.stopPropagation() // Stop the click from opening the chat
+    if (!confirm("Are you sure you want to delete this conversation?")) return
 
     try {
       await fetch(`http://127.0.0.1:8000/sessions/${sessionId}?user_id=${userData.id}`, {
         method: "DELETE"
       })
       
-      // If we deleted the active chat, go to new chat
+      // 3. TELL CONTEXT TO REFRESH THE LIST INSTANTLY
+      await refreshSessions()
+      
+      // If we deleted the chat we are currently looking at, go to new chat
       if (currentSessionId === sessionId) {
         router.push("/chat")
       }
@@ -161,7 +142,7 @@ export function Sidebar({ className, onClose }: SidebarProps) {
             </div>
           </div>
 
-          {/* CHAT HISTORY LIST */}
+          {/* CHAT HISTORY LIST (FROM CONTEXT) */}
           <div className="flex-1 overflow-y-auto mt-2 -mr-2 pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
             
             {sessionsLoading ? (
@@ -203,12 +184,13 @@ export function Sidebar({ className, onClose }: SidebarProps) {
                         )}>
                           {session.title || "New Conversation"}
                         </p>
-                        <p className="text-[10px] text-[#CCCCD9]/30 truncate">
+                        {/* Optional Date Display */}
+                        {/* <p className="text-[10px] text-[#CCCCD9]/30 truncate">
                           {new Date(session.created_at).toLocaleDateString()}
-                        </p>
+                        </p> */}
                       </div>
 
-                      {/* DELETE BUTTON (Visible on Hover) */}
+                      {/* DELETE BUTTON */}
                       <button 
                         onClick={(e) => handleDeleteSession(e, session.id)}
                         className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-500/10 hover:text-red-400 rounded-md transition-all"
@@ -232,7 +214,7 @@ export function Sidebar({ className, onClose }: SidebarProps) {
               >
                 {/* AVATAR */}
                 <div className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center shrink-0 border border-[#DA8CA0]/20 shadow-sm relative overflow-hidden group-hover:border-[#DA8CA0]/50 transition-colors">
-                  {loading ? (
+                  {userLoading ? (
                     <Loader2 className="w-4 h-4 animate-spin text-[#DA8CA0]" />
                   ) : userData.avatar ? (
                     <Image 
@@ -243,7 +225,7 @@ export function Sidebar({ className, onClose }: SidebarProps) {
                     />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-tr from-[#DA8CA0] to-[#1C1246] flex items-center justify-center">
-                      <span className="text-xs font-bold text-white">{userData.name.charAt(0)}</span>
+                      <User className="w-4 h-4 text-white" />
                     </div>
                   )}
                 </div>

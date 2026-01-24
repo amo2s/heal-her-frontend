@@ -6,7 +6,7 @@ import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, CheckCircle2, AlertCircle
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { useRouter } from "next/navigation" // Required for the redirect
+import { useRouter } from "next/navigation"
 
 // --- 1. STATUS CARD (Reusable UI) ---
 const StatusMessage = ({ status, message, onClose }: { status: 'success' | 'error', message: string, onClose: () => void }) => {
@@ -105,17 +105,27 @@ export default function Login() {
 
       if (!response.ok) throw new Error(data.detail || "Login failed")
 
-      // 2. SAVE THE KEY (Crucial for the Chat page to know who you are)
+      // 2. SAVE DATA TO LOCAL STORAGE
       localStorage.setItem("sb-access-token", data.access_token)
-      localStorage.setItem("user-id", data.user.id)
+      // Save the user object (contains is_verified) so other pages can check it
+      localStorage.setItem("user-data", JSON.stringify(data.user))
 
-      // 3. SHOW SUCCESS
-      setStatus({ type: 'success', message: "Welcome back, sis. Entering safe space..." })
+      // 3. THE GATEKEEPER LOGIC (Redirect based on verification)
+      const isVerified = data.user.is_verified;
 
-      // 4. REDIRECT TO CHAT
-      setTimeout(() => {
-        router.push("/chat") // <--- Pushes to your Chat Page
-      }, 1500)
+      if (isVerified) {
+          // Case A: Verified -> Go to Chat
+          setStatus({ type: 'success', message: "Welcome back! Entering safe space..." })
+          setTimeout(() => {
+            router.push("/chat")
+          }, 1500)
+      } else {
+          // Case B: Not Verified -> Go to The Trap (Voice Verification)
+          setStatus({ type: 'error', message: "Verification required. Redirecting..." }) // Using 'error' style just to grab attention, or 'success' if preferred
+          setTimeout(() => {
+            router.push("/verify-voice")
+          }, 1500)
+      }
 
     } catch (error: any) {
       setStatus({ type: 'error', message: error.message || "Invalid credentials" })
