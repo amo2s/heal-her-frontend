@@ -6,13 +6,22 @@ import { ChatInput } from "@/components/chat-input"
 import { ChatMessage } from "@/components/chat-message" 
 import { Loader2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { createPortal } from "react-dom" // ADDED: Required for Modal
 
-// 1. IMPORT API BRIDGE & SECURE PROXY
-import { sendMessage, type Message } from "@/lib/chat-api" 
-import { api } from "@/lib/proxy" // <--- CRITICAL IMPORT
-
-// 2. IMPORT CONTEXT
+// 1. IMPORT PROXY 
+import { api } from "@/lib/proxy" 
 import { useChatContext } from "@/components/context/chat-context"
+
+// 2. IMPORT THE MODAL (This was missing)
+import { ComingSoonModal } from "@/components/modals/coming-soon-modal"
+
+// --- STRICT INTERFACE ---
+interface Message {
+  id: string
+  role: "user" | "assistant"
+  content: string
+  createdAt: string
+}
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]) 
@@ -20,17 +29,25 @@ export default function ChatPage() {
   
   const [userName, setUserName] = useState("") 
   const [userId, setUserId] = useState<string>("") 
-  const [sessionId, setSessionId] = useState<string | null>(null)
+  
+  // 3. ADD MODAL STATE (This was missing)
+  const [showComingSoon, setShowComingSoon] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
+  const [sessionId, setSessionId] = useState<string | null>(null)
   const [isDataLoading, setIsDataLoading] = useState(true)
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  
   const searchParams = useSearchParams()
   const router = useRouter()
   const urlSessionId = searchParams.get("session_id")
   
   const { refreshSessions } = useChatContext()
+
+  // 4. HANDLE HYDRATION
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -40,93 +57,113 @@ export default function ChatPage() {
     scrollToBottom()
   }, [messages, isGenerating])
 
-  // --- 3. FETCH USER DATA & HISTORY (SECURE VERSION) ---
+  // --- FETCH USER DATA & HISTORY (SECURED & SYNCED) ---
   useEffect(() => {
+    let isMounted = true 
+
     const initData = async () => {
-      const token = localStorage.getItem("sb-access-token") 
+      const token = sessionStorage.getItem("sb-access-token")
       
+      // 1. Immediate Cache Check
+      const cachedUserId = sessionStorage.getItem("user-id")
+      if (cachedUserId && isMounted) {
+        setUserId(cachedUserId)
+      }
+
       if (!token) {
-        setIsDataLoading(false)
+        if (isMounted) setIsDataLoading(false)
         return
       }
 
       try {
-        // A. Get User ID (Using Secure API)
-        let currentUserId = userId
-        
-        if (!currentUserId) {
-          // FIX: Use api.get() instead of fetch()
-          // This automatically handles the "Bearer token" headers
-          const { data } = await api.get("/auth/me")
+        let activeUserId = cachedUserId 
 
-          // Axios returns data directly
-          const name = data.full_name || data.name
-          if (name) setUserName(name)
-          
-          if (data.id) {
-            setUserId(data.id)
-            currentUserId = data.id
-          }
+        // 2. ALWAYS Fetch Profile (Ensures we have the Name + Validates Token)
+        try {
+            const { data } = await api.get("/profile/me")
+            
+            if (isMounted && data) {
+              const name = data.full_name || data.name || "Friend"
+              setUserName(name)
+              
+              if (data.id) {
+                setUserId(data.id)
+                activeUserId = data.id
+                sessionStorage.setItem("user-id", data.id)
+              }
+            }
+        } catch (profileError) {
+            console.warn("⚠️ Profile sync minor issue:", profileError)
         }
 
-        // B. Handle Session Loading
-        if (currentUserId) {
+        // 3. Handle Session Logic (The Fix)
+        if (activeUserId) {
           if (urlSessionId) {
+            // CASE A: User clicked a chat in Sidebar (URL has ID)
             if (urlSessionId !== sessionId) {
-              setSessionId(urlSessionId)
-              // Pass currentUserId to ensure we fetch the right history
-              await fetchHistory(urlSessionId, currentUserId)
+              if (isMounted) setSessionId(urlSessionId)
+              await fetchHistory(urlSessionId, activeUserId, isMounted)
             }
           } else {
-            if (sessionId !== null) {
-              setSessionId(null)
-              setMessages([])
+            // CASE B: User clicked "New Chat" or "Delete" (URL is empty)
+            // FIX: We forcefully wipe the screen if there's an ID set OR if messages exist
+            if (sessionId !== null || messages.length > 0) {
+              if (isMounted) {
+                setSessionId(null)
+                setMessages([]) // <--- This forces the Typewriter view
+              }
             }
           }
+        } else {
+            console.error("❌ Critical: No User ID available.")
         }
 
       } catch (error) {
         console.error("Failed to load data:", error)
       } finally {
-        setTimeout(() => setIsDataLoading(false), 500)
+        if (isMounted) {
+          setTimeout(() => setIsDataLoading(false), 500)
+        }
       }
     }
 
     initData()
-  }, [urlSessionId]) 
+
+    return () => { isMounted = false }
+  }, [urlSessionId]) // Dependency on URL ensures this runs immediately on delete/redirect
 
 
-  // --- 4. HELPER: FETCH HISTORY (FIXED) ---
-  const fetchHistory = async (sessId: string, uid: string) => {
+  // --- FETCH HISTORY ---
+  const fetchHistory = async (sessId: string, uid: string, isMounted: boolean) => {
     try {
-      setIsDataLoading(true) 
+      if (isMounted) setIsDataLoading(true) 
       
-      // FIX: Replaced raw fetch with api.get
-      // This attaches the token so the backend knows who is asking
       const response = await api.get(`/history/${sessId}`, {
         params: { user_id: uid }
       })
       
       const historyData = response.data
       
-      if (historyData) {
-        const formattedMessages: Message[] = historyData.map((msg: any) => ({
-          id: msg.id || Math.random().toString(),
-          role: msg.role,
-          content: msg.content,
-          createdAt: msg.created_at
-        }))
+      if (isMounted && Array.isArray(historyData)) {
+        const validMessages: Message[] = historyData
+          .filter((msg: any) => msg.role === "user" || msg.role === "assistant")
+          .map((msg: any) => ({
+            id: msg.id || Math.random().toString(), 
+            role: msg.role as "user" | "assistant",
+            content: msg.content, 
+            createdAt: msg.created_at || new Date().toISOString()
+          }))
         
-        setMessages(formattedMessages)
+        setMessages(validMessages)
       }
     } catch (err) {
       console.error("Failed to fetch history", err)
     } finally {
-      setIsDataLoading(false)
+      if (isMounted) setIsDataLoading(false)
     }
   }
 
-  // --- TYPEWRITER LOGIC (Unchanged) ---
+  // --- TYPEWRITER LOGIC ---
   const [text, setText] = useState("")
   const [isDeleting, setIsDeleting] = useState(false)
   const [loopNum, setLoopNum] = useState(0)
@@ -144,16 +181,17 @@ export default function ChatPage() {
   ], [userName]) 
 
   useEffect(() => {
+    // Only run typewriter if we have NO messages
     if (isDataLoading || messages.length > 0) return 
 
     const i = loopNum % phrases.length
     const fullText = phrases[i]
-    
-    const nextIndex = (loopNum + 1) % phrases.length
-    const nextText = phrases[nextIndex]
+    if (!fullText) return
 
     const currentStarts = fullText.startsWith("Let's")
-    const nextStarts = nextText.startsWith("Let's")
+    const nextIndex = (loopNum + 1) % phrases.length
+    const nextText = phrases[nextIndex]
+    const nextStarts = nextText?.startsWith("Let's") || false
     const deleteStopPoint = (currentStarts && nextStarts) ? 6 : 0
 
     const handleTyping = () => {
@@ -177,9 +215,9 @@ export default function ChatPage() {
   }, [text, isDeleting, loopNum, phrases, typingSpeed, isDataLoading, messages.length])
 
 
-  // --- 5. MESSAGE HANDLER ---
+  // --- SEND MESSAGE ---
   const handleSendMessage = async (content: string) => {
-    if (!content.trim()) return
+    if (!content.trim() || isGenerating) return
     
     if (!userId) {
       console.error("❌ User ID is missing! Cannot send message.")
@@ -197,12 +235,26 @@ export default function ChatPage() {
     setIsGenerating(true)
 
     try {
-      const { message: aiMsg, newSessionId } = await sendMessage(content, userId, sessionId)
-      
-      if (!sessionId && newSessionId) {
-        setSessionId(newSessionId)
-        window.history.pushState(null, '', `?session_id=${newSessionId}`)
+      const payload = {
+        user_id: userId,
+        message: content,
+        session_id: sessionId 
+      }
+
+      const response = await api.post("/chat", payload)
+      const data = response.data 
+
+      if (!sessionId && data.session_id) {
+        setSessionId(data.session_id)
+        window.history.pushState(null, '', `?session_id=${data.session_id}`)
         await refreshSessions() 
+      }
+
+      const aiMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: data.response,
+        createdAt: new Date().toISOString()
       }
 
       setMessages(prev => [...prev, aiMsg])
@@ -268,6 +320,8 @@ export default function ChatPage() {
                 key={msg.id} 
                 message={msg} 
                 onDelete={handleDeleteMessage}
+                // 5. PASS THE MODAL OPENER HERE (This makes the buttons work)
+                onFeatureNotAvailable={() => setShowComingSoon(true)}
               />
             ))}
             
@@ -297,6 +351,22 @@ export default function ChatPage() {
           isGenerating={isGenerating}
         />
       </div>
+
+      {/* 6. RENDER THE MODAL HERE (Using Portal) */}
+      {mounted && showComingSoon && createPortal(
+        <div 
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowComingSoon(false)
+          }}
+        >
+          <ComingSoonModal 
+            isOpen={true} 
+            onClose={() => setShowComingSoon(false)} 
+          />
+        </div>,
+        document.body
+      )}
 
     </div>
   )

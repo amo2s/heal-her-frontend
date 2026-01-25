@@ -1,16 +1,23 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
+import { createPortal } from "react-dom"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation" 
-import { SquarePen, Settings, User, Search, LogOut, Loader2, MessageSquare, Trash2 } from "lucide-react"
+import { 
+  SquarePen, Settings as SettingsIcon, User, Search, Loader2, 
+  MoreVertical, Pencil, Share2, Pin, Trash2 
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { FloatingCells } from "@/components/ui/floating-cells" 
-import { ProfileSettingsModal } from "@/components/modals/profile-settings-modal"
+// 1. Import the new Settings component
+import { Settings } from "@/components/settings"
+import { ComingSoonModal } from "@/components/modals/coming-soon-modal"
 import { motion, AnimatePresence } from "framer-motion"
-
-// 1. IMPORT THE SHARED BRAIN (CONTEXT)
 import { useChatContext } from "@/components/context/chat-context"
+
+// --- CONFIG ---
+const API_BASE = "http://127.0.0.1:8000"
 
 interface SidebarProps {
   className?: string
@@ -18,57 +25,85 @@ interface SidebarProps {
 }
 
 export function Sidebar({ className, onClose }: SidebarProps) {
-  const [showProfileModal, setShowProfileModal] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
   const currentSessionId = searchParams.get("session_id")
-
-  // 2. GET DATA FROM CONTEXT (This makes it "Smart" and automatic)
   const { sessions, isLoading: sessionsLoading, refreshSessions } = useChatContext()
 
-  // Local state for User Profile (Avatar/Name)
+  // --- STATE ---
+  // Renamed to showSettings for clarity
+  const [showSettings, setShowSettings] = useState(false)
+  const [showComingSoon, setShowComingSoon] = useState(false)
+  
+  // Menu State
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
+  
+  // Delete State
+  const [sessionToDelete, setSessionToDelete] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false) 
+
+  // User Profile State
   const [userData, setUserData] = useState({
-    id: "",
-    name: "Heal User",
-    email: "",
-    phone: "",
-    avatar: ""
+    id: "", name: "Heal User", email: "", phone: "", avatar: ""
   })
   const [userLoading, setUserLoading] = useState(true)
 
-  // --- FETCH USER PROFILE ---
+  // --- CLICK OUTSIDE HANDLER (For Menu) ---
   useEffect(() => {
-    const fetchProfile = async () => {
-      const token = localStorage.getItem("sb-access-token")
-      if (!token) {
-        setUserLoading(false)
-        return
-      }
-
-      try {
-        const response = await fetch("http://127.0.0.1:8000/auth/me", {
-          headers: { "Authorization": `Bearer ${token}` }
-        })
-        
-        if (response.ok) {
-          const data = await response.json()
-          setUserData({
-            id: data.id,
-            name: data.full_name || data.name || "Heal User", 
-            email: data.email || "",
-            phone: data.phone || "",
-            avatar: data.avatar_url || "" 
-          })
-        }
-      } catch (error) {
-        console.error("Failed to load profile:", error)
-      } finally {
-        setUserLoading(false)
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as HTMLElement
+      if (!target.closest('[data-portal-menu]') && !target.closest('[data-menu-trigger]')) {
+        setActiveMenuId(null)
       }
     }
-    
-    fetchProfile()
+    window.addEventListener("click", handleClickOutside)
+    window.addEventListener("resize", () => setActiveMenuId(null))
+    return () => {
+      window.removeEventListener("click", handleClickOutside)
+      window.removeEventListener("resize", () => setActiveMenuId(null))
+    }
   }, [])
+
+  // --- FETCH USER PROFILE ---
+  const fetchProfile = useCallback(async () => {
+    const token = sessionStorage.getItem("sb-access-token")
+    if (!token) { setUserLoading(false); return }
+    
+    try {
+      const response = await fetch(`${API_BASE}/profile/me`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setUserData({
+          id: data.id,
+          name: data.full_name || "Heal User", 
+          email: data.email || "",
+          phone: data.phone || "",
+          avatar: data.avatar_url || "" 
+        })
+        sessionStorage.setItem("user-id", data.id)
+      }
+    } catch (e) { 
+      console.error("Profile fetch error:", e) 
+    } finally { 
+      setUserLoading(false) 
+    }
+  }, [])
+
+  // Initial Fetch
+  useEffect(() => {
+    fetchProfile()
+  }, [fetchProfile])
+
+  // Refetch when Settings modal closes (in case user updated their profile)
+  useEffect(() => {
+    if (!showSettings) {
+      fetchProfile()
+    }
+  }, [showSettings, fetchProfile])
 
   // --- HANDLERS ---
   const handleSessionClick = (sessionId: string) => {
@@ -81,32 +116,61 @@ export function Sidebar({ className, onClose }: SidebarProps) {
     if (onClose) onClose()
   }
 
-  const handleDeleteSession = async (e: React.MouseEvent, sessionId: string) => {
-    e.stopPropagation() // Stop the click from opening the chat
-    if (!confirm("Are you sure you want to delete this conversation?")) return
+  const handleMenuOpen = (e: React.MouseEvent, sessionId: string) => {
+    e.stopPropagation()
+    e.preventDefault()
 
-    try {
-      await fetch(`http://127.0.0.1:8000/sessions/${sessionId}?user_id=${userData.id}`, {
-        method: "DELETE"
-      })
-      
-      // 3. TELL CONTEXT TO REFRESH THE LIST INSTANTLY
-      await refreshSessions()
-      
-      // If we deleted the chat we are currently looking at, go to new chat
-      if (currentSessionId === sessionId) {
-        router.push("/chat")
-      }
-    } catch (error) {
-      console.error("Failed to delete session", error)
+    const rect = e.currentTarget.getBoundingClientRect()
+    setMenuPosition({
+      top: rect.top,
+      left: rect.right + 5 
+    })
+    
+    setActiveMenuId(activeMenuId === sessionId ? null : sessionId)
+  }
+
+  const handleMenuAction = (action: 'rename' | 'share' | 'pin' | 'delete', sessionId: string) => {
+    setActiveMenuId(null)
+    if (action === 'delete') {
+      setSessionToDelete(sessionId)
+    } else {
+      setShowComingSoon(true)
     }
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem("sb-access-token") 
-    localStorage.removeItem("user-id")
-    router.push("/login")
+  const executeDelete = async () => {
+    if (!sessionToDelete) return
+    
+    const userId = userData.id || sessionStorage.getItem("user-id")
+    
+    if (!userId) {
+        console.error("Cannot delete: User ID missing")
+        return
+    }
+
+    setIsDeleting(true) 
+
+    try {
+      await fetch(`${API_BASE}/sessions/${sessionToDelete}?user_id=${userId}`, {
+        method: "DELETE"
+      })
+      
+      await refreshSessions() 
+      
+      if (currentSessionId === sessionToDelete) {
+        router.push("/chat")
+      }
+      setSessionToDelete(null)
+    } catch (e) { 
+      console.error("Delete failed:", e) 
+    } finally { 
+      setIsDeleting(false) 
+    }
   }
+
+  // Helper to safely check if document is available for portal
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   return (
     <>
@@ -122,10 +186,9 @@ export function Sidebar({ className, onClose }: SidebarProps) {
                  <Image src="/heal-logo.png" alt="Logo" fill className="object-contain" priority />
                </button>
                
-               {/* NEW CHAT BUTTON */}
                <button 
                 onClick={handleNewChat} 
-                className="p-2 text-[#CCCCD9] hover:text-[#DA8CA0] hover:bg-white/5 rounded-lg transition-all tooltip"
+                className="p-2 text-[#CCCCD9] hover:text-[#DA8CA0] bg-transparent hover:bg-white/5 hover:backdrop-blur-md rounded-lg transition-all tooltip"
                 title="New Chat"
                >
                  <SquarePen className="w-5 h-5" />
@@ -142,16 +205,14 @@ export function Sidebar({ className, onClose }: SidebarProps) {
             </div>
           </div>
 
-          {/* CHAT HISTORY LIST (FROM CONTEXT) */}
+          {/* CHAT LIST */}
           <div className="flex-1 overflow-y-auto mt-2 -mr-2 pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-            
             {sessionsLoading ? (
                <div className="flex justify-center py-10">
                  <Loader2 className="w-6 h-6 animate-spin text-[#DA8CA0]/50" />
                </div>
             ) : sessions.length === 0 ? (
                <div className="flex flex-col items-center justify-center text-center opacity-40 mt-10">
-                  <MessageSquare className="w-8 h-8 mb-2" />
                   <p className="text-xs text-[#CCCCD9]">No previous chats</p>
                </div>
             ) : (
@@ -166,36 +227,33 @@ export function Sidebar({ className, onClose }: SidebarProps) {
                       exit={{ opacity: 0, height: 0 }}
                       onClick={() => handleSessionClick(session.id)}
                       className={cn(
-                        "group relative flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border border-transparent",
+                        "group relative flex items-center p-3 rounded-xl cursor-pointer transition-all border border-transparent min-h-[44px]",
                         currentSessionId === session.id 
                           ? "bg-[#DA8CA0]/10 border-[#DA8CA0]/20" 
-                          : "hover:bg-white/5 hover:border-white/5"
+                          : "bg-transparent hover:bg-white/5 hover:backdrop-blur-sm hover:border-white/5"
                       )}
                     >
-                      <MessageSquare className={cn(
-                        "w-4 h-4 shrink-0 transition-colors",
-                        currentSessionId === session.id ? "text-[#DA8CA0]" : "text-[#CCCCD9]/40 group-hover:text-[#CCCCD9]"
-                      )} />
-                      
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 pr-6">
                         <p className={cn(
                           "text-sm truncate transition-colors",
                           currentSessionId === session.id ? "text-white font-medium" : "text-[#CCCCD9]/80 group-hover:text-white"
                         )}>
                           {session.title || "New Conversation"}
                         </p>
-                        {/* Optional Date Display */}
-                        {/* <p className="text-[10px] text-[#CCCCD9]/30 truncate">
-                          {new Date(session.created_at).toLocaleDateString()}
-                        </p> */}
                       </div>
 
-                      {/* DELETE BUTTON */}
+                      {/* VERTICAL 3 DOT MENU TRIGGER */}
                       <button 
-                        onClick={(e) => handleDeleteSession(e, session.id)}
-                        className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-500/10 hover:text-red-400 rounded-md transition-all"
+                        data-menu-trigger
+                        onClick={(e) => handleMenuOpen(e, session.id)}
+                        className={cn(
+                          "absolute right-2 p-1.5 rounded-md transition-all z-20",
+                          "text-[#CCCCD9]/50 hover:text-white bg-transparent hover:bg-white/10 hover:backdrop-blur-md",
+                          "opacity-100 lg:opacity-0 lg:group-hover:opacity-100",
+                          activeMenuId === session.id && "opacity-100 bg-white/10 text-white"
+                        )}
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <MoreVertical className="w-4 h-4" />
                       </button>
                     </motion.div>
                   ))}
@@ -204,72 +262,168 @@ export function Sidebar({ className, onClose }: SidebarProps) {
             )}
           </div>
 
-          {/* FOOTER - USER PROFILE AREA */}
+          {/* FOOTER */}
           <div className="mt-auto pt-4 border-t border-white/5">
-            <div className="flex items-center justify-between gap-2 p-2 rounded-xl hover:bg-white/5 transition-colors group">
-              
-              <div 
-                className="flex items-center gap-3 overflow-hidden cursor-pointer"
-                onClick={() => setShowProfileModal(true)}
-              >
-                {/* AVATAR */}
+            <div 
+              className="flex items-center justify-between gap-2 p-2 rounded-xl bg-transparent hover:bg-white/5 hover:backdrop-blur-md transition-all group cursor-pointer"
+              onClick={() => setShowSettings(true)}
+            >
+              <div className="flex items-center gap-3 overflow-hidden">
                 <div className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center shrink-0 border border-[#DA8CA0]/20 shadow-sm relative overflow-hidden group-hover:border-[#DA8CA0]/50 transition-colors">
-                  {userLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-[#DA8CA0]" />
-                  ) : userData.avatar ? (
-                    <Image 
-                      src={userData.avatar} 
-                      alt="Avatar" 
-                      fill 
-                      className="object-cover" 
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-tr from-[#DA8CA0] to-[#1C1246] flex items-center justify-center">
-                      <User className="w-4 h-4 text-white" />
-                    </div>
-                  )}
+                  {userLoading ? <Loader2 className="w-4 h-4 animate-spin text-[#DA8CA0]" /> : 
+                   userData.avatar ? <Image src={userData.avatar} alt="Avatar" fill className="object-cover" /> :
+                   <div className="w-full h-full bg-gradient-to-tr from-[#DA8CA0] to-[#1C1246] flex items-center justify-center"><User className="w-4 h-4 text-white" /></div>
+                  }
                 </div>
-                
                 <div className="flex flex-col min-w-0">
-                  <span className="text-sm font-semibold text-white truncate leading-tight">
-                    {userData.name}
-                  </span>
-                  <span className="text-[10px] text-[#CCCCD9]/50 truncate">
-                    View Profile
-                  </span>
+                  <span className="text-sm font-semibold text-white truncate leading-tight">{userData.name}</span>
+                  <span className="text-[10px] text-[#CCCCD9]/50 truncate group-hover:text-[#DA8CA0]/70 transition-colors">Settings & Account</span>
                 </div>
               </div>
-
-              {/* ACTIONS */}
-              <div className="flex items-center gap-0.5">
-                <button 
-                  onClick={() => setShowProfileModal(true)} 
-                  className="p-2 text-[#CCCCD9]/40 hover:text-[#DA8CA0] hover:bg-white/5 rounded-lg transition-all"
-                >
-                  <Settings className="w-4 h-4" />
-                </button>
-
-                <button 
-                  onClick={handleLogout}
-                  className="p-2 text-[#CCCCD9]/40 hover:text-red-400 hover:bg-red-400/5 rounded-lg transition-all"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
+              
+              <div className="p-2 text-[#DA8CA0] bg-white/5 rounded-lg border border-white/5 shadow-sm">
+                <SettingsIcon className="w-4 h-4" />
               </div>
-
             </div>
           </div>
         </div>
       </div>
 
-      <ProfileSettingsModal 
-        isOpen={showProfileModal} 
-        onClose={() => setShowProfileModal(false)}
-        userName={userData.name}
-        userEmail={userData.email}
-        userPhone={userData.phone}
-        userAvatar={userData.avatar}
+      {/* PORTAL MENU */}
+      <PortalMenu 
+        isOpen={!!activeMenuId} 
+        position={menuPosition} 
+        onClose={() => setActiveMenuId(null)}
+      >
+        <div className="p-1 flex flex-col gap-0.5">
+          <MenuItem icon={Pencil} label="Rename" onClick={() => handleMenuAction('rename', activeMenuId!)} />
+          <MenuItem icon={Share2} label="Share" onClick={() => handleMenuAction('share', activeMenuId!)} />
+          <MenuItem icon={Pin} label="Pin Chat" onClick={() => handleMenuAction('pin', activeMenuId!)} />
+          <div className="h-px bg-white/5 my-1" />
+          <MenuItem icon={Trash2} label="Delete" isDestructive onClick={() => handleMenuAction('delete', activeMenuId!)} />
+        </div>
+      </PortalMenu>
+
+      {/* NEW SETTINGS MODAL COMPONENT */}
+      <Settings 
+        isOpen={showSettings} 
+        onClose={() => setShowSettings(false)}
+        initialData={userData}
+      />
+
+      {mounted && showComingSoon && createPortal(
+        <div 
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowComingSoon(false)
+          }}
+        >
+          <ComingSoonModal 
+            isOpen={true} 
+            onClose={() => setShowComingSoon(false)} 
+          />
+        </div>,
+        document.body
+      )}
+
+      {/* Local Delete Modal */}
+      <DeleteConfirmationModal
+        isOpen={!!sessionToDelete}
+        isLoading={isDeleting}
+        onClose={() => {
+            if(!isDeleting) setSessionToDelete(null)
+        }}
+        onConfirm={executeDelete}
       />
     </>
+  )
+}
+
+// --- PORTAL MENU ---
+function PortalMenu({ isOpen, position, onClose, children }: { isOpen: boolean, position: { top: number, left: number }, onClose: () => void, children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  if (!mounted || !isOpen) return null
+
+  return createPortal(
+    <div 
+      data-portal-menu
+      style={{ top: position.top, left: position.left }}
+      className="fixed z-[9999] w-48 bg-[#1C1246]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 origin-top-left"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {children}
+    </div>,
+    document.body
+  )
+}
+
+// --- HELPERS ---
+function MenuItem({ icon: Icon, label, onClick, isDestructive = false }: { icon: any, label: string, onClick: (e: React.MouseEvent) => void, isDestructive?: boolean }) {
+  return (
+    <button 
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors w-full text-left",
+        isDestructive 
+          ? "text-red-400 hover:bg-red-500/10 hover:text-red-300" 
+          : "text-[#CCCCD9] hover:bg-white/5 hover:text-white"
+      )}
+    >
+      <Icon className="w-4 h-4" />
+      <span>{label}</span>
+    </button>
+  )
+}
+
+// --- LOCAL DELETE MODAL ---
+function DeleteConfirmationModal({ isOpen, isLoading, onClose, onConfirm }: { isOpen: boolean, isLoading: boolean, onClose: () => void, onConfirm: () => void }) {
+  if (!isOpen) return null
+
+  return createPortal(
+    <div 
+      className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isLoading) onClose()
+      }}
+    >
+      <div className="w-full max-w-sm bg-[#1C1246] border border-white/10 rounded-2xl shadow-2xl p-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-[#DA8CA0]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col gap-4">
+          <div className="mt-2">
+            <h3 className="text-lg font-bold text-white">Delete conversation?</h3>
+            <p className="text-sm text-[#CCCCD9]/70 mt-1">
+              This action cannot be undone. The chat history will be permanently removed.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 mt-2">
+            <button 
+              onClick={onClose}
+              disabled={isLoading}
+              className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={onConfirm}
+              disabled={isLoading}
+              className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors shadow-lg shadow-red-500/20 disabled:opacity-70 flex items-center justify-center gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Deleting...</span>
+                </>
+              ) : (
+                "Delete"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
   )
 }

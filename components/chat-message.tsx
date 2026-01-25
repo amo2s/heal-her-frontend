@@ -33,46 +33,48 @@ interface ChatMessageProps {
   message: Message
   isThinking?: boolean 
   onDelete?: (id: string) => void
+  // ADDED: Re-introduced the prop for the Modal
+  onFeatureNotAvailable?: () => void
 }
 
 // --- HELPER: ULTIMATE TEXT CLEANER ---
 const cleanTextForSpeech = (text: string) => {
   let clean = text
-
-  // 1. Remove Emojis (The Fix)
+  // 1. Remove Emojis
   clean = clean.replace(/[\u{1F600}-\u{1F6FF}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
-
-  // 2. Remove Horizontal Rules (--- or ***) so it doesn't say "Dash Dash Dash"
+  // 2. Remove Horizontal Rules
   clean = clean.replace(/[-*_]{3,}/g, '') 
-
   // 3. Remove Markdown Bold/Italic
   clean = clean.replace(/[*_]{1,3}([^*_]+)[*_]{1,3}/g, '$1') 
-  
   // 4. Remove Code Blocks
   clean = clean.replace(/```[\s\S]*?```/g, 'Code block omitted.')
-  
   // 5. Remove Inline Code
   clean = clean.replace(/`([^`]+)`/g, '$1')
-  
   // 6. Remove Links
   clean = clean.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-  
   // 7. Remove Headings (#)
   clean = clean.replace(/#{1,6}\s?/g, '')
-
-  // 8. Remove repeated punctuation (like ".......")
+  // 8. Remove repeated punctuation
   clean = clean.replace(/[.\-=_]{2,}/g, '')
 
   return clean
 }
 
-export function ChatMessage({ message, isThinking, onDelete }: ChatMessageProps) {
+export function ChatMessage({ message, isThinking, onDelete, onFeatureNotAvailable }: ChatMessageProps) {
   const isUser = message.role === "user"
   const [isCopied, setIsCopied] = useState(false)
   
   const { speak, cancel, speaking } = useSpeechSynthesis()
   const [isThisMessageTalking, setIsThisMessageTalking] = useState(false)
 
+  // FIX 1: Cleanup Speech on Unmount
+  useEffect(() => {
+    return () => {
+      cancel()
+    }
+  }, [])
+
+  // FIX 2: Watch global speaking state to sync UI
   useEffect(() => {
     if (!speaking) {
       setIsThisMessageTalking(false)
@@ -81,9 +83,11 @@ export function ChatMessage({ message, isThinking, onDelete }: ChatMessageProps)
 
   const handleSpeak = () => {
     if (isThisMessageTalking) {
+      // STOP
       cancel()
       setIsThisMessageTalking(false)
     } else {
+      // PLAY (Cancel others first)
       cancel()
       const spokenText = cleanTextForSpeech(message.content)
       
@@ -163,15 +167,10 @@ export function ChatMessage({ message, isThinking, onDelete }: ChatMessageProps)
                rehypePlugins={[rehypeSanitize]}
                components={{
                  p: ({children}) => <p className="mb-3 last:mb-0 leading-7">{children}</p>,
-                 
-                 // FIX 1: INCREASED PADDING (pl-6) so bullets/numbers don't get stuck to the left
                  ul: ({children}) => <ul className="list-disc pl-6 mb-3 space-y-1 marker:text-[#DA8CA0]">{children}</ul>,
                  ol: ({children}) => <ol className="list-decimal pl-6 mb-3 space-y-1 marker:text-[#DA8CA0]">{children}</ol>,
                  li: ({children}) => <li className="pl-1 leading-7">{children}</li>,
-
-                 // FIX 2: Custom Horizontal Rule (Dash Dash Dash) - Visual only, ignored by reader
                  hr: () => <hr className="my-4 border-white/10" />,
-
                  strong: ({children}) => <span className="font-semibold text-white">{children}</span>,
                  em: ({children}) => <span className="italic text-white/80">{children}</span>,
                  blockquote: ({children}) => (
@@ -193,12 +192,11 @@ export function ChatMessage({ message, isThinking, onDelete }: ChatMessageProps)
                     ) : (
                        <pre className="bg-[#0f0821] p-3 rounded-lg overflow-x-auto my-3 border border-white/10 shadow-inner">
                          <code className={cn("text-sm font-mono text-gray-200", className)}>
-                            {children}
+                           {children}
                          </code>
                        </pre>
                     )
                  },
-                 // Handle Tables nicely
                  table: ({children}) => <div className="overflow-x-auto my-4 rounded-lg border border-white/10"><table className="min-w-full divide-y divide-white/10">{children}</table></div>,
                  th: ({children}) => <th className="bg-white/5 px-3 py-2 text-left text-sm font-semibold text-white">{children}</th>,
                  td: ({children}) => <td className="px-3 py-2 text-sm text-white/70 border-t border-white/5">{children}</td>
@@ -211,10 +209,12 @@ export function ChatMessage({ message, isThinking, onDelete }: ChatMessageProps)
 
         {!isThinking && (
           <div className={cn(
-            "flex items-center gap-1 transition-all duration-300",
+            "flex items-center gap-1 transition-all duration-300 ease-in-out",
             "opacity-100 md:opacity-0 md:group-hover:opacity-100", 
             isUser ? "flex-row-reverse pr-1" : "flex-row pl-1"
           )}>
+            
+            {/* 1. UTILITIES: Copy, Delete */}
             <ActionButton 
               onClick={handleCopy} 
               icon={isCopied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -226,18 +226,41 @@ export function ChatMessage({ message, isThinking, onDelete }: ChatMessageProps)
               hoverColor="hover:text-red-400 hover:bg-red-400/10"
               label="Delete"
             />
+
+            {/* SEPARATOR 1: Separates Utility from Speech */}
+            {!isUser && <div className="w-px h-3 bg-white/10 mx-1" />}
+
+            {/* 2. SPEECH: Read Aloud */}
+            {!isUser && (
+              <ActionButton 
+                onClick={handleSpeak} 
+                icon={isThisMessageTalking ? <StopCircle className="w-3.5 h-3.5 text-[#DA8CA0]" /> : <Volume2 className="w-3.5 h-3.5" />}
+                label={isThisMessageTalking ? "Stop" : "Read Aloud"}
+                active={isThisMessageTalking}
+              />
+            )}
+
+            {/* SEPARATOR 2: Separates Speech from Social (This is the requested vertical line placement) */}
+            {!isUser && <div className="w-px h-3 bg-white/10 mx-1" />}
+
+            {/* 3. SOCIAL: Thumbs, Share - TRIGGER MODAL */}
             {!isUser && (
               <>
-                <div className="w-px h-3 bg-white/10 mx-1" /> 
                 <ActionButton 
-                  onClick={handleSpeak} 
-                  icon={isThisMessageTalking ? <StopCircle className="w-3.5 h-3.5 text-[#DA8CA0]" /> : <Volume2 className="w-3.5 h-3.5" />}
-                  label={isThisMessageTalking ? "Stop" : "Read Aloud"}
-                  active={isThisMessageTalking}
+                    onClick={onFeatureNotAvailable} 
+                    icon={<ThumbsUp className="w-3.5 h-3.5" />} 
+                    label="Helpful" 
                 />
-                <ActionButton icon={<ThumbsUp className="w-3.5 h-3.5" />} label="Helpful" />
-                <ActionButton icon={<ThumbsDown className="w-3.5 h-3.5" />} label="Not Helpful" />
-                <ActionButton icon={<Share2 className="w-3.5 h-3.5" />} label="Share" />
+                <ActionButton 
+                    onClick={onFeatureNotAvailable} 
+                    icon={<ThumbsDown className="w-3.5 h-3.5" />} 
+                    label="Not Helpful" 
+                />
+                <ActionButton 
+                    onClick={onFeatureNotAvailable} 
+                    icon={<Share2 className="w-3.5 h-3.5" />} 
+                    label="Share" 
+                />
               </>
             )}
           </div>

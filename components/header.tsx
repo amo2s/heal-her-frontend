@@ -2,17 +2,24 @@
 
 import React, { useState, useRef, useEffect } from "react"
 import Image from "next/image"
+import { useSearchParams, useRouter } from "next/navigation" 
+import { createPortal } from "react-dom"
 import { 
   Info, 
   MoreVertical, 
   Archive, 
   Trash2, 
   Flag,
-  Menu
+  Menu,
+  Loader2
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { ComingSoonModal } from "@/components/modals/coming-soon-modal"
 import { cn } from "@/lib/utils"
+import { useChatContext } from "@/components/context/chat-context"
+
+// --- CONFIG ---
+const API_BASE = "http://127.0.0.1:8000"
 
 interface HeaderProps {
   onMenuAction?: (action: string) => void
@@ -20,35 +27,37 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuAction, onSidebarToggle }: HeaderProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const currentSessionId = searchParams.get("session_id")
+  const { refreshSessions } = useChatContext()
+
   const [showMenu, setShowMenu] = useState(false)
   const [showInfo, setShowInfo] = useState(false)
-  const [showModal, setShowModal] = useState(false)
+  
+  // Modals
+  const [showComingSoon, setShowComingSoon] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+
   const [isScrolled, setIsScrolled] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  // --- UPDATED SCROLL DETECTION ---
+  // --- SCROLL DETECTION ---
   useEffect(() => {
-    // We target the 'main' tag because that is where the scrollbar lives in your layout
     const mainContainer = document.querySelector("main")
-    
     const handleScroll = () => {
       if (mainContainer) {
         setIsScrolled(mainContainer.scrollTop > 20)
       }
     }
-
-    if (mainContainer) {
-      mainContainer.addEventListener("scroll", handleScroll)
-    }
-
+    if (mainContainer) mainContainer.addEventListener("scroll", handleScroll)
     return () => {
-      if (mainContainer) {
-        mainContainer.removeEventListener("scroll", handleScroll)
-      }
+      if (mainContainer) mainContainer.removeEventListener("scroll", handleScroll)
     }
   }, [])
 
-  // Handle outside click
+  // --- CLICK OUTSIDE ---
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -59,12 +68,47 @@ export function Header({ onMenuAction, onSidebarToggle }: HeaderProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
+  // --- ACTIONS ---
   const handleAction = (action: string) => {
     setShowMenu(false)
-    if (action === "archive" || action === "report") {
-      setShowModal(true)
+    
+    if (action === "delete") {
+      // Only show delete modal if we actually have a session ID
+      if (currentSessionId) {
+        setShowDeleteModal(true)
+      }
+    } else if (action === "archive" || action === "report") {
+      setShowComingSoon(true)
     } else if (onMenuAction) {
       onMenuAction(action)
+    }
+  }
+
+  // --- DELETE LOGIC ---
+  const executeDelete = async () => {
+    if (!currentSessionId) return
+    
+    const userId = sessionStorage.getItem("user-id")
+    if (!userId) {
+        console.error("Cannot delete: User ID missing")
+        return
+    }
+
+    setIsDeleting(true)
+
+    try {
+      await fetch(`${API_BASE}/sessions/${currentSessionId}?user_id=${userId}`, {
+        method: "DELETE"
+      })
+      
+      await refreshSessions() // Refresh sidebar list
+      router.push("/chat") // Redirect to new chat
+      setShowDeleteModal(false)
+
+    } catch (e) { 
+      console.error("Delete failed:", e) 
+    } finally { 
+      setIsDeleting(false) 
     }
   }
 
@@ -72,7 +116,6 @@ export function Header({ onMenuAction, onSidebarToggle }: HeaderProps) {
     <>
       <header 
         className={cn(
-          // Changed 'fixed' to 'absolute' to fit better inside the relative ChatLayout
           "absolute top-0 left-0 right-0 h-24 px-4 md:px-8 flex items-center justify-between z-50 transition-all duration-300",
           isScrolled 
             ? "bg-[#1C1246]/60 backdrop-blur-xl border-b border-white/5 shadow-sm" 
@@ -168,8 +211,16 @@ export function Header({ onMenuAction, onSidebarToggle }: HeaderProps) {
                 <div role="menu">
                   <MenuItem icon={Archive} label="Archive Chat" onClick={() => handleAction("archive")} />
                   <MenuItem icon={Flag} label="Report Issue" onClick={() => handleAction("report")} />
+                  
+                  {/* Only show delete if there is an active session */}
                   <div className="my-2 mx-4 h-px bg-white/10" />
-                  <MenuItem icon={Trash2} label="Delete Chat" onClick={() => handleAction("delete")} danger />
+                  <MenuItem 
+                     icon={Trash2} 
+                     label="Delete Chat" 
+                     onClick={() => handleAction("delete")} 
+                     danger 
+                     disabled={!currentSessionId}
+                  />
                 </div>
               </motion.div>
             )}
@@ -177,25 +228,90 @@ export function Header({ onMenuAction, onSidebarToggle }: HeaderProps) {
         </div>
       </header>
 
+      {/* Coming Soon Modal */}
       <ComingSoonModal 
-        isOpen={showModal} 
-        onClose={() => setShowModal(false)} 
+        isOpen={showComingSoon} 
+        onClose={() => setShowComingSoon(false)} 
+      />
+
+      {/* DELETE WARNING MODAL */}
+      <DeleteConfirmationModal
+        isOpen={showDeleteModal}
+        isLoading={isDeleting}
+        onClose={() => !isDeleting && setShowDeleteModal(false)}
+        onConfirm={executeDelete}
       />
     </>
   )
 }
 
-function MenuItem({ icon: Icon, label, onClick, danger = false }: { icon: any, label: string, onClick: () => void, danger?: boolean }) {
+// --- HELPER COMPONENTS ---
+
+function MenuItem({ icon: Icon, label, onClick, danger = false, disabled = false }: { icon: any, label: string, onClick: () => void, danger?: boolean, disabled?: boolean }) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       className={cn(
         "w-full px-5 py-3 flex items-center gap-3 text-sm font-medium transition-all duration-200 group",
-        danger ? "text-red-400 hover:bg-red-500/10 hover:text-red-300" : "text-[#CCCCD9] hover:bg-[#DA8CA0]/10 hover:text-[#DA8CA0]"
+        disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
+        !disabled && danger ? "text-red-400 hover:bg-red-500/10 hover:text-red-300" : "",
+        !disabled && !danger ? "text-[#CCCCD9] hover:bg-[#DA8CA0]/10 hover:text-[#DA8CA0]" : ""
       )}
     >
-      <Icon className={cn("w-5 h-5 transition-transform group-hover:scale-110", danger ? "text-red-400" : "text-[#DA8CA0]/70 group-hover:text-[#DA8CA0]")} />
+      <Icon className={cn("w-5 h-5 transition-transform", !disabled && "group-hover:scale-110", danger ? "text-red-400" : "text-[#DA8CA0]/70 group-hover:text-[#DA8CA0]")} />
       {label}
     </button>
+  )
+}
+
+function DeleteConfirmationModal({ isOpen, isLoading, onClose, onConfirm }: { isOpen: boolean, isLoading: boolean, onClose: () => void, onConfirm: () => void }) {
+  if (!isOpen) return null
+
+  return createPortal(
+    <div 
+      className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isLoading) onClose()
+      }}
+    >
+      <div className="w-full max-w-sm bg-[#1C1246] border border-white/10 rounded-2xl shadow-2xl p-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-[#DA8CA0]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col gap-4">
+          <div className="mt-2">
+            <h3 className="text-lg font-bold text-white">Delete conversation?</h3>
+            <p className="text-sm text-[#CCCCD9]/70 mt-1">
+              This action cannot be undone. The chat history will be permanently removed.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 mt-2">
+            <button 
+              onClick={onClose}
+              disabled={isLoading}
+              className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={onConfirm}
+              disabled={isLoading}
+              className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors shadow-lg shadow-red-500/20 disabled:opacity-70 flex items-center justify-center gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Deleting...</span>
+                </>
+              ) : (
+                "Delete"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
   )
 }

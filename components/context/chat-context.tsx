@@ -22,32 +22,46 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
   // Function to fetch sessions from Backend
   const refreshSessions = useCallback(async () => {
-    // We don't set loading to true here to avoid flickering on updates
-    const token = localStorage.getItem("sb-access-token")
+    // FIX 1: Use sessionStorage (Matches your Proxy & ChatPage)
+    const token = sessionStorage.getItem("sb-access-token")
+    
     if (!token) {
         setIsLoading(false)
         return
     }
 
     try {
-      // 1. Get User ID first
-      const userRes = await fetch("http://127.0.0.1:8000/auth/me", {
-        headers: { "Authorization": `Bearer ${token}` }
-      })
-      
-      if (!userRes.ok) {
-          setIsLoading(false)
-          return
-      }
-      
-      const userData = await userRes.json()
+      // OPTIMIZATION: Check if we have the User ID cached in session storage first
+      let userId = sessionStorage.getItem("user-id")
 
-      // 2. Fetch Sessions for this user
-      const sessionRes = await fetch(`http://127.0.0.1:8000/sessions?user_id=${userData.id}`)
-      if (sessionRes.ok) {
-        const data = await sessionRes.json()
-        setSessions(data)
+      // If no ID cached, we must fetch it
+      if (!userId) {
+          // FIX 2: Changed /auth/me to /profile/me to match your Python Backend
+          const userRes = await fetch("http://127.0.0.1:8000/profile/me", {
+            headers: { "Authorization": `Bearer ${token}` }
+          })
+          
+          if (!userRes.ok) {
+             setIsLoading(false)
+             return
+          }
+          
+          const userData = await userRes.json()
+          userId = userData.id
+          
+          // Cache it for next time
+          if (userId) sessionStorage.setItem("user-id", userId)
       }
+
+      // 3. Fetch Sessions for this user (Only if we have a User ID)
+      if (userId) {
+          const sessionRes = await fetch(`http://127.0.0.1:8000/sessions?user_id=${userId}`)
+          if (sessionRes.ok) {
+            const data = await sessionRes.json()
+            setSessions(data)
+          }
+      }
+
     } catch (error) {
       console.error("Context: Failed to load sessions", error)
     } finally {
