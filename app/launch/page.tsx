@@ -7,16 +7,17 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import ReactMarkdown from 'react-markdown'
+import { useRouter } from "next/navigation"
 import {
   Zap, Globe, Shield, Activity, Check, AlertOctagon,
   PhoneCall, MapPin, Loader2, Terminal as TerminalIcon,
   Wifi, AlertCircle, Trash2, Heart, MessageCircle,
   Lock, Sparkles, ArrowUp, Plus, Mic, Image as ImageIcon,
-  FileText, X
+  FileText, X, LogIn
 } from "lucide-react"
 import Link from "next/link"
 
-// --- PRO COMPONENTS ---
+// --- UTILS & VISUALS ---
 
 const GrainOverlay = () => (
   <div 
@@ -82,50 +83,32 @@ function SpotlightCard({ children, className = "" }: { children: React.ReactNode
   )
 }
 
-// --- COMING SOON MODAL ---
+// --- MODALS ---
+
+// 1. COMING SOON MODAL (For Plus Menu)
 function ComingSoonModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 z-[60] flex items-center justify-center p-4">
           <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={onClose}
             className="absolute inset-0 bg-[#160d33]/80 backdrop-blur-sm"
           />
           <motion.div
-            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }}
             className="relative w-full max-w-sm bg-[#231854] border border-[#DA8CA0]/30 rounded-3xl p-6 shadow-2xl overflow-hidden"
           >
-            <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#DA8CA0]/20 blur-3xl rounded-full" />
-            <button 
-              type="button"
-              onClick={onClose} 
-              aria-label="Close modal"
-              className="absolute top-4 right-4 text-[#CCCCD9] hover:text-white"
-            >
-              <X className="h-5 w-5" />
-            </button>
-            <div className="flex flex-col items-center text-center space-y-4">
-              <div className="w-16 h-16 rounded-full bg-[#DA8CA0]/10 border border-[#DA8CA0]/30 flex items-center justify-center mb-2">
-                <Sparkles className="h-8 w-8 text-[#DA8CA0] animate-pulse" />
-              </div>
-              <h3 className="text-xl font-bold text-white">Upgrade Incoming</h3>
-              <p className="text-[#CCCCD9] text-sm leading-relaxed">
-                This feature is currently in development. <br/>
-                Stay tuned for <span className="text-[#DA8CA0] font-bold">Heal Her v2.0</span>.
-              </p>
-              <div className="w-full h-1 bg-white/5 rounded-full mt-4 overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-[#DA8CA0] to-purple-500 w-2/3 animate-[shimmer_2s_infinite]" />
-              </div>
-              <Button onClick={onClose} className="w-full bg-white/10 hover:bg-white/20 text-white mt-4 border border-white/5">
-                Got it
-              </Button>
-            </div>
+             <button onClick={onClose} className="absolute top-4 right-4 text-[#CCCCD9] hover:text-white"><X className="h-5 w-5" /></button>
+             <div className="flex flex-col items-center text-center space-y-4">
+                <div className="w-16 h-16 rounded-full bg-[#DA8CA0]/10 border border-[#DA8CA0]/30 flex items-center justify-center mb-2">
+                   <Sparkles className="h-8 w-8 text-[#DA8CA0] animate-pulse" />
+                </div>
+                <h3 className="text-xl font-bold text-white">Upgrade Incoming</h3>
+                <p className="text-[#CCCCD9] text-sm leading-relaxed">This feature is in development. <br/>Stay tuned for <span className="text-[#DA8CA0] font-bold">Heal Her v2.0</span>.</p>
+                <Button onClick={onClose} className="w-full bg-white/10 hover:bg-white/20 text-white mt-4 border border-white/5">Got it</Button>
+             </div>
           </motion.div>
         </div>
       )}
@@ -133,7 +116,69 @@ function ComingSoonModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
   )
 }
 
+// 2. LIMIT REACHED MODAL (For The 3 Message Limit)
+function LimitModal({ isOpen }: { isOpen: boolean }) {
+    const router = useRouter()
+    const [isRedirecting, setIsRedirecting] = useState(false)
+
+    const handleLoginRedirect = async () => {
+        setIsRedirecting(true)
+        // Simulate a small delay for effect
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        router.push("/login")
+    }
+
+    return (
+      <AnimatePresence>
+        {isOpen && (
+          <div className="absolute inset-0 z-[70] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-[#0A051E]/90 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-sm bg-[#1C1246] border border-[#DA8CA0]/50 rounded-3xl p-8 shadow-2xl overflow-hidden text-center"
+            >
+               <div className="flex flex-col items-center gap-4">
+                  <div className="w-16 h-16 bg-[#DA8CA0]/10 rounded-full flex items-center justify-center animate-bounce">
+                      <Lock className="w-8 h-8 text-[#DA8CA0]" />
+                  </div>
+                  
+                  <div>
+                      <h3 className="text-2xl font-bold text-white mb-2">Daily Limit Reached</h3>
+                      <p className="text-[#CCCCD9]/80 text-sm leading-relaxed">
+                          You've used your 3 free guest messages. <br/>
+                          To continue your healing journey unlimited, please access your safe space.
+                      </p>
+                  </div>
+
+                  <Button 
+                    onClick={handleLoginRedirect}
+                    disabled={isRedirecting}
+                    className="w-full h-12 mt-2 bg-[#DA8CA0] hover:bg-[#c76b85] text-[#1C1246] font-bold text-base rounded-xl transition-all shadow-[0_4px_20px_rgba(218,140,160,0.25)] hover:scale-[1.02]"
+                  >
+                    {isRedirecting ? (
+                        <>
+                            <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                            Redirecting...
+                        </>
+                    ) : (
+                        "Login for Unlimited Chat"
+                    )}
+                  </Button>
+                  
+                  <p className="text-[10px] text-[#CCCCD9]/40 uppercase tracking-widest mt-2">Free Forever • Secure • Anonymous</p>
+               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    )
+}
+
 // --- LIVE TERMINAL COMPONENT ---
+
 function LiveTerminal() {
   const [input, setInput] = useState("")
   const [history, setHistory] = useState<{ type: 'user' | 'system' | 'ai' | 'error', content: string }[]>([])
@@ -141,13 +186,31 @@ function LiveTerminal() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [isBooted, setIsBooted] = useState(false)
   
+  // STATE FOR FEATURES & LIMITS
   const [showPlusMenu, setShowPlusMenu] = useState(false)
   const [showComingSoon, setShowComingSoon] = useState(false)
+  const [showLimitModal, setShowLimitModal] = useState(false)
+  
+  // FINGERPRINTING STATE
+  const [fingerprint, setFingerprint] = useState("")
+  // We keep a local count just for UI "msgs left" visual, but Backend enforces the real block.
+  const [localUiCount, setLocalUiCount] = useState(0)
 
   useEffect(() => {
+    // 1. BOOT
     const timer = setTimeout(() => {
       setIsBooted(true)
     }, 800)
+    
+    // 2. FINGERPRINT SETUP (Secure ID generation)
+    // We only use localStorage to store the ID (Key), not the Logic.
+    let storedId = localStorage.getItem("heal_her_device_id")
+    if (!storedId) {
+        storedId = crypto.randomUUID()
+        localStorage.setItem("heal_her_device_id", storedId)
+    }
+    setFingerprint(storedId)
+
     return () => clearTimeout(timer)
   }, [])
 
@@ -173,53 +236,64 @@ function LiveTerminal() {
     setLoading(true)
 
     try {
-      const res = await fetch("https://medguard-back-end.onrender.com/ask", {
+      // --- SECURE BACKEND CALL ---
+      // We send the fingerprint. The Backend checks the DB.
+      const res = await fetch("http://127.0.0.1:8000/guest-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        body: JSON.stringify({ prompt: userMsg }),
+        body: JSON.stringify({ 
+            fingerprint: fingerprint,
+            message: userMsg 
+        }),
       })
+
+      // --- THE GATEKEEPER CHECK ---
+      if (res.status === 403) {
+          setShowLimitModal(true)
+          setLocalUiCount(3) // Force UI to show 0 left
+          setLoading(false)
+          return
+      }
 
       if (!res.ok) throw new Error(`Server Error (${res.status})`);
 
       const data = await res.json()
-      const aiResponse = data.response || data.message || data.reply || JSON.stringify(data)
+      const aiResponse = data.response 
 
       setHistory(prev => [...prev, { type: 'ai', content: aiResponse }])
+      setLocalUiCount(prev => prev + 1)
+
     } catch (error: any) {
-      setHistory(prev => [...prev, { type: 'error', content: "Connection failed. Please try again." }])
+      console.error(error)
+      setHistory(prev => [...prev, { type: 'error', content: "Connection failed. Please check your internet." }])
     } finally {
       setLoading(false)
     }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !loading) handleSend()
+    if (e.key === "Enter" && !e.shiftKey && !loading) {
+        e.preventDefault()
+        handleSend()
+    }
   }
 
   return (
     <>
       <style jsx global>{`
-        .custom-scroll::-webkit-scrollbar {
-          width: 5px;
-        }
-        .custom-scroll::-webkit-scrollbar-track {
-          background: rgba(255, 255, 255, 0.01);
-        }
-        .custom-scroll::-webkit-scrollbar-thumb {
-          background: rgba(218, 140, 160, 0.2);
-          border-radius: 10px;
-        }
-        .custom-scroll::-webkit-scrollbar-thumb:hover {
-          background: rgba(218, 140, 160, 0.4);
-        }
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.01); }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(218, 140, 160, 0.2); border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: rgba(218, 140, 160, 0.4); }
       `}</style>
 
       <div className="rounded-3xl border border-[#DA8CA0]/20 bg-[#160d33]/80 backdrop-blur-xl overflow-hidden shadow-2xl relative group h-[600px] flex flex-col">
-        {/* Decorative Background Elements */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-[#DA8CA0]/10 rounded-full blur-[80px] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-600/10 rounded-full blur-[80px] pointer-events-none" />
 
+        {/* MODALS INSIDE THE CARD CONTEXT */}
         <ComingSoonModal isOpen={showComingSoon} onClose={() => setShowComingSoon(false)} />
+        <LimitModal isOpen={showLimitModal} />
 
         {/* --- HEADER --- */}
         <div className="bg-[#1C1246]/50 px-6 py-4 border-b border-white/5 flex items-center justify-between relative z-10 backdrop-blur-md">
@@ -229,18 +303,19 @@ function LiveTerminal() {
                <div className="w-2.5 h-2.5 rounded-full bg-amber-400/80" />
                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400/80" />
              </div>
-             
              <div className="flex flex-col">
                 <span className="text-sm text-white font-bold tracking-wide flex items-center gap-2">
                   Heal Her <span className="text-[10px] bg-[#DA8CA0]/20 text-[#DA8CA0] px-1.5 rounded uppercase tracking-wider">v1.0</span>
                 </span>
-                <span className="text-[10px] text-[#CCCCD9] opacity-60">
-                   Secure End-to-End Encryption
-                </span>
+                <span className="text-[10px] text-[#CCCCD9] opacity-60">Secure End-to-End Encryption</span>
              </div>
           </div>
 
           <div className="flex items-center gap-3">
+             <div className="text-[10px] font-mono text-[#DA8CA0] bg-[#DA8CA0]/10 px-2 py-1 rounded border border-[#DA8CA0]/20">
+                {/* Visual indicator only, actual block is backend */}
+                {Math.max(0, 3 - localUiCount)} msgs left
+             </div>
              <button onClick={handleClear} className="p-2 hover:bg-white/5 rounded-full transition-colors text-[#CCCCD9] hover:text-white" title="Clear Chat">
                <Trash2 className="h-4 w-4" />
              </button>
@@ -250,35 +325,16 @@ function LiveTerminal() {
         </div>
 
         {/* --- CHAT AREA --- */}
-        <div 
-          ref={scrollRef}
-          className="flex-1 p-6 overflow-y-auto custom-scroll space-y-6 relative z-10"
-        >
-          {/* --- EMPTY STATE (Emotional & Visible) --- */}
+        <div ref={scrollRef} className="flex-1 p-6 overflow-y-auto custom-scroll space-y-6 relative z-10">
           {history.length === 0 && (
-             <motion.div 
-               initial={{ opacity: 0 }}
-               animate={{ opacity: 1 }}
-               exit={{ opacity: 0 }}
-               className="h-full flex flex-col items-center justify-center text-center gap-6 select-none"
-             >
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full flex flex-col items-center justify-center text-center gap-6 select-none">
                 <div className="relative">
-                   {/* Background Glow */}
                    <div className="absolute inset-0 bg-[#DA8CA0]/20 blur-[40px] rounded-full animate-pulse" />
-                   {/* LOGO */}
-                   <img 
-                      src="/heal-logo.png" 
-                      alt="Heal Her Logo" 
-                      className="w-20 h-20 rounded-full object-cover border-2 border-white/10 shadow-[0_0_30px_rgba(218,140,160,0.3)] relative z-10"
-                   />
+                   <img src="/heal-logo.png" alt="Heal Her Logo" className="w-20 h-20 rounded-full object-cover border-2 border-white/10 shadow-[0_0_30px_rgba(218,140,160,0.3)] relative z-10"/>
                 </div>
-                
                 <div className="space-y-2 max-w-xs mx-auto">
                    <h3 className="text-xl font-bold text-white tracking-tight">I'm here for you, sis. 🌸</h3>
-                   <p className="text-sm text-[#CCCCD9]/80 font-mono leading-relaxed">
-                     This is a safe, judgment-free space to vent, cry, or just chat. <br/>
-                     <span className="text-[#DA8CA0]">How are you feeling today? 💖</span>
-                   </p>
+                   <p className="text-sm text-[#CCCCD9]/80 font-mono leading-relaxed">This is a safe, judgment-free space to vent, cry, or just chat. <br/><span className="text-[#DA8CA0]">How are you feeling today? 💖</span></p>
                 </div>
              </motion.div>
           )}
@@ -293,67 +349,33 @@ function LiveTerminal() {
                 className={cn("flex w-full", msg.type === 'user' ? "justify-end" : "justify-start")}
               >
                 <div className={cn("flex gap-3 max-w-[85%] items-start", msg.type === 'user' ? "flex-row-reverse" : "flex-row")}>
-                  
-                  {/* Avatar Area (Only AI) */}
                   {msg.type !== 'user' && (
                     <div className="shrink-0 mt-1 relative group">
                        {msg.type === 'ai' || msg.type === 'system' ? (
-                         <img 
-                           src="/heal-logo.png" 
-                           alt="Heal Her" 
-                           className="w-9 h-9 rounded-full object-cover border border-white/10 shadow-[0_0_15px_rgba(218,140,160,0.2)]"
-                         />
+                         <img src="/heal-logo.png" alt="Heal Her" className="w-9 h-9 rounded-full object-cover border border-white/10 shadow-[0_0_15px_rgba(218,140,160,0.2)]"/>
                        ) : (
-                         <div className="w-9 h-9 rounded-full bg-red-900/20 border border-red-500/20 flex items-center justify-center">
-                            <AlertCircle className="h-4 w-4 text-red-400" />
-                         </div>
+                         <div className="w-9 h-9 rounded-full bg-red-900/20 border border-red-500/20 flex items-center justify-center"><AlertCircle className="h-4 w-4 text-red-400" /></div>
                        )}
                     </div>
                   )}
-
-                  {/* Message Content */}
-                  <div className={cn(
-                    "text-sm leading-relaxed",
-                    msg.type === 'user' 
-                      ? "bg-[#2A1F5E] border border-white/10 text-gray-100 font-medium rounded-2xl rounded-tr-sm p-3.5 backdrop-blur-sm shadow-md"
-                      : msg.type === 'error'
-                      ? "bg-red-950/50 border border-red-500/20 text-red-200 rounded-2xl p-3.5"
-                      : "bg-transparent text-[#FAFAFA] px-1 py-1.5" 
-                  )}>
+                  <div className={cn("text-sm leading-relaxed", msg.type === 'user' ? "bg-[#2A1F5E] border border-white/10 text-gray-100 font-medium rounded-2xl rounded-tr-sm p-3.5 backdrop-blur-sm shadow-md" : msg.type === 'error' ? "bg-red-950/50 border border-red-500/20 text-red-200 rounded-2xl p-3.5" : "bg-transparent text-[#FAFAFA] px-1 py-1.5" )}>
                       {msg.type === 'ai' ? (
                         <div className="prose prose-invert prose-sm max-w-none">
-                          <ReactMarkdown components={{
-                            p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
-                            a: ({node, ...props}) => <a className="text-[#DA8CA0] hover:underline" {...props} />
-                          }}>
-                            {msg.content}
-                          </ReactMarkdown>
+                          <ReactMarkdown components={{ p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />, a: ({node, ...props}) => <a className="text-[#DA8CA0] hover:underline" {...props} /> }}>{msg.content}</ReactMarkdown>
                         </div>
-                      ) : (
-                        msg.content
-                      )}
+                      ) : ( msg.content )}
                   </div>
                 </div>
               </motion.div>
             ))}
           </AnimatePresence>
 
-          {/* --- LOADING STATE (Spinning around Logo) --- */}
           {loading && (
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }}
-              className="flex justify-start w-full mt-2"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start w-full mt-2">
                <div className="flex gap-3 items-center">
                    <div className="relative">
-                      {/* Spinning Ring */}
                       <div className="absolute -inset-1 rounded-full border-2 border-transparent border-t-[#DA8CA0] border-r-[#DA8CA0]/50 animate-spin" />
-                      <img 
-                          src="/heal-logo.png" 
-                          alt="Heal Her" 
-                          className="w-9 h-9 rounded-full object-cover border border-white/10 relative z-10"
-                      />
+                      <img src="/heal-logo.png" alt="Heal Her" className="w-9 h-9 rounded-full object-cover border border-white/10 relative z-10" />
                    </div>
                    <span className="text-xs text-[#CCCCD9]/50 animate-pulse font-mono tracking-widest">THINKING...</span>
                </div>
@@ -363,78 +385,39 @@ function LiveTerminal() {
 
         {/* --- INPUT AREA --- */}
         <div className="p-4 relative z-20">
-           {/* Plus Menu Popup */}
            <AnimatePresence>
              {showPlusMenu && (
-               <motion.div
-                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                 className="absolute bottom-20 left-6 bg-[#1C1246]/95 border border-[#DA8CA0]/20 backdrop-blur-xl rounded-2xl p-2 shadow-2xl flex flex-col gap-1 w-48 z-50"
-               >
-                 {/* Updated Colors: Pink/Purple theme */}
+               <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className="absolute bottom-20 left-6 bg-[#1C1246]/95 border border-[#DA8CA0]/20 backdrop-blur-xl rounded-2xl p-2 shadow-2xl flex flex-col gap-1 w-48 z-50">
                  <button onClick={handleFeatureClick} className="flex items-center gap-3 w-full p-2 hover:bg-white/10 rounded-xl text-left text-sm text-[#CCCCD9] hover:text-white transition-colors">
-                    <div className="p-1.5 bg-[#DA8CA0]/20 rounded-lg text-[#DA8CA0]"><ImageIcon className="h-4 w-4"/></div>
-                    Upload Images
+                    <div className="p-1.5 bg-[#DA8CA0]/20 rounded-lg text-[#DA8CA0]"><ImageIcon className="h-4 w-4"/></div> Upload Images
                  </button>
                  <button onClick={handleFeatureClick} className="flex items-center gap-3 w-full p-2 hover:bg-white/10 rounded-xl text-left text-sm text-[#CCCCD9] hover:text-white transition-colors">
-                    <div className="p-1.5 bg-purple-500/20 rounded-lg text-purple-300"><FileText className="h-4 w-4"/></div>
-                    Add Files
+                    <div className="p-1.5 bg-purple-500/20 rounded-lg text-purple-300"><FileText className="h-4 w-4"/></div> Add Files
                  </button>
                </motion.div>
              )}
            </AnimatePresence>
 
           <div className="relative flex items-end gap-2 bg-[#1C1246] border border-[#DA8CA0]/20 rounded-3xl p-2 shadow-xl transition-all duration-300 focus-within:border-[#DA8CA0]/50 focus-within:shadow-[0_0_20px_rgba(218,140,160,0.1)]">
-              
-              {/* Plus Button */}
-              <button 
-                onClick={() => setShowPlusMenu(!showPlusMenu)}
-                title="Add attachments"
-                className={cn(
-                  "h-10 w-10 rounded-full flex items-center justify-center transition-all duration-300 hover:bg-white/10 shrink-0",
-                  showPlusMenu ? "bg-white/10 rotate-45 text-white" : "text-[#CCCCD9]"
-                )}
-              >
+              <button onClick={() => setShowPlusMenu(!showPlusMenu)} className={cn("h-10 w-10 rounded-full flex items-center justify-center transition-all duration-300 hover:bg-white/10 shrink-0", showPlusMenu ? "bg-white/10 rotate-45 text-white" : "text-[#CCCCD9]")}>
                 <Plus className="h-5 w-5" />
               </button>
-
-              {/* Text Input */}
               <textarea 
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                disabled={loading || !isBooted}
+                disabled={loading || !isBooted} 
                 placeholder={isBooted ? "Type your message here..." : "Initializing..."}
                 className="flex-1 bg-transparent border-none text-white focus:ring-0 placeholder:text-gray-500 text-sm py-3 min-h-[44px] max-h-[120px] resize-none outline-none custom-scroll"
                 rows={1}
               />
-
               <div className="flex items-center gap-1 pb-1">
-                 {/* Mic Button */}
-                 <button 
-                   onClick={handleFeatureClick}
-                   className="h-8 w-8 rounded-full flex items-center justify-center text-[#CCCCD9] hover:text-white hover:bg-white/10 transition-colors"
-                   title="Voice Note"
-                 >
-                   <Mic className="h-4 w-4" />
-                 </button>
-
-                 {/* Send Button */}
-                 <Button 
-                   onClick={handleSend} 
-                   disabled={loading || !isBooted || !input.trim()}
-                   size="icon"
-                   className={cn(
-                     "rounded-full h-9 w-9 transition-all duration-300",
-                     input.trim() ? "bg-[#DA8CA0] hover:bg-[#c76b85] text-[#1C1246]" : "bg-[#2A1F5E] text-gray-500"
-                   )}
-                 >
+                 <button onClick={handleFeatureClick} className="h-8 w-8 rounded-full flex items-center justify-center text-[#CCCCD9] hover:text-white hover:bg-white/10 transition-colors"><Mic className="h-4 w-4" /></button>
+                 <Button onClick={handleSend} disabled={loading || !isBooted || !input.trim()} size="icon" className={cn("rounded-full h-9 w-9 transition-all duration-300", input.trim() ? "bg-[#DA8CA0] hover:bg-[#c76b85] text-[#1C1246]" : "bg-[#2A1F5E] text-gray-500")}>
                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
                  </Button>
               </div>
           </div>
-          
           <div className="text-center mt-2 flex justify-center gap-4">
               <span className="text-[10px] text-[#CCCCD9]/40 font-mono">Press Enter to send</span>
           </div>
@@ -447,18 +430,13 @@ function LiveTerminal() {
 // --- SYSTEM READY & EMERGENCY COMPS (UNCHANGED) ---
 function SystemReadyCheck() {
   const [step, setStep] = useState(0)
-  useEffect(() => {
-    const interval = setInterval(() => setStep((prev) => (prev < 3 ? prev + 1 : prev)), 600)
-    return () => clearInterval(interval)
-  }, [])
+  useEffect(() => { const interval = setInterval(() => setStep((prev) => (prev < 3 ? prev + 1 : prev)), 600); return () => clearInterval(interval) }, [])
   const items = [{ label: "Empathy Engine", icon: Heart }, { label: "Privacy Core", icon: Lock }, { label: "Knowledge Base", icon: Globe }]
   return (
     <div className="flex flex-col sm:flex-row gap-4 justify-center text-xs font-mono text-[#CCCCD9] mb-8">
       {items.map((item, i) => (
         <div key={i} className={cn("flex items-center gap-2 transition-opacity duration-500", step >= i + 1 ? "opacity-100" : "opacity-30")}>
-           <div className={cn("h-4 w-4 rounded-full flex items-center justify-center border", step >= i + 1 ? "border-emerald-500 bg-emerald-500/10 text-emerald-500" : "border-slate-700")}>
-             {step >= i + 1 && <Check className="h-2 w-2" />}
-           </div>
+           <div className={cn("h-4 w-4 rounded-full flex items-center justify-center border", step >= i + 1 ? "border-emerald-500 bg-emerald-500/10 text-emerald-500" : "border-slate-700")}>{step >= i + 1 && <Check className="h-2 w-2" />}</div>
            <span>{item.label}</span>
         </div>
       ))}
@@ -473,11 +451,7 @@ function SmartEmergencyButton() {
   useEffect(() => {
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
     const timer = setTimeout(() => {
-      if (timeZone.includes("Lagos") || timeZone.includes("Africa")) {
-        setLocation("NIGERIA DETECTED"); setNumber("112")
-      } else {
-        setLocation("GLOBAL GSM DETECTED"); setNumber("112") 
-      }
+      if (timeZone.includes("Lagos") || timeZone.includes("Africa")) { setLocation("NIGERIA DETECTED"); setNumber("112") } else { setLocation("GLOBAL GSM DETECTED"); setNumber("112") }
       setIsReady(true)
     }, 1500) 
     return () => clearTimeout(timer)
@@ -487,13 +461,8 @@ function SmartEmergencyButton() {
       <Button asChild variant="destructive" size="lg" className={cn("h-24 px-8 text-lg font-bold rounded-2xl shadow-[0_0_30px_rgba(225,29,72,0.4)] w-full sm:w-auto transition-all duration-500", isReady ? "animate-pulse" : "opacity-80 cursor-wait")}>
           <a href={`tel:${number}`}>
             <div className="flex flex-col items-center justify-center gap-1">
-              <div className="flex items-center gap-2">
-                 <PhoneCall className="h-6 w-6" />
-                 {isReady ? <span>DIAL {number} NOW</span> : <span className="flex items-center gap-2">CONNECTING <Loader2 className="h-4 w-4 animate-spin" /></span>}
-              </div>
-              <div className="text-[10px] opacity-80 font-mono font-normal flex items-center gap-2 mt-1">
-                 {isReady ? <><MapPin className="h-3 w-3" /> {location}</> : <><Globe className="h-3 w-3 animate-pulse" /> TRIANGULATING LOCATION...</>}
-              </div>
+              <div className="flex items-center gap-2"><PhoneCall className="h-6 w-6" />{isReady ? <span>DIAL {number} NOW</span> : <span className="flex items-center gap-2">CONNECTING <Loader2 className="h-4 w-4 animate-spin" /></span>}</div>
+              <div className="text-[10px] opacity-80 font-mono font-normal flex items-center gap-2 mt-1">{isReady ? <><MapPin className="h-3 w-3" /> {location}</> : <><Globe className="h-3 w-3 animate-pulse" /> TRIANGULATING LOCATION...</>}</div>
             </div>
           </a>
       </Button>
@@ -521,12 +490,15 @@ export default function LaunchPage() {
            <motion.p initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }} className="text-xl text-[#CCCCD9] mb-12 max-w-2xl mx-auto">
              You are safe here. No judgment, just support. Click below to begin your chat with Heal Her.
            </motion.p>
+           
+           {/* REDUCED SIZE HERO BUTTON */}
            <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.8, type: "spring" }} className="relative group inline-block">
              <div className="absolute -inset-1 bg-gradient-to-r from-[#DA8CA0] to-purple-500 rounded-full blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200" />
-             <Button asChild size="lg" className="relative h-24 px-12 rounded-full bg-white text-[#1C1246] text-2xl font-bold hover:bg-[#DA8CA0] hover:text-white hover:scale-105 transition-all shadow-2xl flex items-center gap-4 cursor-pointer">
-                 <Link href="/login"><MessageCircle className="h-8 w-8 text-[#DA8CA0] fill-current" /> LAUNCH CHAT</Link>
+             <Button asChild size="lg" className="relative h-14 px-8 rounded-full bg-white text-[#1C1246] text-lg font-bold hover:bg-[#DA8CA0] hover:text-white transition-all shadow-xl flex items-center gap-3 cursor-pointer">
+                 <Link href="/login"><LogIn className="h-5 w-5" /> Launch Full Chat</Link>
              </Button>
            </motion.div>
+
            <p className="mt-8 text-sm text-[#CCCCD9] font-mono">v1.0 (Beta) • Free Forever • Anonymous</p>
         </div>
       </section>
@@ -536,16 +508,13 @@ export default function LaunchPage() {
          <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between mb-8">
                <div>
-                  <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                     <TerminalIcon className="h-6 w-6 text-[#DA8CA0]" /> Live Preview
-                  </h2>
+                  <h2 className="text-2xl font-bold text-white flex items-center gap-2"><TerminalIcon className="h-6 w-6 text-[#DA8CA0]" /> Live Preview</h2>
                   <p className="text-[#CCCCD9] text-sm">Test the AI right here before launching the full app.</p>
                </div>
                <div className="flex items-center gap-2 px-3 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono animate-pulse">
                   <Activity className="h-3 w-3" /> ONLINE
                </div>
             </div>
-            {/* THE NEW LIVE TERMINAL */}
             <LiveTerminal />
          </div>
       </section>
@@ -578,13 +547,10 @@ export default function LaunchPage() {
       <section className="pb-24 pt-12 border-t border-[#DA8CA0]/10">
          <div className="mx-auto max-w-3xl px-4 text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded bg-rose-950/30 border border-rose-900/50 text-rose-400 mb-6">
-               <AlertOctagon className="h-5 w-5" />
-               <span className="font-bold tracking-wide uppercase text-sm">Emergency Mode</span>
+               <AlertOctagon className="h-5 w-5" /><span className="font-bold tracking-wide uppercase text-sm">Emergency Mode</span>
             </div>
             <h3 className="text-2xl font-bold text-white mb-4">Are you in immediate danger?</h3>
-            <p className="text-[#CCCCD9] mb-8 max-w-lg mx-auto">
-               If you or someone else is being hurt, or if you feel unsafe right now, please use this button to call for help.
-            </p>
+            <p className="text-[#CCCCD9] mb-8 max-w-lg mx-auto">If you or someone else is being hurt, or if you feel unsafe right now, please use this button to call for help.</p>
             <SmartEmergencyButton />
          </div>
       </section>
