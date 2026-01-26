@@ -22,11 +22,11 @@ const nextConfig = {
           },
           {
             key: 'X-Frame-Options',
-            value: 'SAMEORIGIN' // Prevents your site from being embedded in an iframe (Clickjacking protection)
+            value: 'SAMEORIGIN' 
           },
           {
             key: 'X-Content-Type-Options',
-            value: 'nosniff' // Prevents the browser from guessing file types (MIME sniffing)
+            value: 'nosniff' 
           },
           {
             key: 'Referrer-Policy',
@@ -40,7 +40,11 @@ const nextConfig = {
               style-src 'self' 'unsafe-inline'; 
               img-src 'self' blob: data: https://grainy-gradients.vercel.app; 
               font-src 'self'; 
-              connect-src 'self' http://127.0.0.1:8000 ws://127.0.0.1:8000; 
+              connect-src 'self' 
+                http://127.0.0.1:8000 
+                ws://127.0.0.1:8000 
+                https://sliverboy-heal-her-backend.hf.space 
+                wss://sliverboy-heal-her-backend.hf.space; 
             `.replace(/\s{2,}/g, ' ').trim()
           }
         ]
@@ -49,4 +53,4 @@ const nextConfig = {
   }
 }
 
-export default nextConfig
+export default nextConfig;
