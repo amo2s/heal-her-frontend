@@ -8,7 +8,8 @@ import {
   Camera, 
   Mic, 
   ArrowUp, 
-  Square 
+  Square,
+  ChevronDown
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { ComingSoonModal } from "@/components/modals/coming-soon-modal"
@@ -20,7 +21,7 @@ interface ChatInputProps {
   isGenerating?: boolean
 }
 
-const MAX_HEIGHT = 120 // The height limit before scrolling starts
+const MAX_HEIGHT = 120
 
 export function ChatInput({ 
   onSendMessage, 
@@ -29,38 +30,34 @@ export function ChatInput({
 }: ChatInputProps) {
   const [input, setInput] = useState("")
   const [showPlusMenu, setShowPlusMenu] = useState(false)
+  const [showModelMenu, setShowModelMenu] = useState(false)
   const [showModal, setShowModal] = useState(false)
+  
+  // Renamed "Fast" to "Standard" as requested
+  const [activeModel, setActiveModel] = useState<"Standard" | "Thinking" | "Pro">("Standard")
   
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const modelMenuRef = useRef<HTMLDivElement>(null)
 
   // SMART AUTO-RESIZE & SCROLL LOGIC
   useLayoutEffect(() => {
     const textarea = textareaRef.current
     if (!textarea) return
-
-    // Reset height to calculate true scrollHeight
     textarea.style.height = "auto"
-
-    // Calculate new height (capped at MAX_HEIGHT)
     const newHeight = Math.min(textarea.scrollHeight, MAX_HEIGHT)
-    
-    // Apply height
     textarea.style.height = `${newHeight}px`
-
-    // Smart Scroll: Only show scrollbar if content exceeds MAX_HEIGHT
-    if (textarea.scrollHeight > MAX_HEIGHT) {
-      textarea.style.overflowY = "auto"
-    } else {
-      textarea.style.overflowY = "hidden"
-    }
+    textarea.style.overflowY = textarea.scrollHeight > MAX_HEIGHT ? "auto" : "hidden"
   }, [input])
 
-  // Close menu on outside click
+  // Close menus on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setShowPlusMenu(false)
+      }
+      if (modelMenuRef.current && !modelMenuRef.current.contains(event.target as Node)) {
+        setShowModelMenu(false)
       }
     }
     document.addEventListener("mousedown", handleClickOutside)
@@ -71,8 +68,6 @@ export function ChatInput({
     if (!input.trim()) return
     onSendMessage(input.trim())
     setInput("")
-    
-    // Reset height immediately after sending
     if (textareaRef.current) {
       textareaRef.current.style.height = "24px"
       textareaRef.current.style.overflowY = "hidden"
@@ -89,6 +84,16 @@ export function ChatInput({
   const handleFeatureClick = () => {
     setShowPlusMenu(false)
     setShowModal(true)
+  }
+
+  const handleModelSelect = (model: "Standard" | "Thinking" | "Pro") => {
+    setShowModelMenu(false)
+    if (model === "Standard") {
+      setActiveModel("Standard")
+    } else {
+      // Trigger modal for Thinking and Pro
+      setShowModal(true)
+    }
   }
 
   return (
@@ -116,7 +121,7 @@ export function ChatInput({
                   initial={{ opacity: 0, scale: 0.9, y: 10 }}
                   animate={{ opacity: 1, scale: 1, y: -10 }}
                   exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                  className="absolute bottom-full left-0 mb-2 p-2 min-w-[180px] bg-[#1C1246] rounded-2xl shadow-xl overflow-hidden z-20"
+                  className="absolute bottom-full left-0 mb-2 p-2 min-w-[180px] bg-[#1C1246] rounded-2xl shadow-xl overflow-hidden z-20 border border-white/5"
                 >
                   <div className="flex flex-col gap-1">
                     <MenuItem icon={ImageIcon} label="Add Image" onClick={handleFeatureClick} />
@@ -140,9 +145,7 @@ export function ChatInput({
               className={cn(
                 "w-full bg-transparent text-white placeholder:text-[#CCCCD9]/40",
                 "text-[16px] leading-relaxed resize-none",
-                // Remove all borders and outlines
                 "border-0 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none ring-0 outline-none shadow-none",
-                // Custom Scrollbar Styling
                 "[&::-webkit-scrollbar]:w-1.5",
                 "[&::-webkit-scrollbar-track]:bg-transparent",
                 "[&::-webkit-scrollbar-thumb]:bg-[#DA8CA0]/40",
@@ -156,17 +159,53 @@ export function ChatInput({
             />
           </div>
 
-          {/* RIGHT: Actions */}
+          {/* RIGHT: Model Selector & Actions */}
           <div className="flex items-end gap-2 pb-1.5 pr-1">
-            {!input && (
+            
+            {/* Model Selector (Transparent Default, Background on Hover) */}
+            <div className="relative" ref={modelMenuRef}>
               <button
-                onClick={() => setShowModal(true)}
-                className="p-2 text-[#CCCCD9] hover:text-white transition-colors"
+                onClick={() => setShowModelMenu(!showModelMenu)}
+                className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-transparent hover:bg-white/10 text-[#CCCCD9] hover:text-white transition-colors text-xs font-medium mb-1.5"
               >
-                <Mic className="w-6 h-6" />
+                {activeModel}
+                <ChevronDown className="w-3 h-3 opacity-50" />
               </button>
-            )}
 
+              <AnimatePresence>
+                {showModelMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: -10 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                    className="absolute bottom-full right-0 mb-2 p-1.5 min-w-[200px] bg-[#1C1246] rounded-xl shadow-xl z-20 border border-white/5"
+                  >
+                    <div className="flex flex-col gap-0.5">
+                      <ModelItem 
+                        label="Standard" 
+                        description="Answers quickly & accurately"
+                        isActive={activeModel === "Standard"} 
+                        onClick={() => handleModelSelect("Standard")} 
+                      />
+                      <ModelItem 
+                        label="Thinking" 
+                        description="Great for complex logic"
+                        isActive={activeModel === "Thinking"} 
+                        onClick={() => handleModelSelect("Thinking")} 
+                      />
+                      <ModelItem 
+                        label="Pro" 
+                        description="Deep reasoning & creativity"
+                        isActive={activeModel === "Pro"} 
+                        onClick={() => handleModelSelect("Pro")} 
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Dynamic Action Button (Stop / Send / Mic) */}
             {isGenerating ? (
               <button
                 onClick={onStopGeneration}
@@ -174,18 +213,21 @@ export function ChatInput({
               >
                 <Square className="w-5 h-5 fill-current" />
               </button>
-            ) : (
+            ) : input.trim() ? (
+              // SHOW SEND BUTTON (when typing)
               <button
                 onClick={handleSend}
-                disabled={!input.trim()}
-                className={cn(
-                  "p-3 rounded-full transition-all duration-300 shadow-lg",
-                  input.trim() 
-                    ? "bg-[#DA8CA0] text-[#1C1246] hover:scale-105 hover:bg-[#ff9eb5] shadow-[0_0_15px_rgba(218,140,160,0.4)]" 
-                    : "bg-white/10 text-[#CCCCD9]/30 cursor-not-allowed"
-                )}
+                className="p-3 rounded-full bg-[#DA8CA0] text-[#1C1246] hover:scale-105 hover:bg-[#ff9eb5] shadow-[0_0_15px_rgba(218,140,160,0.4)] transition-all duration-300"
               >
                 <ArrowUp className="w-5 h-5" strokeWidth={3} />
+              </button>
+            ) : (
+              // SHOW MIC BUTTON (default, opens modal)
+              <button
+                onClick={() => setShowModal(true)}
+                className="p-2 text-[#CCCCD9] hover:text-white transition-colors mb-1 mr-1"
+              >
+                <Mic className="w-6 h-6" />
               </button>
             )}
           </div>
@@ -214,6 +256,28 @@ function MenuItem({ icon: Icon, label, onClick }: { icon: any, label: string, on
     >
       <Icon className="w-4 h-4 text-[#DA8CA0]" />
       {label}
+    </button>
+  )
+}
+
+function ModelItem({ label, description, isActive, onClick }: { label: string, description: string, isActive: boolean, onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex flex-col w-full px-3 py-2 rounded-lg transition-colors text-left",
+        isActive ? "bg-white/10" : "hover:bg-white/5"
+      )}
+    >
+      <span className={cn(
+        "text-xs font-semibold",
+        isActive ? "text-white" : "text-[#CCCCD9]"
+      )}>
+        {label}
+      </span>
+      <span className="text-[10px] text-[#CCCCD9]/60 font-medium">
+        {description}
+      </span>
     </button>
   )
 }

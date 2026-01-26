@@ -122,7 +122,7 @@ const PhoneScreen = () => {
           <Heart className="w-5 h-5 text-[#1C1246] fill-[#1C1246]" />
         </div>
         <div>
-          <div className="text-sm font-bold text-white">HerHealth AI</div>
+          <div className="text-sm font-bold text-white">Heal Her AI</div>
           <div className="text-[10px] text-[#CCCCD9] font-medium flex items-center gap-1.5">
             <Lock className="w-3 h-3 text-[#DA8CA0]" />
             Private Mode
@@ -239,7 +239,7 @@ export default function HomePage() {
     {
       name: "Amina Yusuf",
       role: "High School Student, Lagos",
-      content: "I was too shy to ask my teacher about my period pain, but HerHealth explained everything without making me feel weird. It feels like a big sister.",
+      content: "I was too shy to ask my teacher about my period pain, but Heal Her explained everything without making me feel weird. It feels like a big sister.",
       rating: 5,
       initials: "AY",
       color: "bg-pink-500/20 text-pink-400",
@@ -331,7 +331,7 @@ export default function HomePage() {
               </h1>
               
               <p className="mt-8 text-lg sm:text-xl text-[#CCCCD9] leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                Growing up is a journey. <span className="text-[#DA8CA0] font-medium">HerHealth AI</span> is your judgment-free companion for learning about your body, health, and wellness. Accurate, private, and always here for you.
+                Growing up is a journey. <span className="text-[#DA8CA0] font-medium">Heal Her AI</span> is your judgment-free companion for learning about your body, health, and wellness. Accurate, private, and always here for you.
               </p>
 
               <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
@@ -454,7 +454,7 @@ export default function HomePage() {
                    <span className="text-[#DA8CA0]">Not Knowing.</span>
                  </h2>
                  <p className="text-lg text-[#CCCCD9] mb-8">
-                   We replace anxiety with understanding. Whether it&apos;s puberty, mental health, or hygiene, HerHealth AI explains it all simply and gently.
+                   We replace anxiety with understanding. Whether it&apos;s puberty, mental health, or hygiene, Heal Her AI explains it all simply and gently.
                  </p>
                  <div className="h-1 w-24 bg-gradient-to-r from-[#DA8CA0] to-transparent rounded-full" />
               </motion.div>
@@ -472,7 +472,7 @@ export default function HomePage() {
                   Engineered for <span className="text-[#DA8CA0]">Comfort</span>
                </h2>
                <p className="text-lg text-[#CCCCD9]">
-                  We stripped away the complexity. HerHealth AI is a digital big sister designed to guide you through growing up.
+                  We stripped away the complexity. Heal Her AI is a digital big sister designed to guide you through growing up.
                </p>
             </div>
 
@@ -678,7 +678,7 @@ export default function HomePage() {
                Confidence in <br/> every question.
             </h2>
             <p className="text-xl text-[#CCCCD9] mb-12 max-w-2xl mx-auto">
-               You are not alone in this journey. HerHealth AI is here to help you grow with confidence.
+               You are not alone in this journey. Heal Her AI is here to help you grow with confidence.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
                <Button className="h-16 px-10 rounded-full bg-[#DA8CA0] text-[#1C1246] text-lg font-bold hover:bg-[#E8B4C1] hover:scale-105 transition-all shadow-xl">
