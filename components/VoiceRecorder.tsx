@@ -2,14 +2,13 @@
 
 import React, { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
-import { Mic, Square, Loader2, AlertCircle, RefreshCw, LogOut, Quote, ShieldCheck, ShieldAlert } from "lucide-react"
+import { Mic, Square, Loader2, Quote, ShieldCheck, ShieldAlert, RefreshCw, LogOut } from "lucide-react"
 import { useReactMediaRecorder } from "react-media-recorder"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 
 // --- IMPORT THE SECURITY GUARD ---
-// Assuming proxy.ts is in your root or lib folder. Adjust path if needed.
 import { api, getSocket } from "@/lib/proxy" 
 
 // --- INTELLIGENT VISUALIZER (Unchanged) ---
@@ -93,7 +92,6 @@ export default function VoiceRecorder() {
   const [challengePhrase, setChallengePhrase] = useState<string>("")
   const [isLoadingPhrase, setIsLoadingPhrase] = useState(true)
 
-  // Safety Timer Ref (to stop infinite spinning)
   const safetyTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const { startRecording, stopRecording, mediaBlobUrl, clearBlobUrl, previewStream } = useReactMediaRecorder({ 
@@ -104,20 +102,23 @@ export default function VoiceRecorder() {
   // --- INITIALIZATION ---
   useEffect(() => {
     const init = async () => {
-      // FIX 1: Read from sessionStorage (matches proxy.ts)
+      // FIX 1: Explicitly check sessionStorage (matching your Login code)
       const token = sessionStorage.getItem("sb-access-token")
       
       if (!token) {
-        // Only kick if session storage is truly empty
+        console.warn("⛔ No token found in Session Storage. Redirecting.")
         router.push("/login")
         return
       }
 
       try {
-        // Use 'api' proxy instead of axios directly
-        const response = await api.get("/verification/get-challenge")
+        // Manually attach token to ensure it works
+        const response = await api.get("/verification/get-challenge", {
+            headers: { Authorization: `Bearer ${token}` }
+        })
         setChallengePhrase(response.data.phrase)
       } catch (error) {
+        console.error("Fetch Error:", error)
         setServerMessage("Could not load security challenge.")
       } finally {
         setIsLoadingPhrase(false)
@@ -126,8 +127,6 @@ export default function VoiceRecorder() {
     init()
 
     return () => {
-      // We don't necessarily disconnect the socket here because the proxy manages it,
-      // but we do clear the safety timer.
       if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current)
     }
   }, [router])
@@ -146,64 +145,49 @@ export default function VoiceRecorder() {
 
   // --- SECURE SOCKET LISTENER ---
   const connectAndListen = () => {
-    // 1. Get the Shared Secure Socket
     const socket = getSocket();
-    if (!socket) return; // Should not happen if logged in
+    if (!socket) return; 
 
-    // 2. Ensure connection
-    if (!socket.connected) socket.connect();
+    if (!socket.connected) {
+        // FIX 2: Get token from Session Storage for Socket Handshake
+        const token = sessionStorage.getItem("sb-access-token")
+        if (token) {
+            socket.auth = { token } 
+            socket.connect();
+        }
+    }
 
-    // 3. Attach Listener (Prevent duplicates)
     socket.off("verification_result"); 
     
-    // --- THE BRAIN: DECIDE WHAT TO SHOW USER ---
     socket.on("verification_result", (data: any) => {
         console.log("📩 Received Result:", data)
         
-        // Clear safety timer because we got a result
         if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current)
 
         const rawMessage = (data.message || "").toLowerCase()
 
-        // CASE 1: SUCCESS (FEMALE)
         if (data.status === "success") {
             setStatus('success')
             setServerMessage("Female voice detected. Access Granted.") 
             
-            // FIX 2: Update sessionStorage
+            // FIX 3: Update session storage
             const localUser = sessionStorage.getItem("user-data")
             if (localUser) {
-                const parsed = JSON.parse(localUser)
-                parsed.is_verified = true
-                sessionStorage.setItem("user-data", JSON.stringify(parsed))
+                try {
+                    const parsed = JSON.parse(localUser)
+                    parsed.is_verified = true
+                    sessionStorage.setItem("user-data", JSON.stringify(parsed))
+                } catch (e) {}
             }
             
-            // We can disconnect here to save resources since verify is done
             socket.disconnect()
             setTimeout(() => { router.push("/chat") }, 3000)
-        } 
-        
-        // CASE 2: FAILED
-        else {
+        } else {
             setStatus('failed')
-            
-            // Smart Error Translation
-            if (rawMessage.includes("male")) {
-                setServerMessage("Male voice detected. Access Denied.")
-            } 
-            else if (rawMessage.includes("phrase")) {
-                setServerMessage("Incorrect phrase. Please read exactly.")
-            } 
-            else if (rawMessage.includes("unclear")) {
-                setServerMessage("Voice unclear. Please speak louder.")
-            }
-            else {
-                // HIDE API ERRORS
-                setServerMessage("Verification service busy. Please try again.") 
-            }
-            
-            // Don't kill the socket entirely, just stop listening for this attempt
-            // socket.disconnect() // Optional: Keep it open for retry or close
+            if (rawMessage.includes("male")) setServerMessage("Male voice detected. Access Denied.")
+            else if (rawMessage.includes("phrase")) setServerMessage("Incorrect phrase. Please read exactly.")
+            else if (rawMessage.includes("unclear")) setServerMessage("Voice unclear. Please speak louder.")
+            else setServerMessage("Verification service busy. Please try again.") 
         }
     })
   }
@@ -222,23 +206,23 @@ export default function VoiceRecorder() {
       formData.append("file", audioFile)
       formData.append("expected_phrase", challengePhrase)
 
-      // 1. Connect Socket FIRST (Using Proxy)
       connectAndListen()
 
-      // 2. Set Safety Timer (Stops infinite spinning after 30s)
       safetyTimerRef.current = setTimeout(() => {
           if (status === 'analyzing') {
               setStatus('failed')
               setServerMessage("Connection timed out. Please check internet.")
           }
-      }, 30000)
+      }, 60000) // 60s timeout for AI loading
 
-      // 3. Upload File (Using Proxy API)
-      // Note: We don't need to manually add the Authorization header here,
-      // the 'api' interceptor does it automatically from sessionStorage!
+      // FIX 4: Manually attach token from sessionStorage
+      const token = sessionStorage.getItem("sb-access-token")
+      if (!token) throw new Error("No token found")
+
       await api.post("/verification/analyze-voice", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
+          "Authorization": `Bearer ${token}` 
         },
       })
 
@@ -390,7 +374,7 @@ export default function VoiceRecorder() {
         <div className="mt-8 text-center">
           <button 
             onClick={() => {
-              // FIX 3: Clear sessionStorage instead of localStorage
+              // FIX 5: Clear sessionStorage
               sessionStorage.clear();
               router.push("/login");
             }} 
