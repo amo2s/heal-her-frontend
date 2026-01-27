@@ -104,8 +104,11 @@ export default function VoiceRecorder() {
   // --- INITIALIZATION ---
   useEffect(() => {
     const init = async () => {
-      const token = localStorage.getItem("sb-access-token")
+      // FIX 1: Read from sessionStorage (matches proxy.ts)
+      const token = sessionStorage.getItem("sb-access-token")
+      
       if (!token) {
+        // Only kick if session storage is truly empty
         router.push("/login")
         return
       }
@@ -167,12 +170,12 @@ export default function VoiceRecorder() {
             setStatus('success')
             setServerMessage("Female voice detected. Access Granted.") 
             
-            // Update Local Storage
-            const localUser = localStorage.getItem("user-data")
+            // FIX 2: Update sessionStorage
+            const localUser = sessionStorage.getItem("user-data")
             if (localUser) {
                 const parsed = JSON.parse(localUser)
                 parsed.is_verified = true
-                localStorage.setItem("user-data", JSON.stringify(parsed))
+                sessionStorage.setItem("user-data", JSON.stringify(parsed))
             }
             
             // We can disconnect here to save resources since verify is done
@@ -232,7 +235,7 @@ export default function VoiceRecorder() {
 
       // 3. Upload File (Using Proxy API)
       // Note: We don't need to manually add the Authorization header here,
-      // the 'api' interceptor does it automatically!
+      // the 'api' interceptor does it automatically from sessionStorage!
       await api.post("/verification/analyze-voice", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
@@ -387,7 +390,8 @@ export default function VoiceRecorder() {
         <div className="mt-8 text-center">
           <button 
             onClick={() => {
-              localStorage.clear();
+              // FIX 3: Clear sessionStorage instead of localStorage
+              sessionStorage.clear();
               router.push("/login");
             }} 
             className="text-[#CCCCD9]/30 hover:text-white/80 text-xs flex items-center justify-center gap-2 mx-auto transition-colors group"
