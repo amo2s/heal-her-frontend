@@ -135,7 +135,7 @@ export function ProfileSettingsModal({
     setIsDeleting(true)
     try {
       const token = sessionStorage.getItem("sb-access-token")
-      const response = await fetch("http://127.0.0.1:8000/profile/delete-account", {
+      const response = await fetch("https://sliverboy-heal-her-backend.hf.space/profile/delete-account", {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       })
@@ -165,7 +165,7 @@ export function ProfileSettingsModal({
         data.append("file", new File([compressedBlob], "p.webp", { type: "image/webp" }))
       }
 
-      const response = await fetch("http://127.0.0.1:8000/profile/update", {
+      const response = await fetch(" https://sliverboy-heal-her-backend.hf.space /profile/update", {
         method: "PUT",
         headers: { "Authorization": `Bearer ${sessionStorage.getItem("sb-access-token")}` },
         body: data,

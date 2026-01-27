@@ -17,7 +17,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useChatContext } from "@/components/context/chat-context"
 
 // --- CONFIG ---
-const API_BASE = "http://127.0.0.1:8000"
+const API_BASE = "https://sliverboy-heal-her-backend.hf.space"
 
 interface SidebarProps {
   className?: string

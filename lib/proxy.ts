@@ -2,7 +2,7 @@ import axios from "axios";
 import { io, Socket } from "socket.io-client";
 
 // --- CONFIGURATION ---
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = "https://sliverboy-heal-her-backend.hf.space";
 
 // --- HELPER: CENTRALIZED LOGOUT ---
 // Unified logic for both Axios and Socket failures

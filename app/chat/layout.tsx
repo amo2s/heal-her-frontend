@@ -127,7 +127,7 @@ export default function ChatLayout({
 
       try {
         // 3. DEEP CHECK: Token validity (The Handshake)
-        const response = await fetch("http://127.0.0.1:8000/auth/me", {
+        const response = await fetch("https://sliverboy-heal-her-backend.hf.space/auth/me", {
            method: "GET",
            headers: { 
              "Authorization": `Bearer ${token}`,

@@ -109,7 +109,7 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
     setStatus(null) // Clear previous messages
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/auth/signup", {
+      const response = await fetch("https://sliverboy-heal-her-backend.hf.space/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

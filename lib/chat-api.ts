@@ -87,7 +87,7 @@ export const mockReports: Report[] = [
 // ------------------------------------------------------------------
 
 // This automatically switches between localhost and production URL
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "https://sliverboy-heal-her-backend.hf.space"
 
 export const sendMessage = async (
   userText: string, 
