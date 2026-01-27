@@ -238,7 +238,7 @@ function LiveTerminal() {
     try {
       // --- SECURE BACKEND CALL ---
       // We send the fingerprint. The Backend checks the DB.
-      const res = await fetch("http://127.0.0.1:8000/guest-chat", {
+      const res = await fetch("https://sliverboy-heal-her-backend.hf.space/guest-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
         body: JSON.stringify({ 

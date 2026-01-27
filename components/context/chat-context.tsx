@@ -37,7 +37,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       // If no ID cached, we must fetch it
       if (!userId) {
           // FIX 2: Changed /auth/me to /profile/me to match your Python Backend
-          const userRes = await fetch("http://127.0.0.1:8000/profile/me", {
+          const userRes = await fetch("https://sliverboy-heal-her-backend.hf.space/profile/me", {
             headers: { "Authorization": `Bearer ${token}` }
           })
           
