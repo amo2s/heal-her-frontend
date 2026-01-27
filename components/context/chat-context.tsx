@@ -55,7 +55,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
       // 3. Fetch Sessions for this user (Only if we have a User ID)
       if (userId) {
-          const sessionRes = await fetch(`http://127.0.0.1:8000/sessions?user_id=${userId}`)
+          const sessionRes = await fetch(` https://sliverboy-heal-her-backend.hf.space/sessions?user_id=${userId}`)
           if (sessionRes.ok) {
             const data = await sessionRes.json()
             setSessions(data)
