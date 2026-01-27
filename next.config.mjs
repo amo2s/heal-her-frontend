@@ -40,7 +40,8 @@ const nextConfig = {
               style-src 'self' 'unsafe-inline'; 
               img-src 'self' blob: data: https://grainy-gradients.vercel.app; 
               font-src 'self'; 
-              connect-src 'self' 
+              media-src 'self' blob: data:; 
+              connect-src 'self' blob: data: 
                 http://127.0.0.1:8000 
                 ws://127.0.0.1:8000 
                 https://sliverboy-heal-her-backend.hf.space 
