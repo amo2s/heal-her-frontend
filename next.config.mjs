@@ -34,12 +34,14 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
+            // 👇 UPDATED POLICY BELOW 👇
             value: `
               default-src 'self'; 
-              script-src 'self' 'unsafe-eval' 'unsafe-inline'; 
+              script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live; 
               style-src 'self' 'unsafe-inline'; 
               img-src 'self' blob: data: https://grainy-gradients.vercel.app; 
               font-src 'self'; 
+              worker-src 'self' blob:; 
               media-src 'self' blob: data:; 
               connect-src 'self' blob: data: 
                 http://127.0.0.1:8000 
