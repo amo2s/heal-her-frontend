@@ -34,13 +34,14 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            // 👇 UPDATED POLICY BELOW 👇
+            // 👇 FINAL CSP WITH ALL FIXES 👇
             value: `
               default-src 'self'; 
               script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live; 
               style-src 'self' 'unsafe-inline'; 
               img-src 'self' blob: data: https://grainy-gradients.vercel.app; 
               font-src 'self'; 
+              frame-src 'self' https://vercel.live; 
               worker-src 'self' blob:; 
               media-src 'self' blob: data:; 
               connect-src 'self' blob: data: 
