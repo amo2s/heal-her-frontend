@@ -17,7 +17,7 @@ const nunito = Nunito({
 })
 
 export const metadata: Metadata = {
-  title: "HerHealth AI - Empowering Girls' Health Education",
+  title: "Heal Her AI - Empowering Girls' Health Education",
   description:
     "A private, safe, and empowering AI companion for girls to learn about their bodies, health, and wellness.",
   generator: "sliver-verse",
