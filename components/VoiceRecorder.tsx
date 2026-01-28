@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button"
 import { api, getSocket } from "@/lib/proxy" 
 
 // --- 1. THE ERROR FILTER (Sanitizer) ---
-// Translates scary computer errors into human language
 const sanitizeError = (rawMessage: string) => {
     const msg = (rawMessage || "").toLowerCase();
     
@@ -109,7 +108,9 @@ export default function VoiceRecorder() {
   const [progress, setProgress] = useState(0)
   const [loadingText, setLoadingText] = useState("Uploading audio securely...")
 
-  // Refs for Cleanup
+  // --- THE RESULT BUFFER (Logic to force a wait time) ---
+  const pendingResultRef = useRef<any>(null)       // Stores the result if it comes too fast
+  const minWaitCompleteRef = useRef(false)         // Tracks if the 4-second timer is done
   const safetyTimerRef = useRef<NodeJS.Timeout | null>(null)
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -151,7 +152,7 @@ export default function VoiceRecorder() {
         setLoadingText("Uploading audio securely...")
         setProgress(0)
 
-        // Text Cycle Logic
+        // Text Cycle Logic (0s, 2s, 5s)
         const t1 = setTimeout(() => setLoadingText("Analyzing biometric voice patterns..."), 2000)
         const t2 = setTimeout(() => setLoadingText("Verifying identity match..."), 5000)
 
@@ -184,7 +185,34 @@ export default function VoiceRecorder() {
     setStatus('review')
   }
 
-  // --- 4. SOCKET LISTENER (The Judge) ---
+  // --- 4. THE PROCESSOR (Updates UI) ---
+  const processResult = (data: any) => {
+      // Stop Timers
+      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current)
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+      setProgress(100)
+
+      if (data.status === "success") {
+          setStatus('success')
+          setServerMessage(data.message || "Verified. Access Granted.") 
+          
+          const localUser = sessionStorage.getItem("user-data")
+          if (localUser) {
+              try {
+                  const parsed = JSON.parse(localUser)
+                  parsed.is_verified = true
+                  sessionStorage.setItem("user-data", JSON.stringify(parsed))
+              } catch (e) {}
+          }
+          
+          setTimeout(() => { router.push("/chat") }, 2500)
+      } else {
+          setStatus('failed')
+          setServerMessage(sanitizeError(data.message))
+      }
+  }
+
+  // --- 5. SOCKET LISTENER (With Buffer) ---
   const connectAndListen = () => {
     const socket = getSocket();
     if (!socket) return; 
@@ -202,42 +230,28 @@ export default function VoiceRecorder() {
     socket.on("verification_result", (data: any) => {
         console.log("📩 Socket Result:", data)
         
-        // Stop all timers
-        if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current)
-        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
-        setProgress(100) // Fill bar on completion
-
-        if (data.status === "success") {
-            setStatus('success')
-            setServerMessage(data.message || "Verified. Access Granted.") 
-            
-            // Save Verification Locally
-            const localUser = sessionStorage.getItem("user-data")
-            if (localUser) {
-                try {
-                    const parsed = JSON.parse(localUser)
-                    parsed.is_verified = true
-                    sessionStorage.setItem("user-data", JSON.stringify(parsed))
-                } catch (e) {}
-            }
-            
-            socket.disconnect()
-            setTimeout(() => { router.push("/chat") }, 2500)
+        // LOGIC: Is the wait over?
+        if (minWaitCompleteRef.current) {
+            // Yes: Show result immediately
+            processResult(data)
         } else {
-            // Failed -> Use Sanitizer
-            setStatus('failed')
-            setServerMessage(sanitizeError(data.message))
+            // No: Queue it!
+            console.log("⏳ Waiting for animation to finish...")
+            pendingResultRef.current = data
         }
     })
   }
 
-  // --- 5. SUBMIT (Fire and Forget) ---
+  // --- 6. SUBMIT (The Manager) ---
   const handleSubmit = async () => {
     if (!mediaBlobUrl) return
     
-    // Switch to analyzing (Triggering the useEffect above)
     setStatus('analyzing')
     setServerMessage("")
+    
+    // Reset Buffer
+    pendingResultRef.current = null
+    minWaitCompleteRef.current = false
 
     try {
       const audioBlob = await fetch(mediaBlobUrl).then(r => r.blob())
@@ -249,6 +263,16 @@ export default function VoiceRecorder() {
       // Start Listener
       connectAndListen()
 
+      // START ARTIFICIAL DELAY (4 Seconds)
+      setTimeout(() => {
+          minWaitCompleteRef.current = true;
+          // Check if result is already waiting
+          if (pendingResultRef.current) {
+              console.log("⏱️ Time is up. Revealing result.")
+              processResult(pendingResultRef.current);
+          }
+      }, 4000); 
+
       // Safety Timeout (60s)
       safetyTimerRef.current = setTimeout(() => {
           if (status === 'analyzing') {
@@ -259,8 +283,7 @@ export default function VoiceRecorder() {
 
       const token = sessionStorage.getItem("sb-access-token")
       
-      // Upload File
-      // Note: We ignore the API response. We wait for the Socket.
+      // Upload (Ignore Response)
       await api.post("/verification/analyze-voice", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
@@ -280,6 +303,7 @@ export default function VoiceRecorder() {
     setServerMessage("")
     clearBlobUrl()
     setProgress(0)
+    setLoadingText("Uploading audio securely...")
   }
 
   return (
