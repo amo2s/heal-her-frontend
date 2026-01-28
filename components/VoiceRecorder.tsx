@@ -11,6 +11,29 @@ import { Button } from "@/components/ui/button"
 // --- IMPORT THE SECURITY GUARD ---
 import { api, getSocket } from "@/lib/proxy" 
 
+// --- 1. THE ERROR FILTER (Sanitizer) ---
+// Translates scary computer errors into human language
+const sanitizeError = (rawMessage: string) => {
+    const msg = (rawMessage || "").toLowerCase();
+    
+    // Valid Rejections (Show these)
+    if (msg.includes("male")) return "Access Denied: Male voice detected.";
+    if (msg.includes("phrase")) return "Verification Failed: Incorrect phrase.";
+    if (msg.includes("unclear") || msg.includes("noisy")) return "Voice unclear. Please speak louder.";
+    
+    // Server Glitches (Hide these)
+    if (msg.includes("groq") || msg.includes("api") || msg.includes("json") || msg.includes("500")) {
+        return "Service busy. Please try again.";
+    }
+    
+    // Network Issues
+    if (msg.includes("timeout") || msg.includes("network")) {
+        return "Connection unstable. Please check internet.";
+    }
+
+    return "Verification failed. Please retry.";
+}
+
 // --- INTELLIGENT VISUALIZER (Unchanged) ---
 const SmartVisualizer = ({ stream }: { stream: MediaStream | null }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -29,20 +52,16 @@ const SmartVisualizer = ({ stream }: { stream: MediaStream | null }) => {
 
         audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
         if (audioContext.state === 'suspended') await audioContext.resume()
-
         try { source = audioContext.createMediaStreamSource(stream) } catch (err) { return }
-
         analyser = audioContext.createAnalyser()
         analyser.fftSize = 2048 
         source.connect(analyser)
-
         const bufferLength = analyser.frequencyBinCount
         const dataArray = new Uint8Array(bufferLength)
         const canvas = canvasRef.current
         if (!canvas) return
         const canvasCtx = canvas.getContext("2d")
         if (!canvasCtx) return
-
         const draw = () => {
           animationId = requestAnimationFrame(draw)
           analyser.getByteTimeDomainData(dataArray)
@@ -73,62 +92,86 @@ const SmartVisualizer = ({ stream }: { stream: MediaStream | null }) => {
       if (audioContext && audioContext.state !== 'closed') audioContext.close()
     }
   }, [stream])
-
-  return (
-    <canvas 
-      ref={canvasRef} 
-      width={400} 
-      height={120} 
-      className="w-full h-32 rounded-xl border border-white/10 bg-black/40 shadow-inner"
-    />
-  )
+  return <canvas ref={canvasRef} width={400} height={120} className="w-full h-32 rounded-xl border border-white/10 bg-black/40 shadow-inner" />
 }
 
-// --- MAIN RECORDER COMPONENT ---
+// --- MAIN COMPONENT ---
 export default function VoiceRecorder() {
   const router = useRouter()
+  
+  // UI States
   const [status, setStatus] = useState<'idle' | 'recording' | 'review' | 'analyzing' | 'success' | 'failed'>('idle')
   const [serverMessage, setServerMessage] = useState("")
   const [challengePhrase, setChallengePhrase] = useState<string>("")
   const [isLoadingPhrase, setIsLoadingPhrase] = useState(true)
 
+  // Loading Animation States
+  const [progress, setProgress] = useState(0)
+  const [loadingText, setLoadingText] = useState("Uploading audio securely...")
+
+  // Refs for Cleanup
   const safetyTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   const { startRecording, stopRecording, mediaBlobUrl, clearBlobUrl, previewStream } = useReactMediaRecorder({ 
     audio: true,
     blobPropertyBag: { type: "audio/wav" } 
   })
 
-  // --- INITIALIZATION ---
+  // --- 1. INITIALIZATION ---
   useEffect(() => {
     const init = async () => {
       const token = sessionStorage.getItem("sb-access-token")
-      
       if (!token) {
-        console.warn("⛔ No token found. Redirecting.")
         router.push("/login")
         return
       }
-
       try {
         const response = await api.get("/verification/get-challenge", {
             headers: { Authorization: `Bearer ${token}` }
         })
         setChallengePhrase(response.data.phrase)
       } catch (error) {
-        console.error("Fetch Error:", error)
-        setServerMessage("Could not load security challenge.")
+        setServerMessage("Could not load challenge.")
       } finally {
         setIsLoadingPhrase(false)
       }
     }
     init()
-
     return () => {
       if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current)
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
     }
   }, [router])
 
+  // --- 2. PROGRESSIVE LOADING TEXT ENGINE ---
+  useEffect(() => {
+    if (status === 'analyzing') {
+        // Reset
+        setLoadingText("Uploading audio securely...")
+        setProgress(0)
+
+        // Text Cycle Logic
+        const t1 = setTimeout(() => setLoadingText("Analyzing biometric voice patterns..."), 2000)
+        const t2 = setTimeout(() => setLoadingText("Verifying identity match..."), 5000)
+
+        // Progress Bar Logic (0% -> 90% over 8 seconds)
+        progressIntervalRef.current = setInterval(() => {
+            setProgress((prev) => {
+                if (prev >= 90) return 90;
+                return prev + 1.5; // Smooth increment
+            })
+        }, 100)
+
+        return () => {
+            clearTimeout(t1)
+            clearTimeout(t2)
+            if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+        }
+    }
+  }, [status])
+
+  // --- 3. CONTROLS ---
   const handleStart = () => {
     clearBlobUrl()
     setStatus('recording')
@@ -141,12 +184,11 @@ export default function VoiceRecorder() {
     setStatus('review')
   }
 
-  // --- SECURE SOCKET LISTENER (The Judge) ---
+  // --- 4. SOCKET LISTENER (The Judge) ---
   const connectAndListen = () => {
     const socket = getSocket();
     if (!socket) return; 
 
-    // Ensure we are connected with Auth
     if (!socket.connected) {
         const token = sessionStorage.getItem("sb-access-token")
         if (token) {
@@ -155,23 +197,21 @@ export default function VoiceRecorder() {
         }
     }
 
-    // Clean up old listeners to prevent duplicates
     socket.off("verification_result"); 
     
-    // Listen for the REAL result from the AI
     socket.on("verification_result", (data: any) => {
-        console.log("📩 Socket Result Received:", data)
+        console.log("📩 Socket Result:", data)
         
-        // Stop the safety timer since we got a response
+        // Stop all timers
         if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current)
-
-        const rawMessage = (data.message || "").toLowerCase()
+        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+        setProgress(100) // Fill bar on completion
 
         if (data.status === "success") {
             setStatus('success')
             setServerMessage(data.message || "Verified. Access Granted.") 
             
-            // Mark user as verified locally
+            // Save Verification Locally
             const localUser = sessionStorage.getItem("user-data")
             if (localUser) {
                 try {
@@ -181,60 +221,46 @@ export default function VoiceRecorder() {
                 } catch (e) {}
             }
             
-            // Redirect after delay
             socket.disconnect()
-            setTimeout(() => { router.push("/chat") }, 3000)
-
+            setTimeout(() => { router.push("/chat") }, 2500)
         } else {
-            // Handle specific failures
+            // Failed -> Use Sanitizer
             setStatus('failed')
-            if (rawMessage.includes("male")) {
-                setServerMessage("Access Denied: Male voice detected.")
-            } else if (rawMessage.includes("phrase")) {
-                setServerMessage("Incorrect phrase. Please read exactly.")
-            } else if (rawMessage.includes("unclear")) {
-                setServerMessage("Voice unclear. Please speak louder.")
-            } else {
-                setServerMessage("Verification failed. Please try again.") 
-            }
+            setServerMessage(sanitizeError(data.message))
         }
     })
   }
 
-  // --- SUBMIT (The Messenger) ---
+  // --- 5. SUBMIT (Fire and Forget) ---
   const handleSubmit = async () => {
     if (!mediaBlobUrl) return
     
-    // 1. Set UI to Analyzing immediately
+    // Switch to analyzing (Triggering the useEffect above)
     setStatus('analyzing')
     setServerMessage("")
 
     try {
-      // Prepare the file
       const audioBlob = await fetch(mediaBlobUrl).then(r => r.blob())
       const audioFile = new File([audioBlob], "voice_verification.wav", { type: "audio/wav" })
-
       const formData = new FormData()
       formData.append("file", audioFile)
       formData.append("expected_phrase", challengePhrase)
 
-      // 2. Start listening for the result via Socket
+      // Start Listener
       connectAndListen()
 
-      // 3. Set a backup timer (in case server hangs)
+      // Safety Timeout (60s)
       safetyTimerRef.current = setTimeout(() => {
           if (status === 'analyzing') {
               setStatus('failed')
               setServerMessage("Server timed out. Please retry.")
           }
-      }, 60000) // 60s timeout for AI loading
+      }, 60000)
 
-      // 4. Send the file (Do NOT judge the response here!)
       const token = sessionStorage.getItem("sb-access-token")
-      if (!token) throw new Error("No token found")
-
-      // We await the upload, but we IGNORE the response status.
-      // The Socket will tell us if we passed or failed.
+      
+      // Upload File
+      // Note: We ignore the API response. We wait for the Socket.
       await api.post("/verification/analyze-voice", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
@@ -245,7 +271,7 @@ export default function VoiceRecorder() {
     } catch (error: any) {
       console.error("Upload Error:", error)
       setStatus('failed')
-      setServerMessage("Upload failed. Please check internet.")
+      setServerMessage("Upload failed. Check connection.")
     }
   }
 
@@ -253,6 +279,7 @@ export default function VoiceRecorder() {
     setStatus('idle')
     setServerMessage("")
     clearBlobUrl()
+    setProgress(0)
   }
 
   return (
@@ -284,7 +311,7 @@ export default function VoiceRecorder() {
         </div>
 
         {/* MAIN CARD */}
-        <div className="bg-[#1C1246]/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl relative overflow-hidden transition-all duration-500">
+        <div className="bg-[#1C1246]/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
           
           {/* CHALLENGE PHRASE DISPLAY */}
           <div className="mb-6 p-6 bg-white/5 rounded-xl border border-white/10 text-center relative min-h-[100px] flex items-center justify-center">
@@ -312,7 +339,7 @@ export default function VoiceRecorder() {
             )}
           </div>
 
-          {/* CONTROLS */}
+          {/* DYNAMIC CONTROLS */}
           <div className="flex flex-col items-center justify-center min-h-[80px]">
             
             {status === 'idle' && (
@@ -339,27 +366,42 @@ export default function VoiceRecorder() {
             )}
 
             {status === 'review' && (
-              <div className="w-full flex gap-3 animate-in fade-in slide-in-from-bottom-2">
+              <div className="w-full flex gap-3 animate-in fade-in">
                 <Button onClick={handleRetry} variant="outline" className="flex-1 border-white/10 hover:bg-white/5 text-[#CCCCD9] h-12 rounded-xl">
                   Retry
                 </Button>
-                <Button onClick={handleSubmit} className="flex-1 bg-[#DA8CA0] hover:bg-[#c76b85] text-[#160d33] font-bold h-12 rounded-xl shadow-lg shadow-[#DA8CA0]/20">
+                <Button onClick={handleSubmit} className="flex-1 bg-[#DA8CA0] hover:bg-[#c76b85] text-[#160d33] font-bold h-12 rounded-xl">
                   Verify Now
                 </Button>
               </div>
             )}
 
-             {status === 'analyzing' && (
-               <div className="text-center space-y-3 w-full">
+            {/* ANALYZING STATE (The Engagement Engine) */}
+            {status === 'analyzing' && (
+               <div className="text-center space-y-4 w-full px-4 animate-in fade-in">
                  <div className="flex items-center justify-center gap-2">
                     <Loader2 className="h-5 w-5 text-[#DA8CA0] animate-spin" />
-                    <span className="text-[#DA8CA0] font-medium">Analyzing Voice...</span>
+                    {/* Dynamic Text */}
+                    <span className="text-[#DA8CA0] font-medium transition-all duration-300">
+                        {loadingText}
+                    </span>
                  </div>
-                 <p className="text-xs text-[#CCCCD9]/50">Checking biometrics (please wait)</p>
+                 
+                 {/* Progress Bar */}
+                 <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                    <motion.div 
+                        className="h-full bg-[#DA8CA0]" 
+                        initial={{ width: 0 }} 
+                        animate={{ width: `${progress}%` }} 
+                        transition={{ ease: "linear", duration: 0.2 }}
+                    />
+                 </div>
+                 
+                 <p className="text-xs text-[#CCCCD9]/50 animate-pulse">Please do not close this window.</p>
                </div>
              )}
 
-             {/* SUCCESS STATE - FEMALE */}
+             {/* SUCCESS STATE */}
              {status === 'success' && (
                <div className="text-center space-y-2 animate-in zoom-in w-full">
                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-sm flex flex-col items-center gap-2">
@@ -370,7 +412,7 @@ export default function VoiceRecorder() {
                </div>
              )}
 
-             {/* FAILED STATE - MALE / ERROR */}
+             {/* FAILED STATE (Sanitized) */}
              {status === 'failed' && (
                <div className="text-center space-y-4 w-full animate-in shake">
                  <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-200 text-sm flex flex-col items-center gap-2">
