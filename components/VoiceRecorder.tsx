@@ -108,9 +108,9 @@ export default function VoiceRecorder() {
   const [progress, setProgress] = useState(0)
   const [loadingText, setLoadingText] = useState("Uploading audio securely...")
 
-  // --- THE RESULT BUFFER (Logic to force a wait time) ---
-  const pendingResultRef = useRef<any>(null)       // Stores the result if it comes too fast
-  const minWaitCompleteRef = useRef(false)         // Tracks if the 4-second timer is done
+  // --- THE RESULT BUFFER ---
+  const pendingResultRef = useRef<any>(null)
+  const minWaitCompleteRef = useRef(false)
   const safetyTimerRef = useRef<NodeJS.Timeout | null>(null)
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -152,7 +152,7 @@ export default function VoiceRecorder() {
         setLoadingText("Uploading audio securely...")
         setProgress(0)
 
-        // Text Cycle Logic (0s, 2s, 5s)
+        // Text Cycle Logic
         const t1 = setTimeout(() => setLoadingText("Analyzing biometric voice patterns..."), 2000)
         const t2 = setTimeout(() => setLoadingText("Verifying identity match..."), 5000)
 
@@ -232,11 +232,9 @@ export default function VoiceRecorder() {
         
         // LOGIC: Is the wait over?
         if (minWaitCompleteRef.current) {
-            // Yes: Show result immediately
             processResult(data)
         } else {
-            // No: Queue it!
-            console.log("⏳ Waiting for animation to finish...")
+            console.log("⏳ Result Buffer: Waiting for animation...")
             pendingResultRef.current = data
         }
     })
@@ -260,15 +258,11 @@ export default function VoiceRecorder() {
       formData.append("file", audioFile)
       formData.append("expected_phrase", challengePhrase)
 
-      // Start Listener
-      connectAndListen()
-
-      // START ARTIFICIAL DELAY (4 Seconds)
+      // 🕒 START VISUAL TIMERS (Immediate Feedback)
       setTimeout(() => {
           minWaitCompleteRef.current = true;
-          // Check if result is already waiting
+          // Check if result is waiting in buffer
           if (pendingResultRef.current) {
-              console.log("⏱️ Time is up. Revealing result.")
               processResult(pendingResultRef.current);
           }
       }, 4000); 
@@ -283,13 +277,30 @@ export default function VoiceRecorder() {
 
       const token = sessionStorage.getItem("sb-access-token")
       
-      // Upload (Ignore Response)
-      await api.post("/verification/analyze-voice", formData, {
+      // 🚀 STEP 1: UPLOAD & RESET (Critical Fix)
+      // We wait for this to finish BEFORE connecting the socket.
+      // This ensures the DB is set to 'processing' and clears old results.
+      const response = await api.post("/verification/analyze-voice", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           "Authorization": `Bearer ${token}` 
         },
       })
+
+      // 🛑 STEP 2: IMMEDIATE PHRASE CHECK
+      // If the API says "failed" (incorrect phrase), stop here.
+      if (response.data.status === "failed") {
+          // Delay briefly to feel natural, then show error
+          setTimeout(() => {
+             processResult(response.data)
+          }, 1500)
+          return; 
+      }
+
+      // ✅ STEP 3: LISTEN FOR GENDER
+      // Only now is it safe to listen to the socket.
+      console.log("Phrase verified. Listening for biometric result...")
+      connectAndListen()
 
     } catch (error: any) {
       console.error("Upload Error:", error)
