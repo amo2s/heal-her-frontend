@@ -102,17 +102,15 @@ export default function VoiceRecorder() {
   // --- INITIALIZATION ---
   useEffect(() => {
     const init = async () => {
-      // FIX 1: Explicitly check sessionStorage (matching your Login code)
       const token = sessionStorage.getItem("sb-access-token")
       
       if (!token) {
-        console.warn("⛔ No token found in Session Storage. Redirecting.")
+        console.warn("⛔ No token found. Redirecting.")
         router.push("/login")
         return
       }
 
       try {
-        // Manually attach token to ensure it works
         const response = await api.get("/verification/get-challenge", {
             headers: { Authorization: `Bearer ${token}` }
         })
@@ -143,13 +141,13 @@ export default function VoiceRecorder() {
     setStatus('review')
   }
 
-  // --- SECURE SOCKET LISTENER ---
+  // --- SECURE SOCKET LISTENER (The Judge) ---
   const connectAndListen = () => {
     const socket = getSocket();
     if (!socket) return; 
 
+    // Ensure we are connected with Auth
     if (!socket.connected) {
-        // FIX 2: Get token from Session Storage for Socket Handshake
         const token = sessionStorage.getItem("sb-access-token")
         if (token) {
             socket.auth = { token } 
@@ -157,20 +155,23 @@ export default function VoiceRecorder() {
         }
     }
 
+    // Clean up old listeners to prevent duplicates
     socket.off("verification_result"); 
     
+    // Listen for the REAL result from the AI
     socket.on("verification_result", (data: any) => {
-        console.log("📩 Received Result:", data)
+        console.log("📩 Socket Result Received:", data)
         
+        // Stop the safety timer since we got a response
         if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current)
 
         const rawMessage = (data.message || "").toLowerCase()
 
         if (data.status === "success") {
             setStatus('success')
-            setServerMessage("Female voice detected. Access Granted.") 
+            setServerMessage(data.message || "Verified. Access Granted.") 
             
-            // FIX 3: Update session storage
+            // Mark user as verified locally
             const localUser = sessionStorage.getItem("user-data")
             if (localUser) {
                 try {
@@ -180,25 +181,36 @@ export default function VoiceRecorder() {
                 } catch (e) {}
             }
             
+            // Redirect after delay
             socket.disconnect()
             setTimeout(() => { router.push("/chat") }, 3000)
+
         } else {
+            // Handle specific failures
             setStatus('failed')
-            if (rawMessage.includes("male")) setServerMessage("Male voice detected. Access Denied.")
-            else if (rawMessage.includes("phrase")) setServerMessage("Incorrect phrase. Please read exactly.")
-            else if (rawMessage.includes("unclear")) setServerMessage("Voice unclear. Please speak louder.")
-            else setServerMessage("Verification service busy. Please try again.") 
+            if (rawMessage.includes("male")) {
+                setServerMessage("Access Denied: Male voice detected.")
+            } else if (rawMessage.includes("phrase")) {
+                setServerMessage("Incorrect phrase. Please read exactly.")
+            } else if (rawMessage.includes("unclear")) {
+                setServerMessage("Voice unclear. Please speak louder.")
+            } else {
+                setServerMessage("Verification failed. Please try again.") 
+            }
         }
     })
   }
 
-  // --- SUBMIT ---
+  // --- SUBMIT (The Messenger) ---
   const handleSubmit = async () => {
     if (!mediaBlobUrl) return
+    
+    // 1. Set UI to Analyzing immediately
     setStatus('analyzing')
     setServerMessage("")
 
     try {
+      // Prepare the file
       const audioBlob = await fetch(mediaBlobUrl).then(r => r.blob())
       const audioFile = new File([audioBlob], "voice_verification.wav", { type: "audio/wav" })
 
@@ -206,19 +218,23 @@ export default function VoiceRecorder() {
       formData.append("file", audioFile)
       formData.append("expected_phrase", challengePhrase)
 
+      // 2. Start listening for the result via Socket
       connectAndListen()
 
+      // 3. Set a backup timer (in case server hangs)
       safetyTimerRef.current = setTimeout(() => {
           if (status === 'analyzing') {
               setStatus('failed')
-              setServerMessage("Connection timed out. Please check internet.")
+              setServerMessage("Server timed out. Please retry.")
           }
       }, 60000) // 60s timeout for AI loading
 
-      // FIX 4: Manually attach token from sessionStorage
+      // 4. Send the file (Do NOT judge the response here!)
       const token = sessionStorage.getItem("sb-access-token")
       if (!token) throw new Error("No token found")
 
+      // We await the upload, but we IGNORE the response status.
+      // The Socket will tell us if we passed or failed.
       await api.post("/verification/analyze-voice", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
@@ -227,9 +243,9 @@ export default function VoiceRecorder() {
       })
 
     } catch (error: any) {
-      console.error("Verification Error:", error)
+      console.error("Upload Error:", error)
       setStatus('failed')
-      setServerMessage("Upload failed. Please check your connection.")
+      setServerMessage("Upload failed. Please check internet.")
     }
   }
 
@@ -339,7 +355,7 @@ export default function VoiceRecorder() {
                     <Loader2 className="h-5 w-5 text-[#DA8CA0] animate-spin" />
                     <span className="text-[#DA8CA0] font-medium">Analyzing Voice...</span>
                  </div>
-                 <p className="text-xs text-[#CCCCD9]/50">Checking biometrics (do not close)</p>
+                 <p className="text-xs text-[#CCCCD9]/50">Checking biometrics (please wait)</p>
                </div>
              )}
 
@@ -374,7 +390,6 @@ export default function VoiceRecorder() {
         <div className="mt-8 text-center">
           <button 
             onClick={() => {
-              // FIX 5: Clear sessionStorage
               sessionStorage.clear();
               router.push("/login");
             }} 
