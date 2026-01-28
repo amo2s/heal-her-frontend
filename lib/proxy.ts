@@ -56,14 +56,17 @@ export const getSocket = () => {
   
   if (!socket) {
     socket = io(API_URL, {
-      auth: { token }, 
-      transports: ["websocket"],
-      reconnection: false, 
-      withCredentials: true, // <--- ADDED: Helps with strict CORS
+      path: "/socket.io/",     // Explicit path helps match the backend mount
+      auth: { token },         // Sends token in auth handshake
+      query: { token },        // Fallback: Sends token in URL (caught by our new backend parser)
+      reconnection: true,      // Changed to true for better stability
+      withCredentials: true,   // Required for the CORS setup we built
+      // ❌ REMOVED: transports: ["websocket"] -> This fixes the connection error
     });
 
     socket.on("connect_error", (err) => {
       console.error("Socket Auth Failed:", err.message);
+      // Only logout on specific auth errors, not network hiccups
       if (err.message.includes("Unauthorized") || err.message.includes("invalid") || err.message.includes("jwt")) {
          forceLogout("auth_failed");
       }
