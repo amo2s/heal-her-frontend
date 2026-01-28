@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/proxy" 
-import { VerificationSocket } from "@/lib/socket-service" // <--- IMPORT THE ADAPTER
+// NO SOCKET IMPORTS NEEDED!
 
 // --- ERROR SANITIZER ---
 const sanitizeError = (rawMessage: string) => {
@@ -16,12 +16,9 @@ const sanitizeError = (rawMessage: string) => {
     if (msg.includes("male")) return "Access Denied: Male voice detected.";
     if (msg.includes("phrase")) return "Verification Failed: Incorrect phrase.";
     if (msg.includes("unclear") || msg.includes("noisy")) return "Voice unclear. Please speak louder.";
-    if (msg.includes("groq") || msg.includes("api") || msg.includes("json") || msg.includes("500")) return "Service busy. Please try again.";
-    if (msg.includes("timeout") || msg.includes("network")) return "Connection unstable. Please check internet.";
     return "Verification failed. Please retry.";
 }
 
-// --- VISUALIZER ---
 const SmartVisualizer = ({ stream }: { stream: MediaStream | null }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   useEffect(() => {
@@ -93,7 +90,7 @@ export default function VoiceRecorder() {
   const [loadingText, setLoadingText] = useState("Uploading audio securely...")
 
   // Logic Refs
-  const socketRef = useRef<VerificationSocket | null>(null); // Using the Adapter
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null) // <--- POLLING REF
   const pendingResultRef = useRef<any>(null)
   const minWaitCompleteRef = useRef(false)
   const safetyTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -125,11 +122,10 @@ export default function VoiceRecorder() {
     }
     init()
     
-    // Clean up socket on unmount
     return () => {
       if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current)
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
-      if (socketRef.current) socketRef.current.disconnect()
+      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current) // Cleanup Poll
     }
   }, [router])
 
@@ -159,14 +155,11 @@ export default function VoiceRecorder() {
 
   // --- 3. PROCESS RESULT ---
   const processResult = (data: any) => {
-      // Clear timers
       if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current)
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current) // STOP POLLING
       setProgress(100)
       
-      // Close socket
-      if (socketRef.current) socketRef.current.disconnect() 
-
       if (data.status === "success") {
           setStatus('success')
           setServerMessage(data.message || "Verified. Access Granted.") 
@@ -185,29 +178,42 @@ export default function VoiceRecorder() {
       }
   }
 
-  // --- 4. START LISTENING (The Standard Way) ---
-  const startListening = () => {
+  // --- 4. START POLLING (The Bank Method) ---
+  const startPolling = async () => {
     const token = sessionStorage.getItem("sb-access-token")
     if (!token) return
 
-    // Ensure we don't have duplicate connections
-    if (socketRef.current) socketRef.current.disconnect();
+    // Poll every 1 second
+    pollingIntervalRef.current = setInterval(async () => {
+        try {
+            // We reuse the 'get-status' logic manually or create a tiny endpoint
+            // BUT, since we don't want to write new backend code, we can re-hit an endpoint
+            // OR use a lightweight check.
+            
+            // For now, let's assume we add a TINY new endpoint to check status
+            // OR we can just check the profile table if you have a route for it.
+            // Let's use the standard "get-user" route if it returns verification status
+            
+            const response = await api.get("/verification/check-status", {
+                 headers: { Authorization: `Bearer ${token}` }
+            })
+            
+            const data = response.data;
+            console.log("🔍 Polling Status:", data);
 
-    // 🚀 Initialize Standard Socket
-    const socket = new VerificationSocket(token);
-    socketRef.current = socket;
-
-    // 🚀 Listen for Events (Just like Socket.IO)
-    socket.on("verification_result", (data) => {
-        console.log("⚡ Verification Event Received:", data);
-        
-        if (minWaitCompleteRef.current) {
-            processResult(data);
-        } else {
-            console.log("⏳ Buffering Result (Animation playing)...");
-            pendingResultRef.current = data;
+            if (data.status !== "processing") {
+                // If it's DONE (success or failed), stop polling and show result
+                if (minWaitCompleteRef.current) {
+                    processResult(data);
+                } else {
+                    console.log("⏳ Buffering Result...");
+                    pendingResultRef.current = data;
+                }
+            }
+        } catch (e) {
+            console.error("Polling Error", e);
         }
-    });
+    }, 1000);
   }
 
   // --- 5. SUBMIT ---
@@ -228,7 +234,6 @@ export default function VoiceRecorder() {
       // Start Visual Timers (4s Minimum)
       setTimeout(() => {
           minWaitCompleteRef.current = true;
-          // If we have a buffered result, show it now
           if (pendingResultRef.current) processResult(pendingResultRef.current);
       }, 4000); 
 
@@ -242,20 +247,19 @@ export default function VoiceRecorder() {
 
       const token = sessionStorage.getItem("sb-access-token")
       
-      // Step A: HTTP Post (Upload & Reset)
+      // Step A: Upload
       const response = await api.post("/verification/analyze-voice", formData, {
         headers: { "Content-Type": "multipart/form-data", "Authorization": `Bearer ${token}` },
       })
 
-      // Immediate Failure Check (Phrase)
       if (response.data.status === "failed") {
           setTimeout(() => processResult(response.data), 1500)
           return; 
       }
 
-      // Step B: Start Standard Socket
-      console.log("Phrase Verified. Starting Socket Service...");
-      startListening();
+      // Step B: Start Polling instead of Socket
+      console.log("Phrase Verified. Starting Polling...");
+      startPolling();
 
     } catch (error: any) {
       console.error("Upload Error:", error)
@@ -279,7 +283,7 @@ export default function VoiceRecorder() {
 
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md relative z-10">
         <div className="text-center mb-8 space-y-2">
-          <div className="inline-flex items-center justify-center mb-4 relative h-20 w-20">
+           <div className="inline-flex items-center justify-center mb-4 relative h-20 w-20">
              <Image src="/heal-logo.png" alt="Heal Her Logo" fill className="object-contain drop-shadow-[0_0_15px_rgba(218,140,160,0.5)]"/>
           </div>
           <h1 className="text-2xl font-bold tracking-tight">Security Check</h1>
