@@ -1,13 +1,12 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Mail, Lock, User, Eye, EyeOff, ArrowRight, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
+import { Mail, Lock, User, Eye, EyeOff, ArrowRight, Loader2, CheckCircle2, AlertCircle, Circle, Calendar } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
 // --- PROPS INTERFACE ---
-// This allows the component to talk to the parent page
 interface SignUpProps {
   onSwitchToLogin?: () => void;
 }
@@ -48,8 +47,19 @@ const StatusMessage = ({ status, message, onClose }: { status: 'success' | 'erro
   )
 }
 
+// --- PASSWORD REQUIREMENT ITEM ---
+const Requirement = ({ met, label }: { met: boolean, label: string }) => (
+  <div className={cn(
+    "flex items-center gap-2 text-[10px] uppercase tracking-widest transition-colors duration-300",
+    met ? "text-[#DA8CA0]" : "text-[#CCCCD9]/30"
+  )}>
+    {met ? <CheckCircle2 className="h-3 w-3" /> : <Circle className="h-3 w-3" />}
+    <span>{label}</span>
+  </div>
+)
+
 // --- HELPER COMPONENT ---
-const InputField = ({ label, icon: Icon, type, placeholder, value, onChange }: any) => {
+const InputField = ({ label, icon: Icon, type, placeholder, value, onChange, min, max, children }: any) => {
   const [isFocused, setIsFocused] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const inputType = type === "password" ? (showPassword ? "text" : "password") : type
@@ -71,6 +81,8 @@ const InputField = ({ label, icon: Icon, type, placeholder, value, onChange }: a
           onChange={onChange}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
+          min={min}
+          max={max}
           className="w-full bg-transparent text-white placeholder:text-white/20 px-12 py-3.5 rounded-xl outline-none text-sm font-medium"
         />
         {type === "password" && (
@@ -79,67 +91,89 @@ const InputField = ({ label, icon: Icon, type, placeholder, value, onChange }: a
           </button>
         )}
       </div>
+      {children}
     </div>
   )
 }
 
 // --- MAIN SIGNUP COMPONENT ---
-// Updated to accept the 'onSwitchToLogin' prop
 export default function SignUp({ onSwitchToLogin }: SignUpProps) {
   const [isLoading, setIsLoading] = useState(false)
-  
-  // 2. STATE FOR THE STATUS CARD
   const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null)
 
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
+    age: "",
     password: ""
   })
 
+  // Password Validation State
+  const [checks, setChecks] = useState({
+    length: false,
+    upper: false,
+    lower: false,
+    number: false,
+    special: false
+  })
+
+  useEffect(() => {
+    const pw = formData.password
+    setChecks({
+      length: pw.length >= 8,
+      upper: /[A-Z]/.test(pw),
+      lower: /[a-z]/.test(pw),
+      number: /[0-9]/.test(pw),
+      special: /[@$!%*?&_]/.test(pw)
+    })
+  }, [formData.password])
+
+  const isPasswordValid = Object.values(checks).every(Boolean)
+  
+  // Age Validation Logic (Aligns with Backend: 5 to 120)
+  const parsedAge = parseInt(formData.age, 10)
+  const isAgeValid = !isNaN(parsedAge) && parsedAge >= 5 && parsedAge <= 120
+
+  const isFormValid = isPasswordValid && isAgeValid && formData.fullName.trim() !== "" && formData.email.trim() !== ""
+
   const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [field]: e.target.value }))
-    // Clear error when user starts typing again
     if (status?.type === 'error') setStatus(null)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!isFormValid) return
+    
     setIsLoading(true)
-    setStatus(null) // Clear previous messages
+    setStatus(null)
 
     try {
-      const response = await fetch("https://sliverboy-heal-her-backend.hf.space/auth/signup", {
+      // 1. SECURE UNIVERSAL PROXY CALL
+      // Routes through app/api/proxy/[...slug]/route.ts
+      const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           full_name: formData.fullName,
           email: formData.email,
+          age: parsedAge,
           password: formData.password
         }),
       })
 
       const data = await response.json()
-
       if (!response.ok) throw new Error(data.detail || "Signup failed")
 
-      // --- 3. SHOW SUCCESS CARD ---
       setStatus({ 
         type: 'success', 
         message: "Account created! Switching to Login..." 
       })
       
-      // Clear form
-      setFormData({ fullName: "", email: "", password: "" })
-
-      // --- 4. TRIGGER PARENT SWITCH ---
-      // This activates the spinning loader in your main page
-      if (onSwitchToLogin) {
-        onSwitchToLogin()
-      }
+      setFormData({ fullName: "", email: "", age: "", password: "" })
+      if (onSwitchToLogin) onSwitchToLogin()
 
     } catch (error: any) {
-      // --- 5. SHOW ERROR CARD ---
       setStatus({ 
         type: 'error', 
         message: error.message || "Something went wrong." 
@@ -151,7 +185,6 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
 
   return (
     <div className="relative">
-      {/* Animation Wrapper for the Card */}
       <AnimatePresence mode="wait">
         {status && (
           <StatusMessage 
@@ -181,6 +214,17 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
           value={formData.email}
           onChange={handleChange("email")}
         />
+
+        <InputField 
+          label="Age" 
+          icon={Calendar} 
+          type="number" 
+          placeholder="Enter your age" 
+          value={formData.age}
+          onChange={handleChange("age")}
+          min="5"
+          max="120"
+        />
         
         <InputField 
           label="Password" 
@@ -189,17 +233,31 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
           placeholder="••••••••" 
           value={formData.password}
           onChange={handleChange("password")}
-        />
+        >
+          {/* Password Guide Grid */}
+          <div className="grid grid-cols-2 gap-y-2 gap-x-4 pt-2 px-1">
+             <Requirement met={checks.length} label="8+ Characters" />
+             <Requirement met={checks.upper} label="Uppercase" />
+             <Requirement met={checks.lower} label="Lowercase" />
+             <Requirement met={checks.number} label="Number" />
+             <Requirement met={checks.special} label="Special Character" />
+          </div>
+        </InputField>
 
         <Button 
           type="submit" 
-          disabled={isLoading}
-          className="w-full h-12 bg-[#DA8CA0] hover:bg-[#c76b85] text-[#1C1246] font-bold text-base rounded-xl transition-all shadow-[0_4px_20px_rgba(218,140,160,0.25)] hover:shadow-[0_4px_25px_rgba(218,140,160,0.4)] hover:scale-[1.02] active:scale-[0.98]"
+          disabled={isLoading || !isFormValid}
+          className={cn(
+            "w-full h-12 font-bold text-base rounded-xl transition-all shadow-[0_4px_20px_rgba(218,140,160,0.25)]",
+            isFormValid 
+              ? "bg-[#DA8CA0] hover:bg-[#c76b85] text-[#1C1246] hover:scale-[1.02] active:scale-[0.98]" 
+              : "bg-[#DA8CA0]/20 text-[#DA8CA0]/40 cursor-not-allowed"
+          )}
         >
           {isLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
+            <Loader2 className="h-5 w-5 animate-spin mx-auto" />
           ) : (
-            <span className="flex items-center gap-2">
+            <span className="flex items-center justify-center gap-2">
               Sign Up <ArrowRight className="h-4 w-4" />
             </span>
           )}

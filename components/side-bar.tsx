@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation" 
@@ -10,14 +10,9 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { FloatingCells } from "@/components/ui/floating-cells" 
-// 1. Import the new Settings component
 import { Settings } from "@/components/settings"
 import { ComingSoonModal } from "@/components/modals/coming-soon-modal"
 import { motion, AnimatePresence } from "framer-motion"
-import { useChatContext } from "@/components/context/chat-context"
-
-// --- CONFIG ---
-const API_BASE = "https://sliverboy-heal-her-backend.hf.space"
 
 interface SidebarProps {
   className?: string
@@ -28,10 +23,8 @@ export function Sidebar({ className, onClose }: SidebarProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const currentSessionId = searchParams.get("session_id")
-  const { sessions, isLoading: sessionsLoading, refreshSessions } = useChatContext()
 
   // --- STATE ---
-  // Renamed to showSettings for clarity
   const [showSettings, setShowSettings] = useState(false)
   const [showComingSoon, setShowComingSoon] = useState(false)
   
@@ -44,10 +37,10 @@ export function Sidebar({ className, onClose }: SidebarProps) {
   const [isDeleting, setIsDeleting] = useState(false) 
 
   // User Profile State
-  const [userData, setUserData] = useState({
+  const [userData] = useState({
     id: "", name: "Heal User", email: "", phone: "", avatar: ""
   })
-  const [userLoading, setUserLoading] = useState(true)
+  const [userLoading] = useState(false)
 
   // --- CLICK OUTSIDE HANDLER (For Menu) ---
   useEffect(() => {
@@ -64,46 +57,6 @@ export function Sidebar({ className, onClose }: SidebarProps) {
       window.removeEventListener("resize", () => setActiveMenuId(null))
     }
   }, [])
-
-  // --- FETCH USER PROFILE ---
-  const fetchProfile = useCallback(async () => {
-    const token = sessionStorage.getItem("sb-access-token")
-    if (!token) { setUserLoading(false); return }
-    
-    try {
-      const response = await fetch(`${API_BASE}/profile/me`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        setUserData({
-          id: data.id,
-          name: data.full_name || "Heal User", 
-          email: data.email || "",
-          phone: data.phone || "",
-          avatar: data.avatar_url || "" 
-        })
-        sessionStorage.setItem("user-id", data.id)
-      }
-    } catch (e) { 
-      console.error("Profile fetch error:", e) 
-    } finally { 
-      setUserLoading(false) 
-    }
-  }, [])
-
-  // Initial Fetch
-  useEffect(() => {
-    fetchProfile()
-  }, [fetchProfile])
-
-  // Refetch when Settings modal closes (in case user updated their profile)
-  useEffect(() => {
-    if (!showSettings) {
-      fetchProfile()
-    }
-  }, [showSettings, fetchProfile])
 
   // --- HANDLERS ---
   const handleSessionClick = (sessionId: string) => {
@@ -139,36 +92,15 @@ export function Sidebar({ className, onClose }: SidebarProps) {
   }
 
   const executeDelete = async () => {
-    if (!sessionToDelete) return
-    
-    const userId = userData.id || sessionStorage.getItem("user-id")
-    
-    if (!userId) {
-        console.error("Cannot delete: User ID missing")
-        return
-    }
-
-    setIsDeleting(true) 
-
-    try {
-      await fetch(`${API_BASE}/sessions/${sessionToDelete}?user_id=${userId}`, {
-        method: "DELETE"
-      })
-      
-      await refreshSessions() 
-      
-      if (currentSessionId === sessionToDelete) {
-        router.push("/chat")
-      }
+    // Placeholder for delete logic - URL and Context removed
+    setIsDeleting(true)
+    setTimeout(() => {
+      setIsDeleting(false)
       setSessionToDelete(null)
-    } catch (e) { 
-      console.error("Delete failed:", e) 
-    } finally { 
-      setIsDeleting(false) 
-    }
+      setShowComingSoon(true)
+    }, 500)
   }
 
-  // Helper to safely check if document is available for portal
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
 
@@ -207,59 +139,9 @@ export function Sidebar({ className, onClose }: SidebarProps) {
 
           {/* CHAT LIST */}
           <div className="flex-1 overflow-y-auto mt-2 -mr-2 pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-            {sessionsLoading ? (
-               <div className="flex justify-center py-10">
-                 <Loader2 className="w-6 h-6 animate-spin text-[#DA8CA0]/50" />
-               </div>
-            ) : sessions.length === 0 ? (
-               <div className="flex flex-col items-center justify-center text-center opacity-40 mt-10">
-                  <p className="text-xs text-[#CCCCD9]">No previous chats</p>
-               </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                <p className="text-[10px] font-bold text-[#CCCCD9]/30 uppercase tracking-widest pl-2 mb-1">Recent</p>
-                <AnimatePresence initial={false}>
-                  {sessions.map((session) => (
-                    <motion.div 
-                      key={session.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, height: 0 }}
-                      onClick={() => handleSessionClick(session.id)}
-                      className={cn(
-                        "group relative flex items-center p-3 rounded-xl cursor-pointer transition-all border border-transparent min-h-[44px]",
-                        currentSessionId === session.id 
-                          ? "bg-[#DA8CA0]/10 border-[#DA8CA0]/20" 
-                          : "bg-transparent hover:bg-white/5 hover:backdrop-blur-sm hover:border-white/5"
-                      )}
-                    >
-                      <div className="flex-1 min-w-0 pr-6">
-                        <p className={cn(
-                          "text-sm truncate transition-colors",
-                          currentSessionId === session.id ? "text-white font-medium" : "text-[#CCCCD9]/80 group-hover:text-white"
-                        )}>
-                          {session.title || "New Conversation"}
-                        </p>
-                      </div>
-
-                      {/* VERTICAL 3 DOT MENU TRIGGER */}
-                      <button 
-                        data-menu-trigger
-                        onClick={(e) => handleMenuOpen(e, session.id)}
-                        className={cn(
-                          "absolute right-2 p-1.5 rounded-md transition-all z-20",
-                          "text-[#CCCCD9]/50 hover:text-white bg-transparent hover:bg-white/10 hover:backdrop-blur-md",
-                          "opacity-100 lg:opacity-0 lg:group-hover:opacity-100",
-                          activeMenuId === session.id && "opacity-100 bg-white/10 text-white"
-                        )}
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            )}
+             <div className="flex flex-col items-center justify-center text-center opacity-40 mt-10">
+                <p className="text-xs text-[#CCCCD9]">No previous chats</p>
+             </div>
           </div>
 
           {/* FOOTER */}
@@ -304,7 +186,7 @@ export function Sidebar({ className, onClose }: SidebarProps) {
         </div>
       </PortalMenu>
 
-      {/* NEW SETTINGS MODAL COMPONENT */}
+      {/* SETTINGS MODAL */}
       <Settings 
         isOpen={showSettings} 
         onClose={() => setShowSettings(false)}

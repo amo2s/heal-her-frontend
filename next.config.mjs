@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
+    // Keep this for now to move fast, but set to false before you go live!
     ignoreBuildErrors: true,
   },
   images: {
@@ -9,7 +10,6 @@ const nextConfig = {
   async headers() {
     return [
       {
-        // Apply these headers to ALL routes in your application
         source: '/:path*',
         headers: [
           {
@@ -22,7 +22,7 @@ const nextConfig = {
           },
           {
             key: 'X-Frame-Options',
-            value: 'SAMEORIGIN' 
+            value: 'DENY' // Hardened to prevent Clickjacking
           },
           {
             key: 'X-Content-Type-Options',
@@ -30,25 +30,26 @@ const nextConfig = {
           },
           {
             key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin'
+            value: 'strict-origin-when-cross-origin' // Prevents leaking internal paths
           },
           {
             key: 'Content-Security-Policy',
-            // 👇 FINAL CSP WITH ALL FIXES 👇
             value: `
               default-src 'self'; 
-              script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live; 
+              script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live https://va.vercel-scripts.com; 
               style-src 'self' 'unsafe-inline'; 
-              img-src 'self' blob: data: https://grainy-gradients.vercel.app; 
+              img-src 'self' blob: data: https://grainy-gradients.vercel.app https://res.cloudinary.com; 
               font-src 'self'; 
               frame-src 'self' https://vercel.live; 
               worker-src 'self' blob:; 
-              media-src 'self' blob: data:; 
+              media-src 'self' blob: data: https://res.cloudinary.com; 
               connect-src 'self' blob: data: 
+                https://res.cloudinary.com
                 http://127.0.0.1:8000 
                 ws://127.0.0.1:8000 
                 https://sliverboy-heal-her-backend.hf.space 
-                wss://sliverboy-heal-her-backend.hf.space; 
+                wss://sliverboy-heal-her-backend.hf.space
+                https://*.supabase.co; 
             `.replace(/\s{2,}/g, ' ').trim()
           }
         ]

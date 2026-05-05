@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
-// --- 1. STATUS CARD (Reusable UI) ---
+// --- 1. STATUS CARD ---
 const StatusMessage = ({ status, message, onClose }: { status: 'success' | 'error', message: string, onClose: () => void }) => {
   return (
     <motion.div
@@ -29,7 +29,7 @@ const StatusMessage = ({ status, message, onClose }: { status: 'success' | 'erro
         <h4 className="text-sm font-semibold">{status === 'success' ? "Success" : "Error"}</h4>
         <p className="text-xs opacity-90">{message}</p>
       </div>
-      <button onClick={onClose} className="text-white/40 hover:text-white">×</button>
+      <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">×</button>
     </motion.div>
   )
 }
@@ -75,27 +75,24 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false)
   const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null)
 
-  // STATE: Capture User Input
   const [formData, setFormData] = useState({
     email: "",
     password: ""
   })
 
-  // Handle Typing
   const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [field]: e.target.value }))
     if (status?.type === 'error') setStatus(null)
   }
 
-  // SUBMIT LOGIC
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setStatus(null)
 
     try {
-      // 1. CONNECT TO BACKEND
-      const response = await fetch("https://sliverboy-heal-her-backend.hf.space/auth/login", {
+      // 1. SECURE PROXY CALL
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -103,29 +100,19 @@ export default function Login() {
 
       const data = await response.json()
 
-      if (!response.ok) throw new Error(data.detail || "Login failed")
+      if (!response.ok) throw new Error(data.detail || "Authentication failed")
 
-      // 2. SAVE DATA TO SESSION STORAGE (CRITICAL UPDATE)
-      // This ensures data is only available in THIS specific tab.
-      sessionStorage.setItem("sb-access-token", data.access_token)
+      // 2. SESSION STORAGE
       sessionStorage.setItem("user-data", JSON.stringify(data.user))
 
-      // 3. THE GATEKEEPER LOGIC (Redirect based on verification)
-      const isVerified = data.user.is_verified;
+      // 3. DYNAMIC ROUTING (VERIFICATION STRIPPED)
+      const rawSegment = data.user.dashboard || "young_adult";
+      const targetRoute = rawSegment === "young_adult" ? "young-adults" : rawSegment;
 
-      if (isVerified) {
-          // Case A: Verified -> Go to Chat
-          setStatus({ type: 'success', message: "Welcome back! Entering safe space..." })
-          setTimeout(() => {
-            router.push("/chat")
-          }, 1500)
-      } else {
-          // Case B: Not Verified -> Go to The Trap (Voice Verification)
-          setStatus({ type: 'error', message: "Verification required. Redirecting..." }) 
-          setTimeout(() => {
-            router.push("/verify-voice")
-          }, 1500)
-      }
+      setStatus({ type: 'success', message: "Authentication successful. Entering safe space..." })
+      setTimeout(() => {
+        router.push(`/dashboard/${targetRoute}`)
+      }, 1500)
 
     } catch (error: any) {
       setStatus({ type: 'error', message: error.message || "Invalid credentials" })
@@ -136,8 +123,7 @@ export default function Login() {
 
   return (
     <div className="relative">
-       {/* Card Notification */}
-       <AnimatePresence mode="wait">
+      <AnimatePresence mode="wait">
         {status && (
           <StatusMessage 
             key="status-message"
@@ -168,7 +154,7 @@ export default function Login() {
             onChange={handleChange("password")}
           />
           <div className="flex justify-end pt-1">
-            <Link href="/forgot-password" className="text-xs text-[#DA8CA0] hover:text-[#f0abc0] transition-colors">
+            <Link href="/forgot-password" summer-theme="true" className="text-xs text-[#DA8CA0] hover:text-[#f0abc0] transition-colors">
               Forgot Password?
             </Link>
           </div>

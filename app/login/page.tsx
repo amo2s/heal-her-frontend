@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 
 // --- YOUR COMPONENTS ---
 import Login from "@/components/login"
-import SignUp from "@/components/sign_up"
+import SignUp from "@/components/signup"
 
 // --- CSS HACK: DARK MODE AUTOFILL ---
 const autofillStyles = `

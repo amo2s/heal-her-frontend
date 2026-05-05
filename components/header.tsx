@@ -16,7 +16,6 @@ import {
 import { motion, AnimatePresence } from "framer-motion"
 import { ComingSoonModal } from "@/components/modals/coming-soon-modal"
 import { cn } from "@/lib/utils"
-import { useChatContext } from "@/components/context/chat-context"
 
 // --- CONFIG ---
 const API_BASE = "https://sliverboy-heal-her-backend.hf.space"
@@ -30,7 +29,6 @@ export function Header({ onMenuAction, onSidebarToggle }: HeaderProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const currentSessionId = searchParams.get("session_id")
-  const { refreshSessions } = useChatContext()
 
   const [showMenu, setShowMenu] = useState(false)
   const [showInfo, setShowInfo] = useState(false)
@@ -73,7 +71,6 @@ export function Header({ onMenuAction, onSidebarToggle }: HeaderProps) {
     setShowMenu(false)
     
     if (action === "delete") {
-      // Only show delete modal if we actually have a session ID
       if (currentSessionId) {
         setShowDeleteModal(true)
       }
@@ -101,7 +98,6 @@ export function Header({ onMenuAction, onSidebarToggle }: HeaderProps) {
         method: "DELETE"
       })
       
-      await refreshSessions() // Refresh sidebar list
       router.push("/chat") // Redirect to new chat
       setShowDeleteModal(false)
 
@@ -212,7 +208,6 @@ export function Header({ onMenuAction, onSidebarToggle }: HeaderProps) {
                   <MenuItem icon={Archive} label="Archive Chat" onClick={() => handleAction("archive")} />
                   <MenuItem icon={Flag} label="Report Issue" onClick={() => handleAction("report")} />
                   
-                  {/* Only show delete if there is an active session */}
                   <div className="my-2 mx-4 h-px bg-white/10" />
                   <MenuItem 
                      icon={Trash2} 

@@ -1,10 +1,8 @@
 "use client"
 
 import React, { useRef, useEffect, useState } from "react"
-import { useRouter } from "next/navigation" 
-import { Loader2 } from "lucide-react" 
-import { Header } from "@/components/header"
-import { Sidebar } from "@/components/side-bar"
+import { Header } from "@/components/kids/ai-buddy/topbar"
+import { Sidebar } from "@/components/kids/ai-buddy/sidebar"
 
 // --- BACKGROUND COMPONENTS ---
 
@@ -102,88 +100,42 @@ const AuroraBackground = () => (
   </div>
 )
 
-// --- SECURE LAYOUT ---
+// --- AI BUDDY CHAT LAYOUT ---
 
-export default function Layout({
+export default function ChatLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const router = useRouter()
-
-  useEffect(() => {
-    const verifySession = async () => {
-      const token = sessionStorage.getItem("sb-access-token")
-
-      if (!token) {
-        window.location.replace("/login?error=unauthorized")
-        return
-      }
-
-      try {
-        const response = await fetch("https://sliverboy-heal-her-backend.hf.space/auth/me", {
-           method: "GET",
-           headers: { 
-             "Authorization": `Bearer ${token}`,
-             "Content-Type": "application/json"
-           }
-        })
-
-        if (!response.ok) {
-          throw new Error("Invalid token")
-        }
-
-        setIsAuthenticated(true)
-
-      } catch (error) {
-        console.warn("🔒 Security Guard: Invalid session detected.")
-        sessionStorage.removeItem("sb-access-token") 
-        window.location.replace("/login?error=session_expired")
-      }
-    }
-
-    verifySession()
-  }, [router])
-
-  if (!isAuthenticated) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-[#1C1246]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-10 h-10 animate-spin text-[#DA8CA0]" />
-          <p className="text-[#DA8CA0]/60 font-serif italic animate-pulse">Verifying Security...</p>
-        </div>
-        <AuroraBackground />
-      </div>
-    )
-  }
 
   return (
     <div className="relative flex h-screen w-full bg-[#1C1246] text-[#FAFAFA] overflow-hidden selection:bg-[#DA8CA0]/30 selection:text-[#DA8CA0]">
       
       <AuroraBackground />
 
-      <aside className="hidden md:block w-64 h-full relative z-20 border-r border-white/5 bg-[#1C1246]/30 backdrop-blur-md">
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:block w-72 h-full relative z-20 border-r border-white/5 bg-[#1C1246]/20 backdrop-blur-xl">
          <Sidebar />
       </aside>
 
+      {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
-        <div className="absolute inset-0 z-50 md:hidden flex">
+        <div className="absolute inset-0 z-[60] md:hidden flex">
           <div 
-            className="absolute inset-0 bg-[#1C1246]/90 backdrop-blur-sm"
+            className="absolute inset-0 bg-[#0a051e]/80 backdrop-blur-md animate-in fade-in duration-300"
             onClick={() => setIsMobileMenuOpen(false)}
           />
-          <div className="relative w-3/4 max-w-[280px] h-full bg-[#1C1246] border-r border-white/10 shadow-2xl">
+          <div className="relative w-4/5 max-w-[300px] h-full bg-[#1C1246] border-r border-white/10 shadow-2xl animate-in slide-in-from-left duration-300">
             <Sidebar onClose={() => setIsMobileMenuOpen(false)} />
           </div>
         </div>
       )}
 
       <div className="flex-1 flex flex-col relative z-10 min-w-0">
-        
+        {/* Universal Chat Header */}
         <Header
-          onMenuAction={(action) => console.log(action)}
+          onMenuAction={(action: string) => console.log("Menu action:", action)}
           onSidebarToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         />
 
@@ -201,7 +153,6 @@ export default function Layout({
           [scrollbar-color:rgba(218,140,160,0.2)_transparent]">
           {children}
         </main>
-      
       </div>
     </div>
   )

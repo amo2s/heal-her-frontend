@@ -2,79 +2,42 @@ import axios from "axios";
 import { io, Socket } from "socket.io-client";
 
 // --- CONFIGURATION ---
-const API_URL = "https://sliverboy-heal-her-backend.hf.space";
+const NEXTJS_PROXY_BASE = ""; 
+const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
 
-// --- HELPER: CENTRALIZED LOGOUT ---
-const forceLogout = (reason: string) => {
-  console.warn(`🚨 Logout triggered: ${reason}`);
-  sessionStorage.removeItem("sb-access-token"); 
-  if (typeof window !== "undefined") {
-    window.location.replace(`/login?error=${reason}`);
-  }
-};
-
-// 1. CREATE SECURE AXIOS INSTANCE
+// --- 1. THE GHOST API (Dumb Messenger) ---
 export const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
+  baseURL: NEXTJS_PROXY_BASE,
+  timeout: 15000, 
+  headers: { "Content-Type": "application/json" },
+  // CRITICAL: This allows the browser to send the HttpOnly cookies to the proxy
+  withCredentials: true, 
 });
 
-// 2. REQUEST INTERCEPTOR (Attaches Token)
-api.interceptors.request.use(
-  (config) => {
-    const token = sessionStorage.getItem("sb-access-token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+// --- 2. RESPONSE INTERCEPTOR (No Panic Mode) ---
+//api.interceptors.response.use(
+  //(response) => response,
+  //(error) => {
+    // We only log the error. We STOP the auto-logout for now.
+    // This allows us to see the 401 in the console without getting kicked to /login.
+    //console.error("[API ERROR]:", error.response?.status, error.response?.data);
+    //return Promise.reject(error);
+  //}
+//);
 
-// 3. RESPONSE INTERCEPTOR (The "Hacker" Trap)
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-      forceLogout("session_expired");
-    }
-    return Promise.reject(error);
-  }
-);
-
-// 4. SECURE SOCKET FACTORY
+// --- 3. THE GHOST SOCKET ---
 let socket: Socket | null = null;
 
 export const getSocket = () => {
-  const token = sessionStorage.getItem("sb-access-token");
-  
-  if (!token) {
-    return null;
-  }
-  
   if (!socket) {
-    socket = io(API_URL, {
-      path: "/socket.io/",     // Explicit path helps match the backend mount
-      auth: { token },         // Sends token in auth handshake
-      query: { token },        // Fallback: Sends token in URL (caught by our new backend parser)
-      reconnection: true,      // Changed to true for better stability
-      withCredentials: true,   // Required for the CORS setup we built
-      // ❌ REMOVED: transports: ["websocket"] -> This fixes the connection error
+    socket = io(SOCKET_URL, {
+      path: "/socket.io/",
+      withCredentials: true, // Uses cookies automatically
+      reconnection: true,
     });
 
-    socket.on("connect_error", (err) => {
-      console.error("Socket Auth Failed:", err.message);
-      // Only logout on specific auth errors, not network hiccups
-      if (err.message.includes("Unauthorized") || err.message.includes("invalid") || err.message.includes("jwt")) {
-         forceLogout("auth_failed");
-      }
-    });
-
-    socket.on("force_logout", () => {
-       forceLogout("multiple_tabs");
-    });
+    socket.on("connect_error", (err) => console.warn("[SOCKET ERROR]:", err.message));
+    socket.on("connect", () => console.log("[SOCKET] Connected."));
   }
   return socket;
 };

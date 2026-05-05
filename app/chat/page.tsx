@@ -10,7 +10,6 @@ import { createPortal } from "react-dom"
 
 // 1. IMPORT PROXY 
 import { api } from "@/lib/proxy" 
-import { useChatContext } from "@/components/context/chat-context"
 
 // 2. IMPORT EXISTING MODALS
 import { ComingSoonModal } from "@/components/modals/coming-soon-modal"
@@ -97,7 +96,7 @@ export default function ChatPage() {
   
   // MODAL STATES
   const [showComingSoon, setShowComingSoon] = useState(false)
-  const [showPremiumModal, setShowPremiumModal] = useState(false) // <--- NEW STATE
+  const [showPremiumModal, setShowPremiumModal] = useState(false) 
   const [mounted, setMounted] = useState(false)
 
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -107,8 +106,6 @@ export default function ChatPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const urlSessionId = searchParams.get("session_id")
-  
-  const { refreshSessions } = useChatContext()
 
   // HANDLE HYDRATION
   useEffect(() => {
@@ -283,7 +280,6 @@ export default function ChatPage() {
       if (!sessionId && data.session_id) {
         setSessionId(data.session_id)
         window.history.pushState(null, '', `?session_id=${data.session_id}`)
-        await refreshSessions() 
       }
 
       const aiMsg: Message = {
@@ -292,13 +288,8 @@ export default function ChatPage() {
       setMessages(prev => [...prev, aiMsg])
 
     } catch (error: any) {
-      // --- 🆕 CHECK FOR 402 (DAILY LIMIT) ---
-      // This catches the specific exception thrown by your backend service
       if (error.response && error.response.status === 402) {
-          setShowPremiumModal(true) // Open the upsell modal
-          
-          // Optional: Remove the user's message since it wasn't processed
-          // setMessages(prev => prev.filter(m => m.id !== userMsg.id))
+          setShowPremiumModal(true) 
       } else {
           console.error("Chat Error:", error)
       }
@@ -370,7 +361,7 @@ export default function ChatPage() {
                 </div>
             )}
 
-            {/* 2. Premium Limit Reached (NEW) */}
+            {/* 2. Premium Limit Reached */}
             <PremiumLimitModal isOpen={showPremiumModal} onClose={() => setShowPremiumModal(false)} />
         </>,
         document.body
