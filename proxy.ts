@@ -20,131 +20,210 @@ function parseJwt(token: string) {
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
-  // Extract keys from the Vault
-  let accessToken = request.cookies.get('sb-access-token')?.value;
-  let refreshToken = request.cookies.get('sb-refresh-token')?.value; // Changed to let
-  let hasRefreshed = false;
-
   // =====================================================================
-  // 1. THE SMART NEGOTIATOR: SILENT REFRESH LOGIC
+  // 1. THE RADAR & BYPASS (Allow public login pages through)
   // =====================================================================
-  const payload = accessToken ? parseJwt(accessToken) : null;
-  // Buffer: Consider token expired if it dies in the next 60 seconds
-  const isExpired = !payload || (payload.exp && Date.now() >= (payload.exp * 1000) - 60000);
+  if (path.startsWith('/management/auth/login') || path === '/login') {
+    return NextResponse.next();
+  }
 
-  if (isExpired && refreshToken) {
-    try {
-      const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000/graphql";
-      
-      const refreshQuery = `
-        mutation RefreshToken($token: String!) {
-          refreshToken(token: $token) {
-            accessToken
-            refreshToken
-          }
-        }
-      `;
+  const isManagementRoute = path.startsWith('/management');
+  const isDashboardRoute = path.startsWith('/dashboard');
 
-      const refreshRes = await fetch(backendUrl, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "x-healher-handshake": process.env.NEXT_PUBLIC_HANDSHAKE_SECRET || "" 
-        },
-        body: JSON.stringify({
-          query: refreshQuery,
-          variables: { token: refreshToken }
-        }),
-      });
-
-      const refreshData = await refreshRes.json();
-      
-      // Extract both new tokens
-      const newAccessToken = refreshData?.data?.refreshToken?.accessToken;
-      const newRefreshToken = refreshData?.data?.refreshToken?.refreshToken;
-
-      if (newAccessToken && newRefreshToken) {
-        accessToken = newAccessToken;
-        refreshToken = newRefreshToken;
-        hasRefreshed = true;
-      } else {
-        // If refresh fails or returns junk, kill the tokens to force a login redirect
-        accessToken = undefined; 
-        refreshToken = undefined;
-      }
-    } catch (error) {
-      console.error("[PROXY REFRESH ERROR]:", error);
-      accessToken = undefined;
-      refreshToken = undefined;
-    }
+  // If the route is neither (e.g., an unlisted API or public page), just pass it.
+  if (!isManagementRoute && !isDashboardRoute && !path.startsWith('/api/proxy')) {
+    return NextResponse.next();
   }
 
   // =====================================================================
-  // 2. ROUTE INTERCEPTOR (Authentication & Smart Routing)
+  // 2. VAULT EXTRACTION (Dual-Mode Intelligence)
   // =====================================================================
-  const isDashboard = path.startsWith('/dashboard');
+  const userAccess = request.cookies.get('sb-access-token')?.value;
+  const userRefresh = request.cookies.get('sb-refresh-token')?.value;
   
-  if (isDashboard) {
-    
-    // LAYER 1: AUTHENTICATION CHECK
-    // If no token exists, cleanly redirect to login and wipe stale cookies.
-    if (!accessToken) {
-      const redirectRes = NextResponse.redirect(new URL('/login', request.url));
-      redirectRes.cookies.delete('sb-access-token');
-      redirectRes.cookies.delete('sb-refresh-token');
-      return redirectRes;
-    }
+  const adminAccess = request.cookies.get('admin-access-token')?.value;
+  const adminRefresh = request.cookies.get('admin-refresh-token')?.value;
 
-    // LAYER 2: DYNAMIC SEGMENT ROUTING (No Hardcoding)
-    if (path === '/dashboard') {
-      const activePayload = parseJwt(accessToken);
-      const rawSegment = activePayload?.dashboard;
-      
-      if (rawSegment) {
-        const targetRoute = rawSegment === 'young_adult' ? 'young-adults' : rawSegment;
-        return NextResponse.redirect(new URL(`/dashboard/${targetRoute}`, request.url));
+  let activeAccessToken: string | undefined = undefined;
+  let newTokensToInject: { access: string, refresh: string, type: 'admin' | 'user' } | null = null;
+
+  // =====================================================================
+  // 3. CROSS-POLLINATION SHIELDS (The Bouncer)
+  // =====================================================================
+  if (isManagementRoute) {
+    if (!adminAccess && !adminRefresh) {
+      // No admin keys. Are they a Kid/Teen snooping?
+      if (userAccess || userRefresh) {
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+      }
+      // Just a visitor without keys. Kick to Admin Login.
+      return NextResponse.redirect(new URL('/management/auth/login', request.url));
+    }
+  }
+
+  if (isDashboardRoute) {
+    if (!userAccess && !userRefresh) {
+      // No user keys. Are they an Admin testing links?
+      if (adminAccess || adminRefresh) {
+        return NextResponse.redirect(new URL('/management/dashboard', request.url));
+      }
+      // Just a visitor without keys. Kick to Public Login.
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+  }
+
+  // =====================================================================
+  // 4. THE TWIN ENGINES: CONTEXT-AWARE SILENT REFRESH
+  // =====================================================================
+  const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000/graphql";
+  const handshakeSecret = process.env.NEXT_PUBLIC_HANDSHAKE_SECRET || "";
+
+  if (isManagementRoute) {
+    activeAccessToken = adminAccess;
+    const payload = adminAccess ? parseJwt(adminAccess) : null;
+    const isExpired = !payload || (payload.exp && Date.now() >= (payload.exp * 1000) - 60000);
+
+    if (isExpired && adminRefresh) {
+      try {
+        // EXTREMIST REFRESH: Includes IP & User-Agent for Blood-Binding
+        const forwardedFor = request.headers.get("x-forwarded-for") || "127.0.0.1";
+        const userAgent = request.headers.get("user-agent") || "unknown";
+
+        const refreshRes = await fetch(backendUrl, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "x-healher-handshake": handshakeSecret,
+            "x-forwarded-for": forwardedFor,
+            "user-agent": userAgent
+          },
+          body: JSON.stringify({
+            query: `mutation AdminRefresh($token: String!) { adminRefreshToken(refreshToken: $token) { accessToken refreshToken } }`,
+            variables: { token: adminRefresh }
+          }),
+        });
+
+        const refreshData = await refreshRes.json();
+        const access = refreshData?.data?.adminRefreshToken?.accessToken;
+        const refresh = refreshData?.data?.adminRefreshToken?.refreshToken;
+
+        if (access && refresh) {
+          activeAccessToken = access;
+          newTokensToInject = { access, refresh, type: 'admin' };
+        } else {
+          throw new Error("Invalid rotation payload.");
+        }
+      } catch (error) {
+        console.error("[ADMIN REFRESH FATAL]:", error);
+        const res = NextResponse.redirect(new URL('/management/auth/login', request.url));
+        res.cookies.delete('admin-access-token');
+        res.cookies.delete('admin-refresh-token');
+        return res;
+      }
+    }
+  } 
+  
+  else if (isDashboardRoute) {
+    activeAccessToken = userAccess;
+    const payload = userAccess ? parseJwt(userAccess) : null;
+    const isExpired = !payload || (payload.exp && Date.now() >= (payload.exp * 1000) - 60000);
+
+    if (isExpired && userRefresh) {
+      try {
+        // STANDARD REFRESH: Only requires Handshake
+        const refreshRes = await fetch(backendUrl, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "x-healher-handshake": handshakeSecret 
+          },
+          body: JSON.stringify({
+            query: `mutation RefreshToken($token: String!) { refreshToken(token: $token) { accessToken refreshToken } }`,
+            variables: { token: userRefresh }
+          }),
+        });
+
+        const refreshData = await refreshRes.json();
+        const access = refreshData?.data?.refreshToken?.accessToken;
+        const refresh = refreshData?.data?.refreshToken?.refreshToken;
+
+        if (access && refresh) {
+          activeAccessToken = access;
+          newTokensToInject = { access, refresh, type: 'user' };
+        } else {
+          throw new Error("Invalid rotation payload.");
+        }
+      } catch (error) {
+        console.error("[USER REFRESH FATAL]:", error);
+        const res = NextResponse.redirect(new URL('/login', request.url));
+        res.cookies.delete('sb-access-token');
+        res.cookies.delete('sb-refresh-token');
+        return res;
       }
     }
   }
 
   // =====================================================================
-  // 3. UNIVERSAL BEARER INJECTION (The Magic Trick)
+  // 5. THE EXACT PATH BAN (Strict Domain Routing)
+  // =====================================================================
+  // At this point, activeAccessToken is mathematically guaranteed to be valid.
+  
+  // Rule A: Enforce the Management Exact Path
+  if (path === '/management' || path === '/management/') {
+    return NextResponse.redirect(new URL('/management/dashboard', request.url));
+  }
+
+  // Rule B: Enforce the User Exact Path
+  if (path === '/dashboard' || path === '/dashboard/') {
+    const activePayload = parseJwt(activeAccessToken as string);
+    const rawSegment = activePayload?.dashboard;
+    
+    if (rawSegment) {
+      const targetRoute = rawSegment === 'young_adult' ? 'young-adults' : rawSegment;
+      return NextResponse.redirect(new URL(`/dashboard/${targetRoute}`, request.url));
+    } else {
+      // If the token is strangely missing the dashboard claim, annihilate it.
+      const res = NextResponse.redirect(new URL('/login', request.url));
+      res.cookies.delete('sb-access-token');
+      res.cookies.delete('sb-refresh-token');
+      return res;
+    }
+  }
+
+  // =====================================================================
+  // 6. UNIVERSAL BEARER INJECTION (The Magic Trick)
   // =====================================================================
   const requestHeaders = new Headers(request.headers);
-  
-  if (accessToken) {
-    // Invisibly attach the cookie token as an Authorization header for the backend
-    requestHeaders.set('Authorization', `Bearer ${accessToken}`);
+  if (activeAccessToken) {
+    requestHeaders.set('Authorization', `Bearer ${activeAccessToken}`);
   }
 
-  // Create the response object carrying the modified headers
   const response = NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
+    request: { headers: requestHeaders },
   });
 
   // =====================================================================
-  // 4. APPLY REFRESHED COOKIES TO RESPONSE
+  // 7. SECURE COOKIE INJECTION (Post-Refresh)
   // =====================================================================
-  if (hasRefreshed && accessToken && refreshToken) {
-    // Save the new 15-minute access token
+  if (newTokensToInject) {
+    const prefix = newTokensToInject.type === 'admin' ? 'admin' : 'sb';
+    const isProduction = process.env.NODE_ENV === "production";
+
     response.cookies.set({
-      name: "sb-access-token",
-      value: accessToken,
+      name: `${prefix}-access-token`,
+      value: newTokensToInject.access,
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isProduction,
       sameSite: "strict",
       maxAge: 15 * 60, // 15 Minutes
       path: "/",
     });
 
-    // Save the new 7-day refresh token
     response.cookies.set({
-      name: "sb-refresh-token",
-      value: refreshToken,
+      name: `${prefix}-refresh-token`,
+      value: newTokensToInject.refresh,
       httpOnly: true, 
-      secure: process.env.NODE_ENV === "production",
+      secure: isProduction,
       sameSite: "strict",
       maxAge: 7 * 24 * 60 * 60, // 7 Days
       path: "/",
@@ -152,7 +231,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // =====================================================================
-  // 5. THE ARMOR: SECURITY HEADERS
+  // 8. THE ARMOR: SECURITY HEADERS
   // =====================================================================
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
@@ -168,6 +247,7 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     '/dashboard/:path*',
+    '/management/:path*', 
     '/api/proxy/:path*' 
   ]
 }
