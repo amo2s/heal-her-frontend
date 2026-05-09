@@ -2,23 +2,33 @@
 
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sidebar } from "./kids/sidebar";
-import { TopBar } from "./kids/topbar";
+import { Sidebar as KidsSidebar } from "./kids/sidebar";
+import { TopBar as KidsTopBar } from "./kids/topbar";
+import { Sidebar as TeensSidebar } from "./teens/sidebar";
+import { TopBar as TeensTopBar } from "./teens/topbar";
 import { StealthFAB, StealthOverlay } from "@/components/Stealth";
+import type { ReactNode, ComponentType } from "react";
 
-export function DashLayout({ 
-  children, 
-  base 
-}: { 
-  children: React.ReactNode; 
-  base: "kids" | "teens" | "young-adults" 
+export function DashLayout({
+  children,
+  base,
+  Sidebar: CustomSidebar,
+  TopBar: CustomTopBar,
+}: {
+  children: ReactNode;
+  base: "kids" | "teens" | "young-adults";
+  Sidebar?: ComponentType<{ base: string }>;
+  TopBar?: ComponentType;
 }) {
   const pathname = usePathname();
 
-  // 1. Check if the current route is the AI Buddy
-  const isChatMode = pathname.includes("ai-buddy");
+  // Dynamically select default components based on the base prop
+  const SidebarComponent = CustomSidebar ?? (base === "teens" ? TeensSidebar : KidsSidebar);
+  const TopBarComponent = CustomTopBar ?? (base === "teens" ? TeensTopBar : KidsTopBar);
 
-  // 2. If it's Chat Mode, bypass the standard UI components entirely
+  // Check if current route is chat mode for either segment
+  const isChatMode = pathname.includes("ai-buddy") || pathname.includes("heal-ai");
+
   if (isChatMode) {
     return (
       <div className="relative min-h-screen w-full overflow-hidden">
@@ -39,20 +49,15 @@ export function DashLayout({
     );
   }
 
-  // 3. Otherwise, render the standard Dashboard shell
   return (
     <div className="relative min-h-screen bg-background text-foreground">
-      {/* Universal Cosmic Background */}
       <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-cosmic opacity-60" />
 
       <div className="mx-auto flex max-w-[1440px] gap-0 md:gap-8 px-4 py-4 md:px-8 md:py-6">
-        {/* Standard Dashboard Sidebar */}
-        <Sidebar base={base} />
+        <SidebarComponent base={base} />
 
-        {/* Main Viewport */}
         <div className="flex flex-1 flex-col min-w-0 w-full">
-          {/* Standard Dashboard TopBar */}
-          <TopBar />
+          <TopBarComponent />
 
           <AnimatePresence mode="wait">
             <motion.main

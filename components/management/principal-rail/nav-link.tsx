@@ -7,13 +7,25 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { 
   LayoutDashboard, 
+  MessageCircle, 
+  CheckSquare, 
+  FolderKanban, 
+  HardDrive, 
+  Send, 
   Users, 
-  ShieldCheck, 
-  Video, 
-  Activity, 
-  AlertTriangle, 
+  FileText, 
+  Globe, 
+  BarChart3, 
+  Package, 
+  UsersRound, 
   Settings, 
+  Shield,
+  Smile,          
+  Zap,            
+  GraduationCap,  
   LogOut,
+  Activity,
+  AlertTriangle,
   LucideIcon 
 } from "lucide-react";
 
@@ -24,12 +36,24 @@ import {
  */
 const ICON_MAP: Record<string, LucideIcon> = {
   dashboard: LayoutDashboard,
-  users: Users,
-  security: ShieldCheck,
-  content: Video,
+  kids: Smile,
+  teens: Zap,
+  adults: GraduationCap,
+  chat: MessageCircle,
+  tasks: CheckSquare,
+  projects: FolderKanban,
+  files: HardDrive,
+  delivery: Send,
+  clients: Users,
+  invoices: FileText,
+  content: Globe,
+  analytics: BarChart3,
+  services: Package,
+  team: UsersRound,
+  settings: Settings,
+  security: Shield,
   health: Activity,
   alerts: AlertTriangle,
-  settings: Settings,
   logout: LogOut,
 };
 
@@ -39,7 +63,7 @@ function cn(...inputs: ClassValue[]) {
 
 interface NavLinkProps {
   href: string;
-  icon: string; // Changed from LucideIcon to string for serialization
+  icon: string; // Serialized string key matching ICON_MAP
   label: string;
 }
 

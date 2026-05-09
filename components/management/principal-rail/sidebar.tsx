@@ -9,9 +9,16 @@ import { NavLink } from "./nav-link";
 import { LogoutButton } from "./logout-button";
 
 // --- MASTER MENU DEFINITION ---
-// The 'icon' property is now a string to safely cross the Server-Client boundary.
+// Includes the core Heal Her Segments and your Infrastructure Shell
 const allNavItems = [
   { icon: "dashboard", label: "Dashboard", href: "/management/dashboard", permKey: "dashboard" },
+  
+  // --- HEAL HER DOMAIN SEGMENTS ---
+  { icon: "kids", label: "Kids (7-12)", href: "/management/dashboard/kids", permKey: "kids" },
+  { icon: "teens", label: "Teens (13-17)", href: "/management/dashboard/teens", permKey: "teens" },
+  { icon: "adults", label: "Young Adults", href: "/management/dashboard/adults", permKey: "adults" },
+
+  // --- INFRASTRUCTURE SHELL ---
   { icon: "chat", label: "Team Chat", href: "/management/dashboard/chat", permKey: "chat" },
   { icon: "tasks", label: "Task Board", href: "/management/dashboard/tasks", permKey: "tasks" },
   { icon: "projects", label: "Projects", href: "/management/dashboard/projects", permKey: "projects" },
@@ -46,8 +53,6 @@ export default async function Sidebar() {
   // =====================================================================
   // 1. THE ZERO-LATENCY IDENTITY SIPHON
   // =====================================================================
-  // fortressFetch automatically knows it is on the server, grabs the admin 
-  // token from next/headers, and bypasses the proxy to hit FastAPI directly.
   let userRole = "GUEST";
   let isLocked = true;
 
@@ -55,29 +60,29 @@ export default async function Sidebar() {
     const response = await fortressFetch("/graphql", {
       method: "POST",
       body: JSON.stringify({ query: GET_ME_QUERY }),
-      next: { revalidate: 300 } // Cache the identity for 5 minutes
+      next: { revalidate: 300 } 
     });
 
     const getMe = response?.data?.getMe;
     
     if (getMe?.success && getMe?.profile) {
-      userRole = getMe.profile.role;
+      userRole = getMe.profile.role.toUpperCase(); // Normalize for safety
       isLocked = false; 
     }
   } catch (error) {
     console.error("[SIDEBAR GRAPHQL ERROR]:", error);
-    // The layout.tsx Aegis will catch severe auth failures, 
-    // this catch block just ensures the UI doesn't crash if the DB blips.
   }
 
   // =====================================================================
-  // 2. ROLE-BASED MVP FILTER
+  // 2. ROLE-BASED MVP FILTER (Super Admin Bulletproofed)
   // =====================================================================
   const visibleNavItems = allNavItems.filter((item) => {
-    // As the sole operator/founder, if you are ADMIN, you see everything.
-    if (userRole === "ADMIN" || userRole === "OWNER") return true;
+    // If you are any form of high-level authority, bypass the filter completely
+    if (["ADMIN", "OWNER", "SUPER_ADMIN", "SUPERADMIN"].includes(userRole)) {
+      return true;
+    }
     
-    // Fallback for basic staff until granular JSON permissions are implemented
+    // Fallback for basic staff
     return ["dashboard", "settings", "security"].includes(item.permKey);
   });
 
@@ -90,7 +95,6 @@ export default async function Sidebar() {
           <Image src="/sliver.png" alt="Sliver Designs Logo" width={32} height={32} className="object-contain" />
         </div>
         
-        {/* CSS Container Query trick: Hides instantly when layout expands/collapses */}
         <div className="flex flex-col justify-center whitespace-nowrap transition-opacity duration-300 opacity-100 group-[.peer-checked+aside]:opacity-0">
           <div className="flex items-baseline gap-1.5 leading-none">
             <span className="text-lg font-black tracking-wider uppercase text-white">Sliver</span>
