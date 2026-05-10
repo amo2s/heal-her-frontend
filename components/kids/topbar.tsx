@@ -8,35 +8,67 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
+// =====================================================================
+// 1. THE GRAPHQL QUERY (Tailored for TopBar)
+// =====================================================================
+const KIDS_TOPBAR_QUERY = `
+  query GetKidsTopBarProfile {
+    getMe {
+      success
+      profile {
+        firstName
+      }
+    }
+  }
+`;
+
 export function TopBar() {
   const { toggle } = useSidebar();
   const { nickname } = useHeal(); 
   const { playSfx } = useAudio();
   const router = useRouter();
 
-  // 1. STATE: We use your local 'nickname' as the instant fallback while the network request loads
+  // 1. STATE: We use your local 'nickname' as the instant fallback
   const [greeting, setGreeting] = useState(`Hi, ${nickname || 'Buddy'}`);
 
-  // 2. FETCH DATA: Call the Go backend via your Next.js proxy route
+  // 2. FETCH DATA: Call the new GraphQL backend via your Next.js proxy
   useEffect(() => {
+    // AbortController to prevent memory leaks if component unmounts
+    const controller = new AbortController();
+
     const fetchGreeting = async () => {
       try {
-        const response = await fetch('/api/go/kids/greet'); 
+        const response = await fetch('/api/proxy/kids/dashboard/graphql', {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json'
+            // "Authorization": `Bearer ${localStorage.getItem('token')}` // Uncomment if using LocalStorage
+          },
+          body: JSON.stringify({ query: KIDS_TOPBAR_QUERY })
+        }); 
         
-        if (response.ok) {
-          const json = await response.json();
-          // We now look explicitly for 'first_name' from our updated Go handler
-          if (json.status === 'success' && json.data?.first_name) {
-            // We assemble the sleek TopBar greeting here
-            setGreeting(`Hi, ${json.data.first_name}`);
-          }
+        if (!response.ok) {
+          throw new Error(`HTTP Error! Status: ${response.status}`);
         }
-      } catch (error) {
-        console.error("[GREETING ERROR] Failed to fetch live greeting:", error);
+
+        const payload = await response.json();
+
+        // Safely extract the firstName from the GraphQL response structure
+        if (payload.data?.getMe?.success) {
+          const { profile } = payload.data.getMe;
+          setGreeting(`Hi, ${profile.firstName}`);
+        }
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.error("[GREETING ERROR] Failed to fetch live greeting for TopBar:", error.message);
+        }
       }
     };
 
     fetchGreeting();
+
+    return () => controller.abort();
   }, []);
 
   const handleAskBuddy = () => {

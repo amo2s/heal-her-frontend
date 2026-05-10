@@ -8,31 +8,67 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
+// =====================================================================
+// 1. THE GRAPHQL QUERY (Tailored for Teens TopBar)
+// =====================================================================
+const TEENS_TOPBAR_QUERY = `
+  query GetTeensTopBarProfile {
+    getMe {
+      success
+      profile {
+        firstName
+      }
+    }
+  }
+`;
+
 export function TopBar() {
   const { toggle } = useSidebar();
   const { nickname } = useHeal(); 
   const { playSfx } = useAudio();
   const router = useRouter();
 
+  // 1. STATE: Instant fallback using local nickname
   const [greeting, setGreeting] = useState(`Hey, ${nickname || 'there'}`);
 
+  // 2. FETCH DATA: Call the new GraphQL backend via Next.js proxy
   useEffect(() => {
+    // AbortController prevents memory leaks
+    const controller = new AbortController();
+
     const fetchGreeting = async () => {
       try {
-        const response = await fetch('/api/go/teens/greet'); 
+        const response = await fetch('/api/proxy/teens/dashboard/graphql', {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json'
+            // "Authorization": `Bearer ${localStorage.getItem('token')}` // Uncomment if needed
+          },
+          body: JSON.stringify({ query: TEENS_TOPBAR_QUERY })
+        }); 
         
-        if (response.ok) {
-          const json = await response.json();
-          if (json.status === 'success' && json.data?.first_name) {
-            setGreeting(`Hey, ${json.data.first_name}`);
-          }
+        if (!response.ok) {
+          throw new Error(`HTTP Error! Status: ${response.status}`);
         }
-      } catch (error) {
-        console.error("[GREETING ERROR] Failed to fetch teen greeting:", error);
+
+        const payload = await response.json();
+
+        // Safely extract firstName from the GraphQL payload
+        if (payload.data?.getMe?.success) {
+          const { profile } = payload.data.getMe;
+          setGreeting(`Hey, ${profile.firstName}`);
+        }
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.error("[GREETING ERROR] Failed to fetch teen greeting:", error.message);
+        }
       }
     };
 
     fetchGreeting();
+
+    return () => controller.abort();
   }, []);
 
   const handleAskAI = () => {

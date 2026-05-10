@@ -25,6 +25,25 @@ const itemVars = {
   animate: { opacity: 1, y: 0, scale: 1, transition: { type: "spring" as const, stiffness: 200, damping: 20 } } 
 };
 
+// =====================================================================
+// 1. THE GRAPHQL QUERY
+// =====================================================================
+const KIDS_DASHBOARD_QUERY = `
+  query GetKidsDashboardHeader {
+    getMe {
+      success
+      profile {
+        firstName
+      }
+      context {
+        greeting
+        contextualMessage
+        currentStreak
+      }
+    }
+  }
+`;
+
 export default function KidsHome() {
   const { nickname } = useHeal();
   const router = useRouter();
@@ -33,24 +52,27 @@ export default function KidsHome() {
   // --- STATE MANAGEMENT ---
   const [mounted, setMounted] = useState(false);
   const [greetingText, setGreetingText] = useState<string | null>(null);
+  const [contextMessage, setContextMessage] = useState<string>("Let's explore your safe space and practice 1 new scenario today!");
   const [isFetching, setIsFetching] = useState(true);
 
-  // --- DATA FETCHING (THE BRIDGE TO GO) ---
+  // --- DATA FETCHING (VIA SECURE NEXT.JS PROXY) ---
   useEffect(() => {
     setMounted(true);
 
-    // 1. Initialize AbortController for cleanup
+    // Initialize AbortController for cleanup
     const controller = new AbortController();
 
     const fetchLiveGreeting = async () => {
       try {
-        // 2. Call the Next.js Proxy which forwards to Go
-        const response = await fetch('/api/go/kids/greet', {
-          method: 'GET',
+        // Routing through your Next.js proxy to hit the new Python GraphQL endpoint
+        const response = await fetch('/api/proxy/kids/dashboard/graphql', {
+          method: 'POST', // GraphQL strictly uses POST
           signal: controller.signal,
           headers: {
             'Content-Type': 'application/json'
-          }
+            // "Authorization": `Bearer ${localStorage.getItem('token')}` // Uncomment if token isn't in cookies
+          },
+          body: JSON.stringify({ query: KIDS_DASHBOARD_QUERY })
         });
 
         if (!response.ok) {
@@ -59,19 +81,24 @@ export default function KidsHome() {
 
         const payload = await response.json();
 
-        // 3. Extract the deeply nested secure data using the updated full_greeting key
-        if (payload.status === "success" && payload.data?.full_greeting) {
-          setGreetingText(payload.data.full_greeting);
+        // Extract the secure GraphQL response
+        if (payload.data?.getMe?.success) {
+          const { profile, context } = payload.data.getMe;
+          // Dynamically combining the smart greeting and the child's atomized first name
+          setGreetingText(`${context.greeting}, ${profile.firstName}!`);
+          // Injecting the dynamic vibe message from the Temporal Warden
+          setContextMessage(context.contextualMessage);
         } else {
-          throw new Error("Invalid payload structure or missing full_greeting");
+          throw new Error("Invalid GraphQL payload or missing data");
         }
 
       } catch (error: any) {
         // Ignore AbortErrors (user navigated away quickly)
         if (error.name !== 'AbortError') {
-          console.error("[FRONTEND ERROR] Failed to fetch secure greeting:", error.message);
-          // 4. Graceful Degradation: Fallback to Zustand state if Go is unreachable
-          setGreetingText(`Welcome back, ${nickname}!`);
+          console.error("[FRONTEND ERROR] Failed to fetch secure dashboard data:", error.message);
+          // Graceful Degradation: Fallback to Zustand state if backend is unreachable
+          setGreetingText(`Hello, ${nickname}!`);
+          setContextMessage("Let's explore your safe space and practice 1 new scenario today!");
         }
       } finally {
         setIsFetching(false);
@@ -80,7 +107,7 @@ export default function KidsHome() {
 
     fetchLiveGreeting();
 
-    // 5. Cleanup function cancels the fetch if component unmounts
+    // Cleanup function cancels the fetch if component unmounts
     return () => controller.abort();
   }, [nickname]);
 
@@ -104,7 +131,7 @@ export default function KidsHome() {
         <div className="absolute bottom-20 right-[5%] w-80 h-80 bg-rose-500/10 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }} />
       </div>
 
-      {/* 1. DAILY MISSION HEADER (CONNECTED TO GO BACKEND) */}
+      {/* 1. DAILY MISSION HEADER */}
       <motion.header 
         variants={itemVars} 
         className="relative z-10 overflow-hidden rounded-[3rem] border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur-2xl"
@@ -133,7 +160,7 @@ export default function KidsHome() {
                     className="h-10 w-3/4 md:w-1/2 bg-white/10 animate-pulse rounded-lg border border-white/5"
                   />
                 ) : (
-                  // Live Data from Go Backend
+                  // Live Data from GraphQL Backend
                   <motion.h1 
                     key="content"
                     initial={{ opacity: 0, y: 10 }} 
@@ -147,7 +174,7 @@ export default function KidsHome() {
             </div>
 
             <p className="text-[#CCCCD9] font-medium text-sm md:text-base max-w-md">
-              Let's explore your safe space and practice 1 new scenario today!
+              {contextMessage}
             </p>
           </div>
 
