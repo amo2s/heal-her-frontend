@@ -6,6 +6,8 @@ import { Sidebar as KidsSidebar } from "./kids/sidebar";
 import { TopBar as KidsTopBar } from "./kids/topbar";
 import { Sidebar as TeensSidebar } from "./teens/sidebar";
 import { TopBar as TeensTopBar } from "./teens/topbar";
+import { Sidebar as YoungAdultsSidebar } from "./young-adults/sidebar";
+import { TopBar as YoungAdultsTopBar } from "./young-adults/topbar";
 import { StealthFAB, StealthOverlay } from "@/components/Stealth";
 import type { ReactNode, ComponentType } from "react";
 
@@ -23,10 +25,19 @@ export function DashLayout({
   const pathname = usePathname();
 
   // Dynamically select default components based on the base prop
-  const SidebarComponent = CustomSidebar ?? (base === "teens" ? TeensSidebar : KidsSidebar);
-  const TopBarComponent = CustomTopBar ?? (base === "teens" ? TeensTopBar : KidsTopBar);
+  const SidebarComponent = CustomSidebar ?? (
+    base === "young-adults" ? YoungAdultsSidebar : 
+    base === "teens" ? TeensSidebar : 
+    KidsSidebar
+  );
+  
+  const TopBarComponent = CustomTopBar ?? (
+    base === "young-adults" ? YoungAdultsTopBar : 
+    base === "teens" ? TeensTopBar : 
+    KidsTopBar
+  );
 
-  // Check if current route is chat mode for either segment
+  // Check if current route is chat mode for any segment
   const isChatMode = pathname.includes("ai-buddy") || pathname.includes("heal-ai");
 
   if (isChatMode) {

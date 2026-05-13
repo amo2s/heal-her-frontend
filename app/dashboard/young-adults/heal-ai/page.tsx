@@ -36,10 +36,10 @@ type SessionIntent = {
 
 // Sophisticated session guides for young adults
 const INTENTS: SessionIntent[] = [
-  { label: "Venting", icon: <MessageSquareDashed className="w-5 h-5" />, mood: "gentle", suggestion: "I just need to vent right now. Please listen." },
-  { label: "Advice", icon: <Target className="w-5 h-5" />, mood: "neutral", suggestion: "I need some objective advice on a situation." },
-  { label: "Learning", icon: <BrainCircuit className="w-5 h-5" />, mood: "happy", suggestion: "Teach me something new about personal boundaries or psychology." },
-  { label: "Crisis", icon: <ShieldAlert className="w-5 h-5" />, mood: "gentle", suggestion: "I'm feeling unsafe or overwhelmed and need immediate guidance." },
+  { label: "Venting", icon: <MessageSquareDashed className="w-5 h-5" />, mood: "gentle", suggestion: "I just need to vent right now. No judgment, please." },
+  { label: "Advice", icon: <Target className="w-5 h-5" />, mood: "neutral", suggestion: "I need some objective advice on navigating a situation." },
+  { label: "Growth", icon: <BrainCircuit className="w-5 h-5" />, mood: "happy", suggestion: "Teach me something new about personal boundaries, career, or mental health." },
+  { label: "Crisis", icon: <ShieldAlert className="w-5 h-5" />, mood: "gentle", suggestion: "I'm feeling completely overwhelmed and need immediate support." },
 ];
 
 export default function YoungAdultsChatPage() {
@@ -221,7 +221,7 @@ export default function YoungAdultsChatPage() {
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden text-white relative">
       
-      {/* --- 1. DESKTOP SIDEBAR (RESTORED!) --- */}
+      {/* --- 1. DESKTOP SIDEBAR --- */}
       <div className="hidden md:block w-72 shrink-0 h-full border-r border-white/10 z-40 bg-background">
          <Sidebar onClose={() => {}} />
       </div>
@@ -253,11 +253,11 @@ export default function YoungAdultsChatPage() {
         <div className="absolute top-0 right-[10%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] pointer-events-none z-0" />
         <div className="absolute bottom-0 left-[5%] w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
 
-        {/* HEADER (Now safely integrated into the flex column) */}
+        {/* HEADER */}
         <Header onSidebarToggle={() => setIsSidebarOpen(true)} />
 
-        {/* FEED AREA */}
-        <main className="flex-1 overflow-y-auto w-full relative z-10 flex flex-col scrollbar-none">
+        {/* FEED AREA (Vertical custom scrollbar added here) */}
+        <main className="flex-1 overflow-y-auto w-full relative z-10 flex flex-col [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/20">
           
           {/* INTENT PICKER OVERLAY */}
           <AnimatePresence>
@@ -315,8 +315,13 @@ export default function YoungAdultsChatPage() {
           <div className="max-w-4xl mx-auto">
             <AnimatePresence>
               {messages.length > 0 && !isGenerating && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-2 overflow-x-auto pb-4 scrollbar-none">
-                   {["Elaborate on that", "Give me an example", "What's the best approach?", "Play devil's advocate"].map((chip) => (
+                /* Horizontal custom scrollbar added here */
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }} 
+                  animate={{ opacity: 1, y: 0 }} 
+                  className="flex gap-2 overflow-x-auto pb-4 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/20"
+                >
+                   {["Break that down for me", "Give me a real-world example", "What's the best approach?", "Let's dig deeper"].map((chip) => (
                      <motion.button
                        key={chip}
                        whileTap={{ scale: 0.98 }}
@@ -533,7 +538,7 @@ function PremiumLimitModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                   <p className="text-white/50 text-sm leading-relaxed">You have sent 50 messages today. To continue your session, upgrade to Heal Her Premium.</p>
                 </div>
                 <button onClick={() => window.open('/pricing', '_blank')} className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl transition-all shadow-lg">
-                  Upgrade for $5/mo
+                  Upgrade for ₦7,500/mo
                 </button>
              </div>
           </motion.div>
