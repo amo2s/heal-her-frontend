@@ -28,57 +28,14 @@ import {
 // UI COMPONENTS
 // ============================================================================
 
-function SpotlightCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  const mouseX = useMotionValue(0)
-  const mouseY = useMotionValue(0)
-
-  function handleMouseMove({ currentTarget, clientX, clientY }: React.MouseEvent) {
-    const { left, top } = currentTarget.getBoundingClientRect()
-    mouseX.set(clientX - left)
-    mouseY.set(clientY - top)
-  }
-
-  return (
-    <div
-      className={cn(
-        "group relative border border-white/10 bg-[#231854]/50 overflow-hidden rounded-3xl transition-all duration-700 hover:border-[#DA8CA0]/30 hover:shadow-[0_0_40px_rgba(218,140,160,0.15)]",
-        className
-      )}
-      onMouseMove={handleMouseMove}
-    >
-      <motion.div
-        className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 transition duration-700 group-hover:opacity-100"
-        style={{
-          background: useMotionTemplate`
-            radial-gradient(
-              600px circle at ${mouseX}px ${mouseY}px,
-              rgba(218, 140, 160, 0.15),
-              transparent 80%
-            )
-          `,
-        }}
-      />
-      <div className="relative h-full">{children}</div>
-    </div>
-  )
-}
-
-const AuroraBackground = () => (
-  <div className="absolute inset-0 -z-10 overflow-hidden bg-[#1C1246]">
-    <div className="absolute top-[-50%] left-[-50%] h-[200%] w-[200%] animate-spin-slow rounded-full bg-[conic-gradient(from_0deg,transparent_0deg,#231854_120deg,transparent_180deg)] opacity-30 blur-3xl" />
-    <div className="absolute top-[0%] left-[0%] h-[100%] w-[100%] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#DA8CA0]/15 via-[#1C1246] to-[#1C1246]" />
-    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-soft-light" />
-  </div>
-)
-
 const GlowingBadge = ({ children, icon: Icon }: { children: React.ReactNode; icon?: any }) => (
-  <div className="inline-flex items-center gap-2 rounded-full border border-[#DA8CA0]/30 bg-[#DA8CA0]/10 px-4 py-1.5 text-sm font-medium text-[#DA8CA0] backdrop-blur-md transition-all hover:bg-[#DA8CA0]/20 hover:shadow-[0_0_20px_rgba(218,140,160,0.3)]">
+  <div className="inline-flex items-center gap-2 rounded-full border border-white/20 border-t-[#DA8CA0]/60 bg-gradient-to-r from-[#DA8CA0]/10 to-transparent px-4 py-1.5 text-sm font-medium text-[#DA8CA0] backdrop-blur-md transition-all hover:bg-[#DA8CA0]/20 hover:shadow-[0_0_20px_rgba(218,140,160,0.3)] shadow-[inset_0_1px_2px_rgba(255,255,255,0.1)]">
     {Icon && <Icon className="h-3.5 w-3.5 animate-pulse" />}
     {children}
   </div>
 )
 
-// Premium Vertical Card Component for the Ecosystem Section
+// Premium Liquid Card Component for the Ecosystem Section
 function PremiumEcosystemCard({
   icon: Icon,
   title,
@@ -102,21 +59,27 @@ function PremiumEcosystemCard({
       transition={{ duration: 0.8, delay, ease: [0.22, 1, 0.36, 1] }}
       className="group relative h-full flex flex-col"
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-[#DA8CA0]/10 to-transparent rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+      {/* Outer Glow */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#DA8CA0]/15 to-transparent rounded-[2rem] opacity-0 group-hover:opacity-100 blur-xl transition-all duration-700" />
       
-      <div className="relative h-full p-8 md:p-10 border border-white/5 rounded-[2rem] bg-[#231854]/60 backdrop-blur-md hover:border-[#DA8CA0]/40 transition-all duration-500 flex flex-col z-10 shadow-xl hover:shadow-[0_20px_40px_-10px_rgba(28,18,70,0.5)]">
+      {/* Liquid Glass Card Body */}
+      <div className="relative h-full p-8 md:p-10 border border-white/10 border-t-white/20 rounded-[2rem] bg-gradient-to-b from-[#231854]/70 to-[#1C1246]/90 backdrop-blur-2xl transition-all duration-500 flex flex-col z-10 shadow-[inset_0_1px_2px_rgba(255,255,255,0.1),0_15px_30px_-10px_rgba(28,18,70,0.8)] group-hover:border-[#DA8CA0]/40 group-hover:shadow-[inset_0_1px_2px_rgba(255,255,255,0.2),0_20px_40px_-10px_rgba(218,140,160,0.2)]">
+        
+        {/* Top Edge Highlight */}
         <div className="absolute top-0 left-8 right-8 h-[2px] bg-gradient-to-r from-transparent via-[#DA8CA0]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
         
         <div className="flex justify-between items-start mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#DA8CA0]/20 to-[#231854] border border-[#DA8CA0]/30 flex items-center justify-center group-hover:scale-110 group-hover:shadow-[0_0_30px_rgba(218,140,160,0.3)] transition-all duration-500">
-            <Icon className="w-8 h-8 text-[#DA8CA0]" />
+          <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-[#DA8CA0]/20 to-transparent border border-white/20 border-t-white/40 flex items-center justify-center group-hover:scale-110 group-hover:shadow-[inset_0_1px_4px_rgba(255,255,255,0.4),0_0_30px_rgba(218,140,160,0.4)] transition-all duration-500 overflow-hidden">
+             {/* Icon Liquid Sweep */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
+            <Icon className="w-8 h-8 text-[#DA8CA0] relative z-10 drop-shadow-md" />
           </div>
-          <span className="px-3 py-1 bg-[#1C1246] border border-white/10 rounded-full text-xs font-bold tracking-widest text-[#DA8CA0] uppercase">
+          <span className="px-3 py-1 bg-black/20 border border-white/10 border-t-white/20 rounded-full text-xs font-bold tracking-widest text-[#DA8CA0] shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] uppercase">
             {age}
           </span>
         </div>
 
-        <h3 className="text-2xl font-bold text-white mb-4">{title}</h3>
+        <h3 className="text-2xl font-bold text-white mb-4 drop-shadow-md">{title}</h3>
         <p className="text-[#CCCCD9] text-base leading-relaxed mb-8 flex-grow">
           {description}
         </p>
@@ -124,16 +87,19 @@ function PremiumEcosystemCard({
         <div className="space-y-4 mb-8">
           {features.map((feature, i) => (
             <div key={i} className="flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-[#DA8CA0] flex-shrink-0" />
-              <span className="text-sm text-[#CCCCD9]">{feature}</span>
+              <CheckCircle className="w-5 h-5 text-[#DA8CA0] flex-shrink-0 drop-shadow-sm" />
+              <span className="text-sm font-medium text-[#CCCCD9]">{feature}</span>
             </div>
           ))}
         </div>
 
         <div className="mt-auto pt-6 border-t border-white/5">
-          <Button className="w-full bg-white/5 hover:bg-[#DA8CA0] text-white hover:text-[#1C1246] border border-white/10 hover:border-transparent rounded-xl h-12 transition-all duration-300">
-            <Link href="/login" className="flex items-center justify-center gap-2 w-full">
-              Explore Dashboard <ArrowRight className="w-4 h-4" />
+          {/* Transparent Liquid Button -> Glossy Pink on Hover */}
+          <Button asChild className="group/btn relative overflow-hidden w-full bg-white/5 backdrop-blur-xl text-white border border-white/20 border-t-white/40 shadow-[inset_0_2px_4px_rgba(255,255,255,0.1)] hover:bg-gradient-to-b hover:from-[#f3cbd4] hover:to-[#DA8CA0] hover:text-[#1C1246] hover:border-[#DA8CA0] hover:shadow-[inset_0_2px_4px_rgba(255,255,255,0.8),0_10px_20px_-5px_rgba(218,140,160,0.5)] rounded-xl h-14 transition-all duration-500">
+            <Link href="/login" className="relative z-10 flex items-center justify-center gap-2 w-full h-full font-bold">
+               {/* Light Sweep Animation */}
+              <div className="absolute top-0 left-[-100%] w-[150%] h-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover/btn:translate-x-[150%] transition-transform duration-1000 ease-in-out" />
+              Explore Path <ArrowRight className="w-5 h-5 relative z-10" />
             </Link>
           </Button>
         </div>
@@ -166,7 +132,6 @@ export default function HomePage() {
             className="object-cover opacity-30 blur-[8px] scale-105"
             priority
           />
-          {/* Gradient overlay to seamlessly blend the image into the page background */}
           <div className="absolute inset-0 bg-gradient-to-b from-[#1C1246]/80 via-[#1C1246]/50 to-[#1C1246]" />
         </div>
         
@@ -184,7 +149,7 @@ export default function HomePage() {
               
               <h1 className="mt-8 text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-[#FAFAFA] via-[#FAFAFA] to-[#CCCCD9] leading-[1.1]">
                 Grow With Confidence <br />
-                <span className="bg-gradient-to-r from-[#DA8CA0] to-[#E8B4C1] bg-clip-text text-transparent">At Every Stage</span>
+                <span className="bg-gradient-to-r from-[#DA8CA0] to-[#E8B4C1] bg-clip-text text-transparent drop-shadow-lg">At Every Stage</span>
               </h1>
               
               <p className="mt-6 text-lg sm:text-xl text-[#CCCCD9] leading-relaxed max-w-lg font-light">
@@ -192,13 +157,18 @@ export default function HomePage() {
               </p>
 
               <div className="mt-10 flex flex-col sm:flex-row items-start sm:items-center gap-6">
-                <Button size="lg" className="h-16 rounded-full bg-[#DA8CA0] px-10 text-lg font-bold text-[#1C1246] shadow-[0_0_40px_-10px_rgba(218,140,160,0.5)] hover:bg-[#E8B4C1] hover:shadow-[0_0_60px_-10px_rgba(218,140,160,0.6)] hover:scale-105 transition-all duration-500">
+                
+                {/* Glossy Shiny Primary Button */}
+                <Button asChild size="lg" className="group relative overflow-hidden h-16 rounded-full bg-gradient-to-b from-[#f3cbd4] to-[#DA8CA0] px-10 text-lg font-bold text-[#1C1246] border border-[#DA8CA0]/50 border-t-white/80 shadow-[inset_0_2px_5px_rgba(255,255,255,0.9),0_10px_30px_-10px_rgba(218,140,160,0.6)] hover:from-[#fae0e6] hover:to-[#e19eb0] hover:scale-105 hover:shadow-[inset_0_2px_5px_rgba(255,255,255,1),0_15px_40px_-10px_rgba(218,140,160,0.8)] transition-all duration-500">
                   <Link href="/login" className="flex items-center gap-3">
-                    Start Your Journey <ArrowRight className="h-5 w-5" />
+                    {/* Glossy Light Sweep */}
+                    <div className="absolute top-0 left-[-100%] w-[150%] h-full bg-gradient-to-r from-transparent via-white/50 to-transparent group-hover:translate-x-[150%] transition-transform duration-1000 ease-in-out" />
+                    <span className="relative z-10">Start Your Journey</span> 
+                    <ArrowRight className="h-5 w-5 relative z-10" />
                   </Link>
                 </Button>
                 
-                <div className="flex items-center gap-3 text-sm text-[#CCCCD9]">
+                <div className="flex items-center gap-3 text-sm font-medium text-[#CCCCD9]">
                   <Shield className="w-5 h-5 text-[#DA8CA0]" />
                   <span>100% Private & Secure</span>
                 </div>
@@ -207,12 +177,12 @@ export default function HomePage() {
               {/* Trust Stats */}
               <div className="mt-16 pt-8 border-t border-white/10 flex items-center gap-12">
                 <div>
-                  <div className="text-3xl font-bold text-white">24/7</div>
+                  <div className="text-3xl font-black text-white drop-shadow-md">24/7</div>
                   <div className="text-xs text-[#DA8CA0] font-bold tracking-widest uppercase mt-1">Guidance</div>
                 </div>
                 <div className="w-px h-10 bg-white/10" />
                 <div>
-                  <div className="text-3xl font-bold text-white">100%</div>
+                  <div className="text-3xl font-black text-white drop-shadow-md">100%</div>
                   <div className="text-xs text-[#DA8CA0] font-bold tracking-widest uppercase mt-1">Judgment Free</div>
                 </div>
               </div>
@@ -237,9 +207,9 @@ export default function HomePage() {
             className="text-center mb-20"
           >
             <h2 className="text-sm font-bold tracking-widest text-[#DA8CA0] uppercase mb-4">The Ecosystem</h2>
-            <h3 className="text-4xl md:text-5xl font-bold text-white mb-6">Built For Every Chapter</h3>
+            <h3 className="text-4xl md:text-5xl font-extrabold text-white mb-6">Built For Every Chapter</h3>
             <p className="text-xl text-[#CCCCD9] max-w-2xl mx-auto font-light">
-              Heal Her changes with you. Our content and AI help adapt as you grow up, keeping you safe and informed at every age.
+              Because a 10-year-old needs different advice than an 18-year-old. Heal Her adapts to give exactly the right support at exactly the right time.
             </p>
           </motion.div>
 
@@ -248,11 +218,11 @@ export default function HomePage() {
               icon={Baby}
               title="Heal Her: Kids"
               age="Ages 0 - 11"
-              description="A gentle way to learn about hygiene, body parts, and growing up without any scary words."
+              description="We teach girls about hygiene, body changes, and how to stay safe around strangers using gentle videos and simple words."
               features={[
-                "Fun hygiene lessons",
-                "Gentle AI big sister",
-                "Safety alerts for kids"
+                "Child-safe AI Big Sister",
+                "Stranger safety lessons",
+                "Hygiene & body basics videos"
               ]}
               delay={0.1}
             />
@@ -261,24 +231,24 @@ export default function HomePage() {
               icon={GraduationCap}
               title="Heal Her: Teens"
               age="Ages 12 - 17"
-              description="Find out about puberty, periods, and changing emotions with real facts instead of rumors."
+              description="Real answers for real life. Get advice on dating, periods, and growing up from an AI that understands your vibe."
               features={[
-                "Private health chat",
-                "Period & mood tracking",
-                "Mental wellness support"
+                "Teen-vibe AI chat support",
+                "Interactive dating & life scenarios",
+                "Advanced body & health videos"
               ]}
               delay={0.3}
             />
 
             <PremiumEcosystemCard
               icon={Heart}
-              title="Young Adults"
+              title="Heal Her: Adults"
               age="Ages 18+"
-              description="Full control over your adult health, relationships, and wellbeing with advanced guidance."
+              description="Take full control of your life. Master your personal boundaries, understand your legal rights, and track your health privately."
               features={[
-                "Reproductive health facts",
-                "Expert symptom checker",
-                "Encrypted health vault"
+                "Advanced period & symptom tracking",
+                "Boundaries & legal rights guide",
+                "Private medical health vault"
               ]}
               delay={0.5}
             />
@@ -286,7 +256,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ========== OUR MISSION SECTION (REPLACED BENTO BOX) ========== */}
+      {/* ========== OUR MISSION SECTION ========== */}
       <section className="relative py-32 bg-[#1C1246] overflow-hidden border-t border-white/5">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
         
@@ -301,7 +271,7 @@ export default function HomePage() {
               transition={{ duration: 1, ease: smoothEase }}
             >
               <h2 className="text-sm font-bold tracking-widest text-[#DA8CA0] uppercase mb-4">Our Mission</h2>
-              <h3 className="text-4xl md:text-5xl font-bold text-white mb-8 leading-tight">
+              <h3 className="text-4xl md:text-5xl font-extrabold text-white mb-8 leading-tight">
                 Growing up shouldn't be confusing.
               </h3>
               
@@ -328,7 +298,7 @@ export default function HomePage() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 1, ease: smoothEase }}
-              className="space-y-6 bg-[#231854]/40 p-8 md:p-12 rounded-[2.5rem] border border-white/5 backdrop-blur-xl shadow-2xl"
+              className="space-y-6 bg-gradient-to-b from-[#231854]/60 to-[#1C1246]/80 p-8 md:p-12 rounded-[2.5rem] border border-white/10 border-t-white/20 backdrop-blur-2xl shadow-[inset_0_1px_2px_rgba(255,255,255,0.1),0_20px_40px_-10px_rgba(28,18,70,0.8)]"
             >
               {[
                 {
@@ -348,12 +318,12 @@ export default function HomePage() {
                 }
               ].map((pillar, idx) => (
                 <div key={idx} className="flex gap-6 items-start group">
-                  <div className="w-14 h-14 rounded-2xl bg-[#DA8CA0]/10 flex items-center justify-center flex-shrink-0 border border-[#DA8CA0]/20 group-hover:scale-110 transition-transform duration-500">
-                    <pillar.icon className="w-6 h-6 text-[#DA8CA0]" />
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#DA8CA0]/20 to-transparent border border-white/10 border-t-white/30 flex items-center justify-center flex-shrink-0 group-hover:scale-110 group-hover:shadow-[0_0_20px_rgba(218,140,160,0.3)] transition-all duration-500 shadow-[inset_0_1px_2px_rgba(255,255,255,0.1)]">
+                    <pillar.icon className="w-6 h-6 text-[#DA8CA0] drop-shadow-md" />
                   </div>
                   <div>
                     <h4 className="text-xl font-bold text-white mb-2">{pillar.title}</h4>
-                    <p className="text-[#CCCCD9] leading-relaxed text-base">
+                    <p className="text-[#CCCCD9] leading-relaxed text-base font-medium">
                       {pillar.desc}
                     </p>
                   </div>
@@ -386,12 +356,12 @@ export default function HomePage() {
                     key={i} 
                     className="group flex flex-col items-center gap-5"
                   >
-                     <div className="p-5 rounded-2xl bg-[#231854] border border-white/5 group-hover:border-[#DA8CA0]/30 group-hover:bg-[#DA8CA0]/5 transition-all duration-500 shadow-lg group-hover:shadow-[0_0_30px_rgba(218,140,160,0.15)] group-hover:-translate-y-2">
-                        <item.icon className="w-8 h-8 text-[#CCCCD9] group-hover:text-[#DA8CA0] transition-colors duration-300" />
+                     <div className="p-5 rounded-2xl bg-gradient-to-b from-[#231854] to-[#1C1246] border border-white/10 border-t-white/20 group-hover:border-[#DA8CA0]/50 transition-all duration-500 shadow-[inset_0_1px_2px_rgba(255,255,255,0.1),0_10px_20px_-5px_rgba(28,18,70,0.5)] group-hover:shadow-[inset_0_1px_2px_rgba(255,255,255,0.2),0_0_30px_rgba(218,140,160,0.2)] group-hover:-translate-y-2">
+                        <item.icon className="w-8 h-8 text-[#CCCCD9] group-hover:text-[#DA8CA0] transition-colors duration-300 drop-shadow-md" />
                      </div>
                      <div>
                         <h4 className="text-xl text-white font-bold mb-1">{item.title}</h4>
-                        <p className="text-[#CCCCD9] text-base">{item.text}</p>
+                        <p className="text-[#CCCCD9] text-base font-medium">{item.text}</p>
                      </div>
                   </motion.div>
                ))}
@@ -413,15 +383,20 @@ export default function HomePage() {
             transition={{ duration: 1.2, ease: smoothEase }}
             className="relative z-10 mx-auto max-w-4xl px-4 text-center"
          >
-            <h2 className="text-5xl md:text-7xl font-extrabold text-white tracking-tight mb-8">
+            <h2 className="text-5xl md:text-7xl font-extrabold text-white tracking-tight mb-8 drop-shadow-lg">
                Start your journey.
             </h2>
             <p className="text-xl text-[#CCCCD9] mb-12 max-w-2xl mx-auto font-light leading-relaxed">
                Create your safe space today and get the answers you deserve.
             </p>
             <div className="flex justify-center">
-               <Button className="h-16 px-12 rounded-full bg-[#DA8CA0] text-[#1C1246] text-xl font-bold hover:bg-[#E8B4C1] hover:scale-105 transition-all duration-500 shadow-[0_0_50px_rgba(218,140,160,0.3)]">
-                  <Link href="/login">Create Account</Link>
+               {/* Glossy Shiny Primary Button */}
+               <Button asChild className="group relative overflow-hidden h-16 rounded-full bg-gradient-to-b from-[#f3cbd4] to-[#DA8CA0] px-12 text-xl font-bold text-[#1C1246] border border-[#DA8CA0]/50 border-t-white/80 shadow-[inset_0_2px_5px_rgba(255,255,255,0.9),0_10px_30px_-10px_rgba(218,140,160,0.6)] hover:from-[#fae0e6] hover:to-[#e19eb0] hover:scale-105 hover:shadow-[inset_0_2px_5px_rgba(255,255,255,1),0_15px_40px_-10px_rgba(218,140,160,0.8)] transition-all duration-500">
+                  <Link href="/login">
+                    {/* Glossy Light Sweep */}
+                    <div className="absolute top-0 left-[-100%] w-[150%] h-full bg-gradient-to-r from-transparent via-white/50 to-transparent group-hover:translate-x-[150%] transition-transform duration-1000 ease-in-out" />
+                    <span className="relative z-10">Create Account</span>
+                  </Link>
                </Button>
             </div>
          </motion.div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -17,7 +17,6 @@ import {
   ShieldCheck
 } from "lucide-react";
 import { useSidebar } from "@/store/use-sidebar";
-import { useHeal } from "@/store/heal";
 import { useAudio } from "@/components/context/audio-manager";
 import { cn } from "@/lib/utils";
 
@@ -31,15 +30,74 @@ const NAV = [
   { to: "learn", label: "Resources", icon: BookOpen },
 ];
 
+// The exact GraphQL Query from your Dashboard
+const DASHBOARD_PROFILE_QUERY = `
+  query GetYoungAdultDashboardProfile {
+    getMe {
+      success
+      profile {
+        firstName
+      }
+    }
+  }
+`;
+
 export interface SidebarProps {
   base?: string;
 }
 
 export function Sidebar({ base = "young-adults" }: SidebarProps) {
   const { isOpen, close } = useSidebar();
-  const { nickname, group } = useHeal();
+  const [nickname, setNickname] = useState("...");
+  const [group, setGroup] = useState("Young Adult"); // Keeping default as it's not in the new query
   const pathname = usePathname();
   const { playSfx } = useAudio();
+
+  // Fetch real user data using the exact logic from the dashboard
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const fetchDashboardProfile = async () => {
+      try {
+        const response = await fetch('/api/proxy/young_adult/dashboard/graphql', {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query: DASHBOARD_PROFILE_QUERY })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP Error! Status: ${response.status}`);
+        }
+
+        const payload = await response.json();
+        
+        if (payload.errors) {
+          console.error("GraphQL Errors:", payload.errors);
+          return;
+        }
+        
+        // Safely extract firstName exactly like the TopBar/Dashboard
+        if (payload.data?.getMe?.success) {
+          const { profile } = payload.data.getMe;
+          if (profile?.firstName) {
+            setNickname(profile.firstName);
+          }
+        }
+        
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.error("Sidebar profile fetch failed:", error.message);
+        }
+      }
+    };
+    
+    fetchDashboardProfile();
+
+    return () => controller.abort();
+  }, []);
 
   // Close mobile sidebar on route change
   useEffect(() => { 
@@ -140,7 +198,7 @@ export function Sidebar({ base = "young-adults" }: SidebarProps) {
           <div className="relative group">
             <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center shadow-lg">
               <span className="text-xs font-black text-white uppercase tracking-wider">
-                {nickname.slice(0, 2)}
+                {nickname !== "..." ? nickname.slice(0, 2) : "..."}
               </span>
             </div>
             <div className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-background bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />

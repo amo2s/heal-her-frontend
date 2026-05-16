@@ -56,7 +56,7 @@ const MobileNavLink = ({ href, onClick, children }: { href: string; onClick: () 
   <Link
     href={href}
     onClick={onClick}
-    className="block rounded-2xl px-4 py-3 text-base font-medium text-[#CCCCD9] hover:bg-white/5 hover:text-[#DA8CA0] transition-all active:scale-[0.98]"
+    className="block rounded-2xl px-4 py-3.5 text-base font-medium text-[#CCCCD9] hover:bg-white/5 hover:text-[#DA8CA0] transition-all active:scale-[0.98]"
   >
     {children}
   </Link>
@@ -83,15 +83,26 @@ export function Navigation() {
   const { scrollY } = useScroll()
   const lastYRef = useRef(0)
 
-  // Hide on scroll down, show on scroll up
+  // MOBILE FIX: Prevent background scrolling when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = "unset"
+    }
+    return () => { document.body.style.overflow = "unset" }
+  }, [mobileMenuOpen])
+
+  // Hide on scroll down, show on scroll up (with mobile anti-jitter threshold)
   useMotionValueEvent(scrollY, "change", (latest) => {
     setIsScrolled(latest > 20)
     
     const previous = lastYRef.current
-    if (latest > previous && latest > 150) {
+    // MOBILE FIX: Added a 10px threshold to prevent iOS bounce-scroll jitter
+    if (latest > previous + 10 && latest > 150) {
       setIsVisible(false)
-      setMobileMenuOpen(false) // Close mobile menu if open while scrolling down
-    } else if (latest < previous) {
+      if (mobileMenuOpen) setMobileMenuOpen(false)
+    } else if (latest < previous - 10 || latest <= 150) {
       setIsVisible(true)
     }
     lastYRef.current = latest
@@ -110,15 +121,15 @@ export function Navigation() {
           "fixed top-0 left-0 right-0 z-50 flex justify-center w-full transition-all duration-700",
           isScrolled 
             ? "bg-[#1C1246]/85 backdrop-blur-2xl border-b border-white/5 shadow-lg" 
-            : "bg-transparent border-transparent pt-4"
+            : "bg-transparent border-transparent pt-2 sm:pt-4"
         )}
       >
-        <div className="flex items-center justify-between mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-5">
+        <div className="flex items-center justify-between mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
           
           {/* --- LOGO & TAGLINE --- */}
-          <Link href="/" className="group flex items-center gap-4 relative z-10 shrink-0">
-            <div className="relative flex h-14 w-14 items-center justify-center transition-transform duration-500 group-hover:scale-105">
-              <div className="relative w-14 h-14">
+          <Link href="/" className="group flex items-center gap-3 sm:gap-4 relative z-10 shrink-0">
+            <div className="relative flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center transition-transform duration-500 group-hover:scale-105">
+              <div className="relative w-full h-full">
                  <Image 
                     src="/heal-logo.png" 
                     alt="Heal Her Logo" 
@@ -129,11 +140,14 @@ export function Navigation() {
             </div>
 
             <div className="flex flex-col justify-center">
-              <span className="text-2xl font-extrabold tracking-tight text-white leading-none">
+              <span className="text-xl sm:text-2xl font-extrabold tracking-tight text-white leading-none">
                 Heal <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#DA8CA0] to-[#E8B4C1]">Her</span>
               </span>
-              <span className="text-[#DA8CA0]/90 font-semibold tracking-widest uppercase text-[10px] mt-1.5">
+              <span className="hidden sm:block text-[#DA8CA0]/90 font-semibold tracking-widest uppercase text-[10px] mt-1.5">
                 Her Questions • Our Answers • Her Power
+              </span>
+              <span className="block sm:hidden text-[#DA8CA0]/90 font-medium tracking-wider uppercase text-[8px] mt-1">
+                Her Power
               </span>
             </div>
           </Link>
@@ -202,11 +216,11 @@ export function Navigation() {
 
           {/* --- MOBILE TOGGLE --- */}
           <button 
-            className="md:hidden relative z-50 flex h-10 w-10 items-center justify-center -mr-2 text-[#CCCCD9] hover:text-[#DA8CA0] transition-colors rounded-full hover:bg-white/5 active:scale-95"
+            className="md:hidden relative z-50 flex h-12 w-12 items-center justify-center -mr-2 text-[#CCCCD9] hover:text-[#DA8CA0] transition-colors rounded-full hover:bg-white/5 active:scale-95"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle menu"
           >
-            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            {mobileMenuOpen ? <X className="h-7 w-7" /> : <Menu className="h-7 w-7" />}
           </button>
         </div>
       </motion.header>
@@ -221,7 +235,7 @@ export function Navigation() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="fixed inset-0 z-30 bg-[#1C1246]/60 backdrop-blur-sm md:hidden"
+              className="fixed inset-0 z-30 bg-[#1C1246]/70 backdrop-blur-md md:hidden"
               onClick={() => setMobileMenuOpen(false)}
             />
             
@@ -231,7 +245,8 @@ export function Navigation() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.98 }}
               transition={{ duration: 0.4, ease: smoothEase }}
-              className="fixed left-0 right-0 top-[100px] z-40 mx-auto w-[92%] max-w-sm md:hidden overflow-hidden rounded-[2rem] border border-white/10 bg-[#1C1246]/95 p-6 shadow-2xl backdrop-blur-2xl"
+              // MOBILE FIX: Added max-h-[85vh] and overflow-y-auto to prevent cutting off on short screens
+              className="fixed left-0 right-0 top-[90px] z-40 mx-auto w-[92%] max-w-sm md:hidden max-h-[85vh] overflow-y-auto rounded-[2rem] border border-white/10 bg-[#1C1246]/95 p-6 shadow-2xl backdrop-blur-2xl"
             >
               <div className="flex flex-col relative z-10 space-y-1">
                 <div className="px-4 pb-2 text-[10px] font-bold uppercase tracking-widest text-[#DA8CA0]">Menu</div>
@@ -241,7 +256,7 @@ export function Navigation() {
                 <MobileNavLink href="/community" onClick={() => setMobileMenuOpen(false)}>Community</MobileNavLink>
                 <MobileNavLink href="/contact" onClick={() => setMobileMenuOpen(false)}>Contact Support</MobileNavLink>
 
-                <div className="space-y-3 border-t border-white/10 pt-6 mt-4">
+                <div className="space-y-3 border-t border-white/10 pt-6 mt-4 pb-2">
                   <Button variant="outline" asChild className="w-full justify-start gap-3 border-white/10 bg-transparent text-[#CCCCD9] hover:bg-white/5 hover:text-white h-14 rounded-2xl font-semibold transition-all">
                     <Link href="/staff/login" onClick={() => setMobileMenuOpen(false)}>
                       <User className="h-5 w-5" /> Staff Portal
