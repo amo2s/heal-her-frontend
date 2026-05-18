@@ -1,25 +1,52 @@
 "use client"
 
-export const dynamic = "force-dynamic";
-
-// Added useTime and useTransform for the counter-rotation fix
-import { motion, useMotionTemplate, useMotionValue, useTime, useTransform } from "framer-motion"
+import React from "react"
+import Image from "next/image"
+import Link from "next/link"
+import { motion, useMotionTemplate, useMotionValue, useTime, useTransform, Variants } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
-import Image from "next/image" 
+import { cn } from "@/lib/utils"
 import { 
-  Code2, Stethoscope, ClipboardCheck, Lightbulb, Users, Megaphone, 
+  Code2, Stethoscope, ClipboardCheck, Users, Megaphone, 
   GraduationCap, Mail, Facebook, Instagram, Phone, Target, 
   HeartHandshake, Library, Milestone, Crown, Sparkles, 
-  ShieldAlert, Database, Terminal, Wand2, Cpu, Heart, Share2, 
-  Network, Zap
+  Heart, Cpu, Wand2, ArrowRight
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import React from "react"
-import { cn } from "@/lib/utils"
 
-// --- ANIMATION COMPONENTS ---
+// ============================================================================
+// PREMIUM PHYSICS & UTILITIES
+// ============================================================================
+
+const premiumSmooth: [number, number, number, number] = [0.16, 1, 0.3, 1]
+
+const fadeInUp: Variants = {
+  hidden: { opacity: 0, y: 30, filter: "blur(8px)" },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    filter: "blur(0px)",
+    transition: { duration: 1.2, ease: premiumSmooth } 
+  }
+}
+
+const staggerContainer: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.12, delayChildren: 0.1 }
+  }
+}
+
+const scaleIn: Variants = {
+  hidden: { opacity: 0, scale: 0.95, filter: "blur(8px)" },
+  visible: { 
+    opacity: 1, 
+    scale: 1, 
+    filter: "blur(0px)",
+    transition: { duration: 1.2, ease: premiumSmooth } 
+  }
+}
 
 const GrainOverlay = () => (
   <div 
@@ -42,123 +69,93 @@ const SocialButton = ({ icon: Icon, href, label }: { icon: any, href: string, la
     target="_blank"
     rel="noopener noreferrer"
     aria-label={label}
-    className="h-9 w-9 rounded-full bg-[#1C1246] border border-[#DA8CA0]/20 flex items-center justify-center text-[#CCCCD9] hover:bg-[#DA8CA0] hover:text-[#1C1246] hover:border-[#DA8CA0] transition-all duration-300 transform hover:-translate-y-1 shadow-lg group/icon"
+    className="h-8 w-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#CCCCD9] hover:bg-[#DA8CA0] hover:text-[#1C1246] hover:border-[#DA8CA0] transition-all duration-300 transform hover:-translate-y-0.5"
   >
-    <Icon className="h-4 w-4" />
+    <Icon className="h-3.5 w-3.5" />
   </a>
 )
 
-// --- NEW SIMULATION: THE SYNERGY CORE (UPDATED) ---
+// ============================================================================
+// SIMULATION: THE REFINED SYNERGY CORE
+// ============================================================================
 function SynergySimulation() {
   const time = useTime();
   
-  // Calculate rotation and counter-rotation to keep icons upright
-  // Orbit 1: 20s duration, clockwise
   const rotate1 = useTransform(time, [0, 20000], [0, 360], { clamp: false });
   const counterRotate1 = useTransform(time, [0, 20000], [0, -360], { clamp: false });
 
-  // Orbit 2: 25s duration, counter-clockwise
   const rotate2 = useTransform(time, [0, 25000], [0, -360], { clamp: false });
   const counterRotate2 = useTransform(time, [0, 25000], [0, 360], { clamp: false });
 
-  // Orbit 3: 30s duration, clockwise (starting offset 180)
-  const rotate3 = useTransform(time, [0, 30000], [180, 540], { clamp: false });
-  const counterRotate3 = useTransform(time, [0, 30000], [-180, -540], { clamp: false });
-
   return (
-    <div className="relative w-full h-[400px] bg-[#1a153a] rounded-3xl border border-white/5 overflow-hidden flex items-center justify-center">
-      {/* Background Grid */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
-      
-      {/* Central Core (The AI with Real Logo) */}
+    <div className="relative w-full h-[350px] md:h-[400px] bg-[#231854]/20 rounded-[2rem] border border-white/5 overflow-hidden flex items-center justify-center backdrop-blur-md">
+      {/* Central Core */}
       <div className="relative z-10">
-        <motion.div 
-          animate={{ scale: [1, 1.1, 1], rotate: 360 }}
-          transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-          className="w-32 h-32 rounded-full bg-gradient-to-br from-[#DA8CA0] to-purple-600 blur-xl opacity-50 absolute inset-0"
-        />
-        <div className="w-32 h-32 rounded-full bg-[#1C1246] border border-[#DA8CA0]/30 flex items-center justify-center relative z-20 shadow-2xl overflow-hidden">
-           {/* UPDATED: Real Logo, made larger (72px) */}
+        <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-[#1C1246] border border-white/10 flex items-center justify-center relative z-20 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
            <Image 
              src="/heal-logo.png"
              alt="Heal Her Core Logo"
-             width={72} 
-             height={72}
-             className="animate-pulse object-contain"
+             width={64} 
+             height={64}
+             className="object-contain opacity-90"
            />
         </div>
       </div>
 
-      {/* Orbiting Elements (Updated with counter-rotation) */}
-      
-      {/* Orbit 1: Code (Violet) */}
+      {/* Orbit 1: Engineering */}
       <motion.div 
-        className="absolute w-[250px] h-[250px] border border-violet-500/30 rounded-full"
+        className="absolute w-[200px] h-[200px] md:w-[250px] md:h-[250px] border border-white/5 rounded-full"
         style={{ rotate: rotate1 }}
       >
-         {/* Counter-rotate the icon container so it stays upright */}
          <motion.div 
-            className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-[#1C1246] border border-violet-500 rounded-full flex items-center justify-center text-violet-400 shadow-[0_0_15px_rgba(139,92,246,0.5)]"
+            className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-[#1C1246] border border-white/10 rounded-full flex items-center justify-center text-[#CCCCD9]"
             style={{ rotate: counterRotate1 }}
          >
-            <Code2 className="h-4 w-4" />
+            <Code2 className="h-3.5 w-3.5" />
          </motion.div>
       </motion.div>
 
-      {/* Orbit 2: Medicine (Rose) */}
+      {/* Orbit 2: Medical */}
       <motion.div 
-        className="absolute w-[380px] h-[380px] border border-rose-500/30 rounded-full"
+        className="absolute w-[300px] h-[300px] md:w-[380px] md:h-[380px] border border-[#DA8CA0]/10 rounded-full"
         style={{ rotate: rotate2 }}
       >
          <motion.div 
-           className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-8 h-8 bg-[#1C1246] border border-rose-500 rounded-full flex items-center justify-center text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.5)]"
+           className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-8 h-8 bg-[#1C1246] border border-[#DA8CA0]/20 rounded-full flex items-center justify-center text-[#DA8CA0]"
            style={{ rotate: counterRotate2 }}
          >
-            <Stethoscope className="h-4 w-4" />
-         </motion.div>
-      </motion.div>
-
-      {/* Orbit 3: Community (Cyan) */}
-      <motion.div 
-        className="absolute w-[500px] h-[500px] border border-cyan-500/30 rounded-full"
-        style={{ rotate: rotate3 }}
-      >
-         <motion.div 
-           className="absolute top-1/2 right-0 translate-x-1/2 w-8 h-8 bg-[#1C1246] border border-cyan-500 rounded-full flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.5)]"
-           style={{ rotate: counterRotate3 }}
-         >
-            <Users className="h-4 w-4" />
+            <Stethoscope className="h-3.5 w-3.5" />
          </motion.div>
       </motion.div>
 
       {/* Overlay Text */}
-      <div className="absolute bottom-6 left-6 bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg border border-white/10">
-         <p className="text-xs font-mono text-[#CCCCD9]">SYSTEM: <span className="text-emerald-400">SYNERGY_ACTIVE</span></p>
+      <div className="absolute bottom-6 left-6 flex items-center gap-2">
+         <div className="h-1.5 w-1.5 rounded-full bg-[#DA8CA0] animate-pulse" />
+         <p className="text-[10px] font-mono text-[#CCCCD9] uppercase tracking-widest">Active Development Node</p>
       </div>
     </div>
   )
 }
 
+// ============================================================================
+// MAIN PAGE COMPONENT
+// ============================================================================
+
 export default function TeamPage() {
   const teamMembers = [
     {
       name: "Nwaka Amos Chika",
-      nickname: "SLIVERBOY",
-      role: "Founder & Lead Engineer",
+      nickname: "Sliverboy",
+      role: "Lead Engineer",
       image: "/sliver.png", 
-      bio: "The Architect. Sliverboy envisioned Heal Her as a bridge between cold logic and human warmth. He built the proprietary 'Empathy Engine' that powers our AI, ensuring it speaks not just with intelligence, but with care. His vision drives every pixel.",
-      
+      bio: "Amos designed the architectural foundation of Heal Her. He bridges the gap between cold logic and human warmth, building the secure systems that allow our empathy engine to function flawlessly and safely.",
       education: "Student - B.Sc Computer Science",
       aspiration: "Full Stack Web Developer",
-      specialty: "Expert AI Prompt Engineer", 
-      
+      specialty: "Systems Architecture", 
       icon: Crown, 
-      // UPDATED: Electric Violet / Cosmic Purple Theme
-      color: "text-violet-400", 
-      borderColor: "group-hover:border-violet-500", 
       isFounder: true, 
       socials: {
-        instagram: "https://www.instagram.com/prism_y4?igsh=aDF4aXN3cHNrdzI1",
+        instagram: "https://www.instagram.com/prism_y4",
         facebook: "https://www.facebook.com/share/1FC78LeYK8/",
         email: "mailto:nwakaamos95@gmail.com",
         whatsapp: "https://wa.me/2349063877703",
@@ -167,17 +164,14 @@ export default function TeamPage() {
     },
     {
       name: "Khadija Maumda Musa",
-      nickname: "HT GIRL",
-      role: "Co-Founder & Medical Lead",
+      nickname: "HT Girl",
+      role: "Medical UI Lead",
       image: "/khadija.jpg",
-      bio: "The Heart. Khadija ensures Heal Her remains a safe space. She curates our medical database, ensuring every piece of advice is accurate, non-judgmental, and culturally sensitive for girls across Nigeria.",
-      
+      bio: "Khadija ensures the platform remains deeply human. She translates complex medical facts into a user interface that feels safe, intuitive, and culturally sensitive for girls across Nigeria.",
       education: "Student - B.Sc Computer Science",
       aspiration: "Frontend Web Developer",
-      
+      specialty: "Interactive Interface Design",
       icon: Heart,
-      color: "text-rose-500",
-      borderColor: "group-hover:border-rose-500", 
       isCoFounder: true,
       socials: {
         email: "mailto:khadijaganandaji26@gmail.com",
@@ -187,20 +181,16 @@ export default function TeamPage() {
     },
     {
       name: "Echezona Mbuba David",
-      nickname: "DAVID FLUX", 
-      role: "Community Growth Lead",
+      nickname: "David Flux", 
+      role: "Community Growth",
       image: "/david.jpg",
-      bio: "The Amplifier. David ensures our message reaches the girls who need it most. He manages campus outreach, breaking down stigmas and encouraging students to trust digital health tools.",
-      
+      bio: "David ensures our technology reaches the girls who need it most. He manages on-the-ground campus outreach, breaking down long-held stigmas through direct community engagement.",
       education: "Student - B.Sc Computer Science",
       aspiration: "Backend Web Developer",
-      
       icon: Megaphone, 
-      color: "text-cyan-500",
-      borderColor: "group-hover:border-cyan-500", 
       socials: {
-        instagram: "https://www.instagram.com/mbubadavid07?igsh=dW5tN253YnpwMzZt&utm_source=ig_contact_invite",
-        facebook: "https://www.facebook.com/share/1AHJsi6NnV/?mibextid=wwXIfr",
+        instagram: "https://www.instagram.com/mbubadavid07",
+        facebook: "https://www.facebook.com/share/1AHJsi6NnV",
         email: "mailto:Mbubadavid07@gmail.com",
         whatsapp: "https://wa.me/2347067100500",
         phone: "tel:07067100500"
@@ -208,17 +198,13 @@ export default function TeamPage() {
     },
     {
       name: "Udeh Collins Chimaobi",
-      nickname: "CODE COLLINS",
-      role: "Strategy & Partnerships",
+      nickname: "Code Collins",
+      role: "Partnerships",
       image: "/collins.jpg",
-      bio: "The Navigator. Collins builds the bridges between Heal Her and the real world. He scouts partnerships with NGOs and schools to ensure our project is sustainable and scalable.",
-      
+      bio: "Collins maps out the sustainability of our platform. He connects the engineering team with external NGOs and institutional partners to ensure the project can scale reliably.",
       education: "Student - B.Sc Computer Science",
       aspiration: "Backend Web Developer",
-      
       icon: Target,
-      color: "text-amber-500",
-      borderColor: "group-hover:border-amber-500", 
       socials: {
         email: "mailto:collinsudeh247@gmail.com",
         whatsapp: "https://wa.me/2347042788221",
@@ -227,17 +213,13 @@ export default function TeamPage() {
     },
     {
       name: "Ajilima Jimmy Oloche",
-      nickname: "JIMMY CIPHER", 
+      nickname: "Jimmy Cipher", 
       role: "Operations Manager",
       image: "/jimmy.png",
-      bio: "The Engine. Jimmy turns chaotic ideas into structured reality. He manages timelines, documentation, and resource allocation to keep the team moving forward efficiently.",
-      
+      bio: "Jimmy transforms chaotic development cycles into structured reality. He manages deployments, documentation, and operational security to keep the entire team aligned.",
       education: "Student - B.Sc Computer Science",
       aspiration: "Cyber Security Specialist",
-      
       icon: ClipboardCheck, 
-      color: "text-emerald-500",
-      borderColor: "group-hover:border-emerald-500", 
       socials: {
         facebook: "https://www.facebook.com/profile.php?id=61579818594870",
         email: "mailto:bigjimmy328@gmail.com",
@@ -247,111 +229,99 @@ export default function TeamPage() {
     },
   ]
 
-  const roadmap = [
-    {
-      year: "Q4 2025",
-      title: "Campus Pilot",
-      desc: "Launching Heal Her to 2,000 female students at University of Jos to gather feedback and refine our empathy engine.",
-      status: "current"
-    },
-    {
-      year: "Q2 2026",
-      title: "Mobile App Launch",
-      desc: "Releasing dedicated iOS and Android apps with offline mode for girls in rural areas with poor internet.",
-      status: "future"
-    },
-    {
-      year: "Q4 2026",
-      title: "Voice Chat",
-      desc: "Integrating voice recognition so girls can speak to Heal Her naturally in English and Pidgin.",
-      status: "future"
-    },
-    {
-      year: "2027+",
-      title: "Tele-Health",
-      desc: "Partnering with hospitals to allow users to book real doctor appointments directly through the app.",
-      status: "vision"
-    }
-  ]
-
   return (
-    <div className="relative min-h-screen bg-[#1C1246] text-[#FAFAFA] selection:bg-[#DA8CA0]/30 selection:text-[#DA8CA0] font-sans overflow-hidden">
+    <div className="relative min-h-screen bg-[#1C1246] text-[#FAFAFA] selection:bg-[#DA8CA0]/30 selection:text-[#DA8CA0] font-sans overflow-x-hidden">
       <GrainOverlay />
       <Navigation />
 
-      {/* --- HERO SECTION --- */}
-      <section className="relative pt-32 pb-24 border-b border-[#DA8CA0]/10 overflow-hidden">
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#DA8CA0]/30 to-transparent" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_center,_var(--tw-gradient-stops))] from-[#DA8CA0]/20 via-[#1C1246] to-[#1C1246]" />
+      {/* --- SECTION 1: THE CONNECTED CIRCLE (Hero) --- */}
+      <section className="relative pt-32 pb-20 md:pt-40 md:pb-32 min-h-[90svh] flex flex-col justify-center border-b border-white/5 overflow-hidden">
         
-        {/* Animated Background Elements */}
-        <div className="absolute top-20 left-10 w-64 h-64 bg-[#DA8CA0]/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl" />
-
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#231854]/80 backdrop-blur-md border border-[#DA8CA0]/20 text-[#DA8CA0] text-xs font-mono uppercase tracking-wider mb-8 shadow-xl">
-              <GraduationCap className="h-4 w-4" /> 
-              <span>Built with ❤️ at Uni Jos</span>
-            </div>
-            
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white tracking-tight mb-8 leading-tight">
-              The Humans Behind the <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#DA8CA0] via-[#E8B4C1] to-white">
-                Digital Sisterhood
-              </span>
-            </h1>
-            
-            <div className="mx-auto max-w-4xl text-lg md:text-xl text-[#CCCCD9] leading-relaxed space-y-6">
-              <p>
-                Heal Her is not just code. It is a promise made by a group of students who saw a gap in women's healthcare and decided to fill it.
-              </p>
-              <p>
-                Led by <strong>Sliverboy</strong> and <strong>Khadija</strong>, we are a team of engineers, researchers, and advocates united by one mission:
-              </p>
-              <p className="text-white font-medium">
-                To ensure no girl ever has to face a health scare alone.
-              </p>
-            </div>
-
-            <div className="mt-10 flex justify-center gap-6">
-               <div className="h-1 w-20 bg-gradient-to-r from-[#DA8CA0] to-purple-500 rounded-full" />
-            </div>
-          </motion.div>
+        {/* Absolute Background Image */}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/twelve-hero.png"
+            alt="Core Leadership Node"
+            fill
+            className="object-cover object-center opacity-30 md:opacity-40"
+            priority
+          />
+          {/* Deep Muted Gradients */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,#1C1246_80%)]" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#1C1246]/95 via-[#1C1246]/50 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#1C1246] via-transparent to-[#1C1246]/60" />
         </div>
+        
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10 w-full text-left pt-12 md:pt-0">
+           <motion.div 
+             initial="hidden"
+             animate="visible"
+             variants={staggerContainer}
+             className="max-w-2xl"
+           >
+              <motion.div variants={scaleIn} className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-white/5 border border-white/10 text-white text-[10px] md:text-xs font-bold uppercase tracking-widest mb-6 md:mb-8 backdrop-blur-md">
+                 <GraduationCap className="h-3.5 w-3.5 text-[#DA8CA0]" /> Built at Uni Jos
+              </motion.div>
+
+              <motion.h1 
+                variants={fadeInUp}
+                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white mb-6 leading-[1.1] drop-shadow-2xl"
+              >
+                The Humans Behind<br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#DA8CA0] to-white">The Digital Sisterhood.</span>
+              </motion.h1>
+
+              <motion.div 
+                variants={fadeInUp}
+                className="text-sm md:text-lg text-[#CCCCD9] leading-relaxed font-light mb-8 max-w-xl drop-shadow-lg space-y-4"
+              >
+                <p>We are a dedicated team of students—engineers, researchers, and advocates—united by a single belief: no girl should ever have to face a health scare alone.</p>
+                <p>We don't hide behind corporate titles. We are building this from the ground up, fueled by genuine care and hard-earned skills.</p>
+              </motion.div>
+           </motion.div>
+        </div>
+
+        {/* THIN WATERMARK COVER STICKER */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 1, duration: 1.2, ease: premiumSmooth }}
+          className="absolute bottom-6 right-4 md:bottom-8 md:right-8 z-50 flex items-center gap-2 bg-[#1C1246]/95 backdrop-blur-xl border border-[#DA8CA0]/20 px-3 py-1.5 md:px-4 md:py-2 rounded-full shadow-2xl"
+        >
+           <div className="relative flex h-2 w-2 md:h-2.5 md:w-2.5">
+             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#DA8CA0] opacity-75"></span>
+             <span className="relative inline-flex rounded-full h-2 w-2 md:h-2.5 md:w-2.5 bg-[#DA8CA0]"></span>
+           </div>
+           <span className="text-[#DA8CA0] text-[9px] md:text-[10px] uppercase font-mono tracking-widest mt-0.5">Core Leadership // Verified</span>
+        </motion.div>
       </section>
 
-      {/* --- NEW SECTION: THE DNA OF HEAL HER (Simulation) --- */}
-      <section className="py-20 bg-[#231854]/20 border-b border-[#DA8CA0]/10">
+      {/* --- SECTION 2: THE DNA OF HEAL HER (Refined) --- */}
+      <section className="py-20 md:py-28 bg-[#1C1246] border-b border-white/5">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-           <div className="grid md:grid-cols-2 gap-12 items-center">
+           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
              <motion.div 
                initial={{ opacity: 0, x: -30 }}
                whileInView={{ opacity: 1, x: 0 }}
-               viewport={{ once: true }}
-               transition={{ duration: 0.8 }}
+               viewport={{ once: true, margin: "-50px" }}
+               transition={{ duration: 1.2, ease: premiumSmooth }}
+               className="order-2 lg:order-1"
              >
-                 <h2 className="text-3xl font-bold text-white mb-6">The Synergy</h2>
-                 <p className="text-[#CCCCD9] mb-4 text-lg">
-                   Heal Her is born from the collision of three worlds: 
-                   <span className="text-violet-400 font-bold"> Advanced Tech</span>, 
-                   <span className="text-rose-400 font-bold"> Medical Science</span>, and 
-                   <span className="text-cyan-400 font-bold"> Community Love</span>.
+                 <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">Honest Engineering.</h2>
+                 <p className="text-[#CCCCD9] text-sm md:text-base font-light leading-relaxed mb-4">
+                   Heal Her operates at the intersection of targeted technology, medical facts, and community empathy. 
                  </p>
-                 <p className="text-[#CCCCD9] leading-relaxed">
-                   We are not just developers; we are community builders. Our code is powered by medical facts, and our interface is designed with empathy. This simulation represents how our team's different skills orbit around one central goal: <strong>You.</strong>
+                 <p className="text-[#CCCCD9] text-sm md:text-base font-light leading-relaxed">
+                   As students, we rely on rigorous research and direct feedback from our 200+ community members. Every line of code, every design choice, and every safety protocol is built to serve the real, unfiltered needs of the young women who trust us.
                  </p>
              </motion.div>
              
              <motion.div 
-               initial={{ opacity: 0, scale: 0.9 }}
+               initial={{ opacity: 0, scale: 0.95 }}
                whileInView={{ opacity: 1, scale: 1 }}
-               viewport={{ once: true }}
-               transition={{ duration: 0.8 }}
+               viewport={{ once: true, margin: "-50px" }}
+               transition={{ duration: 1.2, ease: premiumSmooth }}
+               className="order-1 lg:order-2"
              >
                 <SynergySimulation />
              </motion.div>
@@ -359,291 +329,174 @@ export default function TeamPage() {
         </div>
       </section>
 
-      {/* --- THE TEAM GRID --- */}
-      <section className="py-24 bg-[#1C1246] relative">
+      {/* --- SECTION 3: THE TEAM GRID (Extra Premium, Un-Shouty) --- */}
+      <section className="py-24 md:py-32 bg-[#231854]/10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-white mb-4">Meet the Leadership</h2>
-            <p className="text-[#CCCCD9] max-w-2xl mx-auto">
-              The passionate minds turning this vision into reality.
+          <div className="text-center mb-16 md:mb-24">
+            <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">The Team</h2>
+            <p className="text-[#CCCCD9] text-sm md:text-lg max-w-2xl mx-auto font-light">
+              Driven students turning a vision into a structured, functioning reality.
             </p>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-8">
-            {teamMembers.map((member, index) => {
-              const isFounder = member.isFounder;
-              const isCoFounder = member.isCoFounder;
-              
-              // Dynamic Styling Logic
-              let cardBorder = "border-[#DA8CA0]/20";
-              let cardBg = "bg-[#231854]";
-              let hoverBorder = member.borderColor;
-              let badgeColor = "bg-[#1C1246] border-[#DA8CA0]/30";
-              let glowColor = "bg-gradient-to-b from-[#DA8CA0] to-purple-600";
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 justify-center">
+            {teamMembers.map((member, index) => (
+              <motion.div
+                key={member.name}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 1.2, delay: index * 0.1, ease: premiumSmooth }}
+                className="group relative flex flex-col w-full h-full bg-[#1C1246] rounded-[2rem] border border-white/5 overflow-hidden transition-all duration-500 hover:border-[#DA8CA0]/30 hover:shadow-[0_20px_60px_rgba(218,140,160,0.05)]"
+              >
+                {/* Ultra-soft hover gradient inside the card */}
+                <div className="absolute inset-0 bg-gradient-to-b from-[#DA8CA0]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
 
-              if (isFounder) {
-                 // Updated to Electric Violet / Cosmic Purple
-                 cardBorder = "border-violet-500/50";
-                 cardBg = "bg-violet-950/20";
-                 badgeColor = "bg-violet-600 border-violet-400 text-white";
-                 hoverBorder = "group-hover:border-violet-400";
-                 glowColor = "bg-gradient-to-b from-violet-500 to-fuchsia-600";
-              } else if (isCoFounder) {
-                 cardBorder = "border-rose-500/50";
-                 cardBg = "bg-rose-950/20";
-                 badgeColor = "bg-rose-500/90 border-rose-400 text-white";
-                 hoverBorder = "group-hover:border-rose-400";
-                 glowColor = "bg-gradient-to-b from-rose-500 to-pink-600";
-              }
-              
-              return (
-                <motion.div
-                  key={member.name}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className="group relative w-full md:w-[calc(50%-2rem)] lg:w-[30%]"
-                >
-                  {/* Hover Glow */}
-                  <div className={`absolute -inset-0.5 rounded-2xl opacity-0 group-hover:opacity-100 transition duration-500 blur ${glowColor}`} />
+                {/* Top Image Section */}
+                <div className="relative w-full aspect-[4/5] bg-[#231854]/30 overflow-hidden border-b border-white/5">
+                  <Image 
+                    src={member.image} 
+                    alt={member.name} 
+                    fill
+                    className="object-cover object-center opacity-80 group-hover:opacity-100 transition-all duration-700 group-hover:scale-105 filter grayscale-[20%] group-hover:grayscale-0"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
                   
-                  {/* Animated Border for Founder */}
-                  {isFounder && (
-                     <div className="absolute -inset-1 bg-gradient-to-r from-violet-600 via-fuchsia-500 to-violet-600 rounded-2xl opacity-50 blur-sm animate-pulse" />
-                  )}
-
-                  <div className={`relative h-full flex flex-col ${cardBg} border ${cardBorder} rounded-2xl overflow-hidden hover:bg-[#231854]/90 transition-all duration-300 ${hoverBorder}`}>
-                    
-                    {/* Image Container */}
-                    <div className="relative w-full aspect-[4/5] bg-[#1a153a] overflow-hidden border-b border-white/5 group">
-                      <div className="absolute inset-0 bg-[#1a153a] flex items-center justify-center text-[#CCCCD9]">
-                        <Image 
-                          src={member.image} 
-                          alt={member.name} 
-                          fill
-                          className="object-cover object-top transition-transform duration-700 group-hover:scale-110"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          quality={85}
-                          priority={true} 
-                        />
-                      </div>
-                      
-                      <div className={`absolute bottom-4 left-4 inline-flex items-center gap-2 px-3 py-1 rounded-full backdrop-blur-sm border text-xs font-medium shadow-lg z-10 ${badgeColor}`}>
-                        <member.icon className={`h-3 w-3 ${isFounder ? 'text-white' : 'text-white'}`} />
-                        {member.role}
-                      </div>
-
-                      {isFounder && (
-                        <div className="absolute top-4 right-4 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-violet-500 text-white text-xs font-bold uppercase tracking-wider shadow-xl z-10 border border-violet-400">
-                           <Sparkles className="h-3 w-3" /> Visionary
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Content */}
-                    <div className="p-6 flex flex-col flex-grow">
-                      <div>
-                        <div className={`text-xs font-bold uppercase tracking-[0.2em] mb-1 ${isFounder ? 'text-violet-400' : 'text-[#DA8CA0]'}`}>
-                          {member.nickname}
-                        </div>
-                        <h3 className={`text-xl font-bold mb-4 transition-colors ${isFounder ? 'text-violet-200 group-hover:text-violet-300' : 'text-white group-hover:text-[#E8B4C1]'}`}>
-                          {member.name}
-                        </h3>
-                      </div>
-
-                      <div className={`grid grid-cols-1 gap-3 mb-5 p-4 rounded-xl border relative overflow-hidden ${isFounder ? 'bg-violet-950/40 border-violet-500/30' : 'bg-[#1C1246] border-white/5'}`}>
-                          <div className="flex items-start gap-3">
-                             <div className={`mt-0.5 p-1 rounded ${isFounder ? 'bg-violet-500/20' : 'bg-[#DA8CA0]/10'}`}>
-                               <GraduationCap className={`h-3 w-3 ${isFounder ? 'text-violet-400' : 'text-[#DA8CA0]'}`} />
-                             </div>
-                             <div className="flex-1">
-                                <span className="text-[#CCCCD9]/60 block text-[9px] uppercase tracking-wider font-bold">Academics</span>
-                                <span className="text-[#CCCCD9] text-xs font-medium leading-tight block mt-0.5">{member.education}</span>
-                             </div>
-                          </div>
-                          
-                          <div className="flex items-start gap-3">
-                             <div className={`mt-0.5 p-1 rounded ${isFounder ? 'bg-violet-500/20' : 'bg-[#DA8CA0]/10'}`}>
-                               <Cpu className={`h-3 w-3 ${isFounder ? 'text-violet-400' : 'text-[#DA8CA0]'}`} />
-                             </div>
-                             <div className="flex-1">
-                                <span className="text-[#CCCCD9]/60 block text-[9px] uppercase tracking-wider font-bold">Future Goal</span>
-                                <span className={`${isFounder ? 'text-violet-300' : 'text-[#E8B4C1]'} text-xs font-bold leading-tight block mt-0.5`}>{member.aspiration}</span>
-                             </div>
-                          </div>
-
-                          {member.specialty && (
-                            <div className="flex items-start gap-3 pt-2 border-t border-violet-500/20 mt-1">
-                               <div className="mt-0.5 p-1 rounded bg-violet-500/20">
-                                 <Wand2 className="h-3 w-3 text-violet-300" />
-                               </div>
-                               <div className="flex-1">
-                                  <span className="text-violet-500/60 block text-[9px] uppercase tracking-wider font-bold">Specialty</span>
-                                  <span className="text-white text-xs font-bold leading-tight block mt-0.5">{member.specialty}</span>
-                               </div>
-                            </div>
-                          )}
-                      </div>
-                      
-                      <p className="text-sm text-[#CCCCD9] leading-relaxed mb-6 flex-grow border-t border-white/10 pt-4">
-                        {member.bio}
-                      </p>
-
-                      <div className="flex gap-3 pt-2 mt-auto">
-                        {member.socials?.whatsapp && (
-                          <SocialButton icon={WhatsAppIcon} href={member.socials.whatsapp} label="WhatsApp" />
-                        )}
-                        {member.socials?.facebook && (
-                          <SocialButton icon={Facebook} href={member.socials.facebook} label="Facebook" />
-                        )}
-                        {member.socials?.instagram && (
-                          <SocialButton icon={Instagram} href={member.socials.instagram} label="Instagram" />
-                        )}
-                        {member.socials?.email && (
-                          <SocialButton icon={Mail} href={member.socials.email} label="Email" />
-                        )}
-                        {member.socials?.phone && (
-                          <SocialButton icon={Phone} href={member.socials.phone} label="Call" />
-                        )}
-                      </div>
-                    </div>
+                  {/* Subtle Role Badge over Image */}
+                  <div className="absolute bottom-4 left-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1C1246]/90 backdrop-blur-md border border-white/10 text-xs font-medium text-white shadow-xl">
+                    <member.icon className="h-3.5 w-3.5 text-[#DA8CA0]" />
+                    {member.role}
                   </div>
-                </motion.div>
-              );
-            })}
+                </div>
+
+                {/* Content Section */}
+                <div className="p-6 md:p-8 flex flex-col flex-grow relative z-10">
+                  <div className="mb-6">
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-[#DA8CA0] mb-2 opacity-80">
+                      {member.nickname}
+                    </div>
+                    <h3 className="text-xl md:text-2xl font-bold text-white group-hover:text-[#DA8CA0] transition-colors duration-300">
+                      {member.name}
+                    </h3>
+                  </div>
+
+                  {/* Clean, Honest Academic Tags */}
+                  <div className="space-y-3 mb-6 p-4 rounded-2xl bg-[#231854]/40 border border-white/5">
+                      <div className="flex items-start gap-3">
+                         <GraduationCap className="h-4 w-4 text-[#CCCCD9] mt-0.5 opacity-60" />
+                         <div>
+                            <span className="block text-[10px] uppercase tracking-wider font-bold text-[#CCCCD9]/50">Current</span>
+                            <span className="block text-xs font-medium text-[#FAFAFA] mt-0.5">{member.education}</span>
+                         </div>
+                      </div>
+                      <div className="w-full h-px bg-white/5 my-1" />
+                      <div className="flex items-start gap-3">
+                         <Target className="h-4 w-4 text-[#DA8CA0] mt-0.5 opacity-80" />
+                         <div>
+                            <span className="block text-[10px] uppercase tracking-wider font-bold text-[#CCCCD9]/50">Goal</span>
+                            <span className="block text-xs font-bold text-[#FAFAFA] mt-0.5">{member.aspiration}</span>
+                         </div>
+                      </div>
+                  </div>
+                  
+                  {/* Bio */}
+                  <p className="text-sm text-[#CCCCD9] font-light leading-relaxed mb-8 flex-grow">
+                    {member.bio}
+                  </p>
+
+                  {/* Socials */}
+                  <div className="flex gap-2 pt-4 border-t border-white/5 mt-auto">
+                    {member.socials?.email && <SocialButton icon={Mail} href={member.socials.email} label="Email" />}
+                    {member.socials?.whatsapp && <SocialButton icon={WhatsAppIcon} href={member.socials.whatsapp} label="WhatsApp" />}
+                    {member.socials?.phone && <SocialButton icon={Phone} href={member.socials.phone} label="Call" />}
+                    {member.socials?.instagram && <SocialButton icon={Instagram} href={member.socials.instagram} label="Instagram" />}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* --- SECTION: ADVISORY BOARD --- */}
-      <section className="py-24 border-y border-[#DA8CA0]/10 bg-[#231854]/20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      {/* --- SECTION 4: ADVISORY MENTORS (Clean & Professional) --- */}
+      <section className="py-20 bg-[#1C1246] border-y border-white/5">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-white mb-2">Our Mentors</h2>
-              <p className="text-[#CCCCD9]">
-                Student-led, expert-guided.
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">Professional Oversight</h2>
+              <p className="text-sm text-[#CCCCD9] font-light">
+                Student-led, but guided by experienced institutional experts.
               </p>
            </div>
            
-           <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-              <div className="p-6 rounded-xl bg-[#1C1246] border border-[#DA8CA0]/20 flex items-start gap-4">
-                 <div className="h-12 w-12 rounded-full bg-[#DA8CA0]/10 border border-[#DA8CA0]/20 flex items-center justify-center text-[#DA8CA0]">
-                    <Library className="h-6 w-6" />
+           <div className="grid md:grid-cols-2 gap-6">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 1 }}
+                className="p-6 md:p-8 rounded-[1.5rem] bg-[#231854]/30 border border-white/5 flex items-start gap-5"
+              >
+                 <div className="h-12 w-12 shrink-0 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#CCCCD9]">
+                    <Library className="h-5 w-5" />
                  </div>
                  <div>
-                    <h3 className="text-lg font-bold text-white">Faculty Advisor</h3>
-                    <p className="text-sm text-[#DA8CA0] mb-2">University of Jos, CS Dept</p>
-                    <p className="text-sm text-[#CCCCD9]">Ensures our code is secure and our ethics are sound.</p>
+                    <h3 className="text-lg font-bold text-white">Faculty Guidance</h3>
+                    <p className="text-xs font-mono text-[#DA8CA0] mb-3">University of Jos, CS Dept</p>
+                    <p className="text-sm text-[#CCCCD9] font-light leading-relaxed">Ensuring our codebase, data structures, and security protocols meet rigorous academic and professional standards.</p>
                  </div>
-              </div>
-              <div className="p-6 rounded-xl bg-[#1C1246] border border-[#DA8CA0]/20 flex items-start gap-4">
-                 <div className="h-12 w-12 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500">
-                    <Stethoscope className="h-6 w-6" />
+              </motion.div>
+
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 1, delay: 0.2 }}
+                className="p-6 md:p-8 rounded-[1.5rem] bg-[#231854]/30 border border-white/5 flex items-start gap-5"
+              >
+                 <div className="h-12 w-12 shrink-0 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#CCCCD9]">
+                    <Stethoscope className="h-5 w-5" />
                  </div>
                  <div>
-                    <h3 className="text-lg font-bold text-white">Medical Consultant</h3>
-                    <p className="text-sm text-rose-400 mb-2">JUTH (Teaching Hospital)</p>
-                    <p className="text-sm text-[#CCCCD9]">Reviews our health advice to make sure it's 100% accurate.</p>
+                    <h3 className="text-lg font-bold text-white">Clinical Auditing</h3>
+                    <p className="text-xs font-mono text-[#DA8CA0] mb-3">JUTH Medical Consultants</p>
+                    <p className="text-sm text-[#CCCCD9] font-light leading-relaxed">Reviewing our core health scripts and emergency routing protocols to guarantee 100% medical accuracy and safety.</p>
                  </div>
-              </div>
+              </motion.div>
            </div>
         </div>
       </section>
 
-      {/* --- SECTION: STRATEGIC ROADMAP --- */}
-      <section className="py-24 relative overflow-hidden">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-           <div className="text-center mb-16">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-mono uppercase tracking-wider mb-4">
-                <Milestone className="h-4 w-4" /> The Path Forward
-              </div>
-              <h2 className="text-3xl font-bold text-white">The Future of Heal Her</h2>
-              <p className="text-[#CCCCD9] mt-2">From a campus project to a national movement.</p>
-           </div>
-
-           <div className="relative border-l border-[#DA8CA0]/20 ml-4 md:ml-1/2 space-y-12">
-              {roadmap.map((item, index) => (
-                 <div key={index} className="relative pl-8 md:pl-0">
-                    <div className={`absolute left-[-5px] top-1 h-3 w-3 rounded-full border-2 ${item.status === 'current' ? 'bg-[#DA8CA0] border-[#DA8CA0] shadow-[0_0_10px_rgba(218,140,160,0.5)]' : 'bg-[#1C1246] border-[#DA8CA0]/50'} z-10`} />
-                    
-                    <div className="md:grid md:grid-cols-2 md:gap-16 items-center">
-                        <div className={`md:text-right ${index % 2 === 0 ? 'md:order-1' : 'md:order-2'}`}>
-                           <span className={`text-xs font-bold px-2 py-1 rounded border ${item.status === 'current' ? 'bg-[#DA8CA0]/10 text-[#DA8CA0] border-[#DA8CA0]/30' : 'bg-[#1C1246] text-[#CCCCD9]/50 border-[#DA8CA0]/10'}`}>
-                              {item.year}
-                           </span>
-                        </div>
-                        <div className={`${index % 2 === 0 ? 'md:order-2' : 'md:order-1'} mt-2 md:mt-0`}>
-                           <h3 className={`text-lg font-bold ${item.status === 'current' ? 'text-white' : 'text-[#CCCCD9]'}`}>
-                              {item.title}
-                           </h3>
-                           <p className="text-sm text-[#CCCCD9] mt-1 max-w-sm">{item.desc}</p>
-                        </div>
-                    </div>
-                 </div>
-              ))}
-           </div>
-        </div>
-      </section>
-
-      {/* --- THE EXITON --- */}
-      <section className="py-28 relative overflow-hidden bg-[#231854]/20">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#1C1246] via-[#231854]/20 to-[#1C1246]" />
-        <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#DA8CA0] to-transparent" />
+      {/* --- SECTION 5: THE EXIT (Clean Partnership CTA) --- */}
+      <section className="py-24 relative overflow-hidden bg-[#231854]/20 border-b border-white/5">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#DA8CA0]/5 blur-[120px] rounded-full pointer-events-none" />
         
-        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="bg-[#231854]/80 backdrop-blur-xl border border-[#DA8CA0]/20 rounded-3xl p-8 md:p-12 shadow-2xl relative overflow-hidden">
-            
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[#DA8CA0]/10 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" />
-
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-               <div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs font-bold uppercase tracking-wider mb-6">
-                    <HeartHandshake className="h-4 w-4" /> Partner With Us
-                  </div>
-                  <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-                    Help Us Heal Her
-                  </h2>
-                  <p className="text-lg text-[#CCCCD9] mb-6 leading-relaxed">
-                    We are looking for mentors, donors, and partners to help us reach more girls. If you believe in our mission, we want to hear from you.
-                  </p>
-                  
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <Button asChild size="lg" className="bg-[#DA8CA0] hover:bg-[#E8B4C1] text-[#1C1246] rounded-full px-8 h-14 text-base font-bold shadow-lg shadow-[#DA8CA0]/20">
-                      <Link href="mailto:medguardai@gmail.com">
-                        <Mail className="mr-2 h-5 w-5" /> Email The Team
-                      </Link>
-                    </Button>
-                    <Button asChild variant="outline" size="lg" className="border-[#DA8CA0]/30 bg-transparent text-[#CCCCD9] hover:bg-[#DA8CA0]/10 hover:text-white rounded-full px-8 h-14 text-base">
-                      <a href="https://wa.me/2349063877703" target="_blank" rel="noopener noreferrer">
-                        <WhatsAppIcon className="mr-2 h-5 w-5" /> WhatsApp Us
-                      </a>
-                    </Button>
-                  </div>
-               </div>
-
-               <div className="relative bg-[#1C1246] border border-[#DA8CA0]/20 rounded-2xl p-8">
-                  <h3 className="text-xl font-bold text-white mb-6">Current Focus</h3>
-                  <div className="space-y-6">
-                      <div>
-                         <div className="flex justify-between text-sm mb-2">
-                            <span className="text-[#CCCCD9]">Server Costs</span>
-                            <span className="text-[#DA8CA0]">Priority 1</span>
-                         </div>
-                         <div className="h-2 w-full bg-[#231854] rounded-full overflow-hidden">
-                            <div className="h-full w-3/4 bg-[#DA8CA0] rounded-full" />
-                         </div>
-                      </div>
-                  </div>
-                  <div className="mt-8 p-4 bg-[#231854] rounded-xl border border-[#DA8CA0]/10">
-                     <p className="text-sm text-[#CCCCD9] italic">
-                        "Every contribution helps us keep the chat free for girls who can't afford it."
-                     </p>
-                     <p className="text-xs text-[#DA8CA0] mt-2 text-right">- Sliverboy, Founder</p>
-                  </div>
-               </div>
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 text-center relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 1.2, ease: premiumSmooth }}
+          >
+            <div className="mx-auto w-16 h-16 rounded-2xl bg-[#1C1246] border border-white/10 flex items-center justify-center mb-8 shadow-xl">
+               <HeartHandshake className="h-8 w-8 text-[#DA8CA0]" />
             </div>
-          </div>
+            
+            <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
+              Support the Movement.
+            </h2>
+            <p className="text-sm md:text-lg text-[#CCCCD9] font-light leading-relaxed mb-10 px-4">
+              We are actively looking for mentors, foundations, and institutional partners to help scale our server infrastructure and keep this platform free for the girls who need it most.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+               <Link 
+                 href="mailto:medguardai@gmail.com"
+                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-white text-[#1C1246] font-bold text-sm tracking-wide hover:bg-[#DA8CA0] hover:text-white transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+               >
+                 <Mail className="h-4 w-4" /> Reach Out via Email
+               </Link>
+               <Link 
+                 href="/contact" 
+                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10 transition-colors font-bold text-sm tracking-wide"
+               >
+                 Open Contact Portal
+               </Link>
+            </div>
+          </motion.div>
         </div>
       </section>
 

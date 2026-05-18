@@ -1,50 +1,63 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { motion, useMotionTemplate, useMotionValue, useScroll, useTransform, Variants, useInView } from "framer-motion"
+import Image from "next/image"
+import Link from "next/link"
+import { motion, useMotionTemplate, useMotionValue, Variants, AnimatePresence } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { cn } from "@/lib/utils"
-import {
-  Heart,
-  Shield,
-  Globe,
-  Zap,
-  Activity,
-  Brain,
+import { 
+  ShieldAlert, 
+  ShieldCheck, 
+  CheckCircle2,
   Lock,
-  MessageCircle,
-  Stethoscope,
-  Radio,
-  Cpu,
-  Sparkles,
-  Fingerprint,
+  Video,
+  Brain,
+  AlertTriangle,
+  EyeOff,
+  PhoneCall,
+  User,
+  Users,
+  Baby,
   ArrowRight,
-  Clock,
-  Server,
-  Code,
-  Database
+  CalendarHeart,
+  HelpCircle
 } from "lucide-react"
 
-// --- ANIMATION VARIANTS ---
+// ============================================================================
+// ULTRA-PREMIUM PHYSICS & UTILITIES
+// ============================================================================
+
+const premiumSmooth: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
 const fadeInUp: Variants = {
-  hidden: { opacity: 0, y: 40 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
+  hidden: { opacity: 0, y: 30, filter: "blur(8px)" },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    filter: "blur(0px)", 
+    transition: { duration: 1.4, ease: premiumSmooth } 
+  }
 }
 
 const staggerContainer: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.2,
-      delayChildren: 0.1
-    }
+    transition: { staggerChildren: 0.15, delayChildren: 0.1 }
   }
 }
 
-// --- PRO COMPONENTS ---
+const scaleIn: Variants = {
+  hidden: { opacity: 0, scale: 0.95, filter: "blur(8px)" },
+  visible: { 
+    opacity: 1, 
+    scale: 1, 
+    filter: "blur(0px)",
+    transition: { duration: 1.4, ease: premiumSmooth } 
+  }
+}
 
 const GrainOverlay = () => (
   <div 
@@ -55,7 +68,6 @@ const GrainOverlay = () => (
   />
 )
 
-// A card that glows when you hover over it
 function SpotlightCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   const mouseX = useMotionValue(0)
   const mouseY = useMotionValue(0)
@@ -67,418 +79,474 @@ function SpotlightCard({ children, className = "" }: { children: React.ReactNode
   }
 
   return (
-    <motion.div
+    <div
       className={cn(
-        "group relative border border-white/10 bg-[#231854]/50 overflow-hidden rounded-3xl",
+        "group relative border border-white/10 bg-[#231854]/40 overflow-hidden rounded-[1.5rem] md:rounded-[2rem] transition-all duration-700 hover:border-[#DA8CA0]/40 hover:bg-[#231854]/70",
         className
       )}
       onMouseMove={handleMouseMove}
-      whileHover={{ y: -5, transition: { duration: 0.2 } }}
     >
       <motion.div
-        className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 transition duration-300 group-hover:opacity-100"
+        className="pointer-events-none absolute -inset-px rounded-[1.5rem] md:rounded-[2rem] opacity-0 transition duration-700 group-hover:opacity-100"
         style={{
           background: useMotionTemplate`
             radial-gradient(
               650px circle at ${mouseX}px ${mouseY}px,
-              rgba(218, 140, 160, 0.15),
+              rgba(218, 140, 160, 0.12),
               transparent 80%
             )
           `,
         }}
       />
-      <div className="relative h-full">{children}</div>
-    </motion.div>
+      <div className="relative h-full z-10">{children}</div>
+    </div>
   )
 }
 
-// Typewriter effect for scenarios
-const TypewriterText = ({ text }: { text: string }) => {
-  const [displayedText, setDisplayedText] = useState("")
-  const ref = React.useRef(null)
-  const isInView = useInView(ref, { once: true, amount: 0.5 })
+// ============================================================================
+// GLOSSY BUTTON COMPONENT
+// ============================================================================
+function GlossyButton({ href, children, className = "" }: { href: string, children: React.ReactNode, className?: string }) {
+  return (
+    <Link 
+      href={href} 
+      className={cn(
+        "group relative inline-flex items-center justify-center gap-2 px-6 py-3.5 md:px-8 md:py-4 rounded-full bg-gradient-to-b from-[#DA8CA0] to-[#b86981] text-[#1C1246] font-extrabold text-xs md:text-sm lg:text-base tracking-wide overflow-hidden shadow-[0_10px_40px_rgba(218,140,160,0.3)] hover:shadow-[0_10px_50px_rgba(218,140,160,0.6)] transition-all duration-500 will-change-transform hover:-translate-y-1",
+        className
+      )}
+    >
+      <div className="absolute top-0 inset-x-0 h-[45%] bg-gradient-to-b from-white/50 to-transparent rounded-t-full pointer-events-none" />
+      <div className="absolute inset-0 rounded-full border border-white/40 mix-blend-overlay pointer-events-none" />
+      <motion.div 
+        className="absolute top-0 left-0 w-[150%] h-[150%] bg-gradient-to-r from-transparent via-white/60 to-transparent skew-x-[-45deg]"
+        initial={{ x: "-150%" }}
+        whileHover={{ x: "150%" }}
+        transition={{ duration: 0.7, ease: "easeInOut" }}
+      />
+      <span className="relative z-10 flex items-center gap-2">{children}</span>
+    </Link>
+  )
+}
+
+// ============================================================================
+// RED FLAG SIMULATOR
+// ============================================================================
+function RedFlagSimulator() {
+  const [step, setStep] = useState(0)
 
   useEffect(() => {
-    if (isInView) {
-      let i = 0
-      const timer = setInterval(() => {
-        if (i < text.length) {
-          setDisplayedText((prev) => prev + text.charAt(i))
-          i++
-        } else {
-          clearInterval(timer)
-        }
-      }, 30) // Speed of typing
-      return () => clearInterval(timer)
-    }
-  }, [isInView, text])
-
-  return <span ref={ref}>{displayedText}</span>
-}
-
-// Text Reveal for Headlines
-function TextReveal({ text, className, delay = 0 }: { text: string; className?: string; delay?: number }) {
-  const words = text.split(" ")
-  const container: Variants = {
-    hidden: { opacity: 0 },
-    visible: (i = 1) => ({ opacity: 1, transition: { staggerChildren: 0.12, delayChildren: 0.04 * i + delay } }),
-  }
-  const child: Variants = {
-    visible: { opacity: 1, y: 0, filter: "blur(0px)", transition: { type: "spring", damping: 12, stiffness: 100 } },
-    hidden: { opacity: 0, y: 20, filter: "blur(10px)", transition: { type: "spring", damping: 12, stiffness: 100 } },
-  }
+    const interval = setInterval(() => {
+      setStep((prev) => (prev + 1) % 4)
+    }, 4500)
+    return () => clearInterval(interval)
+  }, [])
 
   return (
-    <motion.h1 className={className} variants={container} initial="hidden" whileInView="visible" viewport={{ once: true }}>
-      {words.map((word, index) => (
-        <motion.span variants={child} style={{ marginRight: "0.25em", display: "inline-block" }} key={index}>{word}</motion.span>
-      ))}
-    </motion.h1>
+    <div className="w-full bg-[#0a0a0a] rounded-[1.5rem] md:rounded-[2rem] border border-white/10 overflow-hidden relative shadow-[0_20px_50px_rgba(0,0,0,0.5)] min-h-[380px] flex flex-col">
+      <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-rose-500 via-indigo-500 to-[#DA8CA0]" />
+      
+      <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#1C1246]/50">
+        <div className="flex items-center gap-2">
+          <Brain className="h-4 w-4 text-[#DA8CA0]" />
+          <span className="text-white font-bold text-xs md:text-sm tracking-wide">Spotting Danger Game</span>
+        </div>
+        <span className="text-[#CCCCD9] text-[10px] font-mono bg-white/5 px-2 py-0.5 rounded">Practice Module</span>
+      </div>
+
+      <div className="p-4 md:p-6 flex-grow flex flex-col justify-center relative bg-[radial-gradient(ellipse_at_center,rgba(28,18,70,0.5)_0%,transparent_100%)]">
+        <AnimatePresence mode="wait">
+          
+          {step === 0 && (
+            <motion.div key="step0" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.6 }} className="space-y-4">
+              <p className="text-white text-center text-sm md:text-base font-medium">A stranger online sends this message. Is it safe?</p>
+              <div className="bg-white/5 border border-white/10 p-4 rounded-xl max-w-[90%] mx-auto">
+                <p className="text-[#CCCCD9] text-sm md:text-base italic">&quot;You look so pretty. Let&apos;s keep our chats a secret from everyone else, okay? Just between us.&quot;</p>
+              </div>
+            </motion.div>
+          )}
+
+          {step === 1 && (
+            <motion.div key="step1" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.6 }} className="space-y-4">
+               <div className="bg-white/5 border border-white/10 p-4 rounded-xl max-w-[90%] mx-auto">
+                <p className="text-[#CCCCD9] text-sm md:text-base">&quot;You look so pretty. <span className="bg-rose-500/20 text-rose-300 px-1 rounded font-bold">Let&apos;s keep our chats a secret</span> from everyone else, okay? Just between us.&quot;</p>
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                 <AlertTriangle className="h-5 w-5 text-rose-400 animate-pulse" />
+                 <p className="text-rose-400 text-xs md:text-sm font-bold uppercase tracking-wider">Warning: Secrecy Trap Found</p>
+              </div>
+            </motion.div>
+          )}
+
+          {step === 2 && (
+            <motion.div key="step2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.6 }} className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-center max-w-[95%] mx-auto">
+               <HelpCircle className="h-6 w-6 text-indigo-400 mx-auto mb-2" />
+               <h4 className="text-white font-bold text-sm md:text-base mb-1">Why is this a red flag?</h4>
+               <p className="text-[#CCCCD9] text-xs md:text-sm leading-relaxed">Bad people use secrets to isolate girls from adults who can protect them. Safe adults will never ask a child to hide things from their parents.</p>
+            </motion.div>
+          )}
+
+          {step === 3 && (
+            <motion.div key="step3" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.6 }} className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-center max-w-[95%] mx-auto">
+               <CheckCircle2 className="h-6 w-6 text-emerald-400 mx-auto mb-2" />
+               <h4 className="text-white font-bold text-sm md:text-base mb-1">The Right Reaction:</h4>
+               <p className="text-[#CCCCD9] text-xs md:text-sm leading-relaxed mb-3">Stop reply, block the person instantly, and report the message to a trusted adult.</p>
+               <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full font-bold uppercase tracking-wider">Skill Learned</span>
+            </motion.div>
+          )}
+
+        </AnimatePresence>
+      </div>
+    </div>
   )
 }
 
-// --- FEATURE DATA ---
+// ============================================================================
+// MAIN PAGE COMPONENT
+// ============================================================================
 
-const CORE_MODULES = [
-  {
-    icon: Brain,
-    title: "Empathy Engine",
-    desc: "Uses advanced Sentiment Analysis to detect fear, curiosity, or pain, adjusting the AI's tone from 'Clinical' to 'Sisterly' instantly.",
-    color: "text-[#DA8CA0]",
-    bg: "bg-[#DA8CA0]/10"
-  },
-  {
-    icon: Shield,
-    title: "Guardian Protocol",
-    desc: "A dedicated safety layer that scans every interaction for self-harm, abuse, or critical medical emergencies before replying.",
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/10"
-  },
-  {
-    icon: Globe,
-    title: "Polyglot Core",
-    desc: "Native understanding of English, Pidgin, Hausa, Yoruba, and Igbo, ensuring no girl is left behind due to language barriers.",
-    color: "text-blue-400",
-    bg: "bg-blue-500/10"
-  }
-]
-
-// --- PAGE COMPONENT ---
-
-export default function FeaturesPage() {
-  const { scrollYProgress } = useScroll()
-  const y = useTransform(scrollYProgress, [0, 1], [0, -50])
-
+export default function EnterpriseSecurityPage() {
   return (
-    <div className="relative min-h-screen bg-[#1C1246] text-[#FAFAFA] selection:bg-[#DA8CA0]/30 selection:text-[#DA8CA0]">
+    <div className="relative min-h-screen bg-[#1C1246] text-[#FAFAFA] selection:bg-[#DA8CA0]/30 selection:text-[#DA8CA0] overflow-x-hidden">
       <GrainOverlay />
       <Navigation />
 
-      {/* --- HERO SECTION --- */}
-      <section className="relative pt-32 pb-20 overflow-hidden min-h-[60vh] flex flex-col justify-center">
-        {/* Animated Background Blob */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-[#DA8CA0]/10 blur-[120px] rounded-full -z-10 animate-pulse" style={{ animationDuration: '8s' }} />
+      {/* --- SECTION 1: THE AWAKENING (Hero) --- */}
+      <section className="relative pt-32 pb-20 md:pt-40 md:pb-32 min-h-[100svh] flex flex-col justify-center border-b border-white/5">
         
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-           <motion.div
-             initial={{ opacity: 0, scale: 0.5 }}
-             animate={{ opacity: 1, scale: 1 }}
-             transition={{ duration: 0.8, type: "spring" }}
-             className="mb-8 inline-flex items-center justify-center h-24 w-24 rounded-3xl bg-[#231854] border border-[#DA8CA0]/20 shadow-2xl shadow-[#DA8CA0]/10"
-           >
-             <Cpu className="h-12 w-12 text-[#DA8CA0]" />
-           </motion.div>
-
-           <motion.div style={{ y }}>
-             <TextReveal 
-               text="The Brain & The Heart." 
-               className="text-5xl md:text-8xl font-bold tracking-tight text-white mb-6"
-             />
-           </motion.div>
-
-           <motion.p 
-             initial={{ opacity: 0, y: 20 }}
-             animate={{ opacity: 1, y: 0 }}
-             transition={{ delay: 0.5 }}
-             className="max-w-2xl mx-auto text-lg text-[#CCCCD9] leading-relaxed"
-           >
-             Heal Her combines the precision of a medical database with the warmth of a best friend. Explore the technology that makes it possible.
-           </motion.p>
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/nine-hero.png"
+            alt="Heal Her Platform Core"
+            fill
+            className="object-cover object-center opacity-75 md:opacity-85"
+            priority
+          />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_20%,#1C1246_90%)]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#1C1246]/80 via-[#1C1246]/30 to-[#1C1246]" />
         </div>
-      </section>
+        
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10 w-full text-center">
+             <motion.div 
+               initial="hidden"
+               animate="visible"
+               variants={staggerContainer}
+               className="max-w-4xl mx-auto pt-6 md:pt-0"
+             >
+                <motion.div variants={scaleIn} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#1C1246]/90 border border-rose-500/30 text-rose-400 text-[10px] md:text-xs font-bold uppercase tracking-widest mb-6 md:mb-8 backdrop-blur-md shadow-[0_0_20px_rgba(244,63,94,0.15)]">
+                   <AlertTriangle className="h-3.5 w-3.5 md:h-4 md:w-4" /> Crucial Protection Directive
+                </motion.div>
 
-      {/* --- NEW SECTION: SYSTEM HEARTBEAT (The Extra Section) --- */}
-      <section className="py-12 border-y border-white/5 bg-[#231854]/30 overflow-hidden">
-         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-               <div className="flex items-center gap-4">
-                  <div className="relative">
-                     <div className="absolute inset-0 bg-emerald-500 rounded-full animate-ping opacity-75" />
-                     <div className="relative h-3 w-3 bg-emerald-500 rounded-full" />
-                  </div>
-                  <h3 className="text-sm font-mono text-emerald-400">SYSTEM STATUS: OPERATIONAL</h3>
-               </div>
-               
-               {/* Simulated Live Metrics */}
-               <div className="grid grid-cols-3 gap-8 w-full md:w-auto">
-                  <div className="text-center">
-                     <p className="text-[10px] text-[#CCCCD9] uppercase tracking-wider mb-1">Latency</p>
-                     <p className="text-xl font-bold text-white font-mono">42ms</p>
-                  </div>
-                  <div className="text-center">
-                     <p className="text-[10px] text-[#CCCCD9] uppercase tracking-wider mb-1">Active Threads</p>
-                     <p className="text-xl font-bold text-white font-mono">842</p>
-                  </div>
-                  <div className="text-center">
-                     <p className="text-[10px] text-[#CCCCD9] uppercase tracking-wider mb-1">Safety Checks</p>
-                     <p className="text-xl font-bold text-emerald-400 font-mono">100%</p>
-                  </div>
-               </div>
-            </div>
-         </div>
-      </section>
+                <motion.h1 
+                  variants={fadeInUp}
+                  className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white mb-6 leading-[1.1] drop-shadow-2xl"
+                >
+                  Before she asks the internet,<br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-[#DA8CA0]">empower her with the truth.</span>
+                </motion.h1>
 
-      {/* --- MODULE 1: THE CORE TRIAD --- */}
-      <section className="py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-           <motion.div 
-             variants={staggerContainer}
-             initial="hidden"
-             whileInView="visible"
-             viewport={{ once: true }}
-             className="grid md:grid-cols-3 gap-8"
-           >
-              {CORE_MODULES.map((feature, i) => (
-                 <motion.div key={i} variants={fadeInUp} className="h-full">
-                   <SpotlightCard className="p-8 h-full bg-[#1C1246] border-[#DA8CA0]/10">
-                      <div className={`mb-6 w-14 h-14 rounded-2xl flex items-center justify-center border border-white/5 ${feature.bg}`}>
-                         <feature.icon className={`h-7 w-7 ${feature.color}`} />
-                      </div>
-                      <h3 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
-                         {feature.title}
-                      </h3>
-                      <p className="text-[#CCCCD9] leading-relaxed text-sm">
-                         {feature.desc}
-                      </p>
-                   </SpotlightCard>
-                 </motion.div>
-              ))}
-           </motion.div>
+                <motion.p 
+                  variants={fadeInUp}
+                  className="text-sm sm:text-base md:text-xl text-[#CCCCD9] leading-relaxed font-light mb-8 md:mb-10 max-w-2xl mx-auto px-2"
+                >
+                  When girls lack a safe space to ask questions, they turn to unverified forums and online strangers. We provide a completely anonymous, secure ecosystem delivering clinical facts and psychological defense training.
+                </motion.p>
+
+                <motion.div variants={fadeInUp} className="flex justify-center">
+                  <GlossyButton href="/login">
+                    Secure Her Education Now <ArrowRight className="h-4 w-4" />
+                  </GlossyButton>
+                </motion.div>
+             </motion.div>
         </div>
+
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 1, duration: 1.2, ease: premiumSmooth }}
+          className="absolute bottom-6 right-4 md:bottom-8 md:right-8 z-50 flex items-center gap-2 bg-[#1C1246]/95 backdrop-blur-xl border border-[#DA8CA0]/30 px-3 py-1.5 md:px-4 md:py-2 rounded-full shadow-[0_8px_30px_rgba(218,140,160,0.15)]"
+        >
+           <div className="relative flex h-2 w-2">
+             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+             <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+           </div>
+           <span className="text-[#DA8CA0] text-[9px] md:text-[10px] uppercase font-mono tracking-widest mt-0.5">AI Guardian Protection: ACTIVE</span>
+        </motion.div>
       </section>
 
-      {/* --- ANATOMY OF AN ANSWER (Animated Pipeline) --- */}
-      <section className="py-24 bg-[#231854]/30 border-y border-white/5 relative overflow-hidden">
-         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="text-center mb-16">
-               <h2 className="text-3xl font-bold text-white mb-4">The Anatomy of an Answer</h2>
-               <p className="text-[#CCCCD9]">How a raw question becomes a safe, helpful response in 0.5 seconds.</p>
-            </div>
-
-            <div className="relative">
-               {/* Animated Connecting Line (Desktop) */}
-               <svg className="hidden md:block absolute top-12 left-0 right-0 w-full h-20 overflow-visible z-0">
-                  <motion.path 
-                     d="M 100 20 L 300 20 L 600 20 L 900 20"
-                     stroke="#DA8CA0"
-                     strokeWidth="2"
-                     strokeDasharray="10 10"
-                     fill="none"
-                     initial={{ pathLength: 0, opacity: 0 }}
-                     whileInView={{ pathLength: 1, opacity: 0.3 }}
-                     transition={{ duration: 2, ease: "easeInOut" }}
-                  />
-               </svg>
-
-               <div className="grid md:grid-cols-4 gap-8">
-                  {[
-                     { step: "01", title: "Ingest", icon: MessageCircle, text: "User Input: 'My chest hurts and I'm scared.' NLP parses symptoms vs. emotion." },
-                     { step: "02", title: "Safety Scan", icon: Radio, text: "Red Flag Detected? Check against emergency database. Result: Safe to proceed." },
-                     { step: "03", title: "Fact Retrieval", icon: Database, text: "Query Verified Medical DB. Retrieve: 'Panic Attack Symptoms' & 'Grounding Techniques'." },
-                     { step: "04", title: "Empathy Layer", icon: Sparkles, text: "Rewrite facts into 'Sisterly Tone'. Add reassurance. Final Output Generated." }
-                  ].map((item, i) => (
-                     <motion.div 
-                        key={i}
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.3 }}
-                        className="relative pt-8 group"
-                     >
-                        {/* Step Circle */}
-                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-[#1C1246] border-2 border-[#DA8CA0] flex items-center justify-center text-xs font-bold text-[#DA8CA0] z-10 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(218,140,160,0.3)]">
-                           {item.step}
-                        </div>
-                        
-                        <SpotlightCard className="p-6 h-full bg-[#1C1246] border-[#DA8CA0]/10 text-center">
-                           <item.icon className="h-8 w-8 text-[#DA8CA0] mx-auto mb-4 group-hover:animate-bounce" />
-                           <h3 className="text-lg font-bold text-white mb-2">{item.title}</h3>
-                           <p className="text-xs text-[#CCCCD9] leading-relaxed">{item.text}</p>
-                        </SpotlightCard>
-                     </motion.div>
-                  ))}
-               </div>
-            </div>
-         </div>
-      </section>
-
-      {/* --- REAL WORLD SCENARIOS (Typewriter Effect) --- */}
-      <section className="py-24">
+      {/* --- SECTION 2: THE LIABILITY GAP (The Pain) --- */}
+      <section className="py-20 md:py-32 bg-[#1C1246]">
          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-bold text-white text-center mb-16">Moments We Are There</h2>
-            
-            <div className="grid md:grid-cols-2 gap-8">
-               <SpotlightCard className="p-8 bg-[#231854]/20 border-l-4 border-l-purple-500">
-                  <div className="flex justify-between items-start mb-6">
-                     <div className="p-3 bg-purple-500/10 rounded-xl text-purple-400">
-                        <Clock className="h-6 w-6" />
-                     </div>
-                     <span className="text-xs font-mono text-[#CCCCD9] bg-white/5 px-2 py-1 rounded">SCENARIO: 01</span>
-                  </div>
-                  <h3 className="text-xl font-bold text-white mb-3">The "2 AM Scare"</h3>
-                  <p className="text-[#CCCCD9] text-sm mb-6 italic">
-                     "It's the middle of the night. I feel a lump. I can't wake my mom yet."
-                  </p>
-                  <div className="p-4 bg-[#1C1246] rounded-lg border border-purple-500/20">
-                     <p className="text-sm text-purple-200 font-mono">
-                        <strong>Heal Her:</strong> <TypewriterText text= "Don't panic, sis. Lumps can happen for many reasons, often just hormones. Here is how to check properly..." />
-                     </p>
-                  </div>
-               </SpotlightCard>
+            <motion.div 
+               initial={{ opacity: 0, y: 20 }}
+               whileInView={{ opacity: 1, y: 0 }}
+               viewport={{ once: true, margin: "-50px" }}
+               transition={{ duration: 1.2, ease: premiumSmooth }}
+               className="text-center mb-12 md:mb-20"
+            >
+               <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 md:mb-6">The True Danger of Silence</h2>
+               <p className="text-[#CCCCD9] text-base md:text-lg lg:text-xl max-w-3xl mx-auto font-light leading-relaxed px-2">
+                  When reproductive health is treated like a shameful secret, girls don&apos;t stop being curious. Instead, they look for answers in dangerous places.
+               </p>
+            </motion.div>
 
-               <SpotlightCard className="p-8 bg-[#231854]/20 border-l-4 border-l-emerald-500">
-                  <div className="flex justify-between items-start mb-6">
-                     <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-400">
-                        <Stethoscope className="h-6 w-6" />
-                     </div>
-                     <span className="text-xs font-mono text-[#CCCCD9] bg-white/5 px-2 py-1 rounded">SCENARIO: 02</span>
-                  </div>
-                  <h3 className="text-xl font-bold text-white mb-3">The "Village Clinic"</h3>
-                  <p className="text-[#CCCCD9] text-sm mb-6 italic">
-                     "The doctor is 2 hours away. My sister cut her leg and it won't stop bleeding."
-                  </p>
-                  <div className="p-4 bg-[#1C1246] rounded-lg border border-emerald-500/20">
-                     <p className="text-sm text-emerald-200 font-mono">
-                        <strong>Heal Her:</strong> <TypewriterText text= "EMERGENCY MODE: Apply firm pressure with a clean cloth NOW. Elevate the leg above heart level. Do not remove the cloth." />
-                     </p>
-                  </div>
-               </SpotlightCard>
-            </div>
-         </div>
-      </section>
-
-      {/* --- NEW SECTION: CONTINUOUS LEARNING LOOP --- */}
-      <section className="py-24 bg-[#231854]/20 border-t border-white/5">
-         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid md:grid-cols-2 gap-12 items-center">
-               <motion.div 
-                 initial={{ opacity: 0, x: -30 }}
-                 whileInView={{ opacity: 1, x: 0 }}
-                 viewport={{ once: true }}
-               >
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase mb-6">
-                     <Server className="h-4 w-4" /> Machine Learning
-                  </div>
-                  <h2 className="text-3xl font-bold text-white mb-6">It Gets Smarter Every Day.</h2>
-                  <p className="text-[#CCCCD9] text-lg leading-relaxed mb-6">
-                     Heal Her isn't static. It learns from anonymized interactions. If 500 girls ask about a new flu strain, the system flags it for our medical team to review and update the core database immediately.
-                  </p>
-                  <ul className="space-y-4">
-                     <li className="flex items-center gap-3 text-[#CCCCD9]">
-                        <Code className="h-5 w-5 text-blue-400" />
-                        <span>Real-time trend detection</span>
+            <motion.div 
+              variants={staggerContainer}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-50px" }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto"
+            >
+               <motion.div variants={fadeInUp} className="p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] bg-rose-500/5 border border-rose-500/20 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 blur-[50px]" />
+                  <EyeOff className="h-6 w-6 md:h-8 md:w-8 text-rose-400 mb-4 md:mb-6" />
+                  <h3 className="text-lg md:text-xl font-bold text-white mb-3">What Happens Without Facts</h3>
+                  <ul className="space-y-3 md:space-y-4 text-xs md:text-sm lg:text-base text-[#CCCCD9] font-light">
+                     <li className="flex items-start gap-2.5">
+                        <span className="text-rose-400 font-bold mt-0.5">×</span> Girls rely on scary playground rumors and harmful social media myths.
                      </li>
-                     <li className="flex items-center gap-3 text-[#CCCCD9]">
-                        <Code className="h-5 w-5 text-blue-400" />
-                        <span>Regional dialect adaptation</span>
+                     <li className="flex items-start gap-2.5">
+                        <span className="text-rose-400 font-bold mt-0.5">×</span> They follow dangerous medical trends because they are too ashamed to ask adults.
                      </li>
-                     <li className="flex items-center gap-3 text-[#CCCCD9]">
-                        <Code className="h-5 w-5 text-blue-400" />
-                        <span>Medical protocol updates (via WHO API)</span>
+                     <li className="flex items-start gap-2.5">
+                        <span className="text-rose-400 font-bold mt-0.5">×</span> Online predators spot this confusion easily and use secrets to trap them.
                      </li>
                   </ul>
                </motion.div>
-               <motion.div 
-                 initial={{ opacity: 0, scale: 0.9 }}
-                 whileInView={{ opacity: 1, scale: 1 }}
-                 viewport={{ once: true }}
-               >
-                  <SpotlightCard className="p-10 flex items-center justify-center bg-[#1C1246] border border-blue-500/20 aspect-square">
-                     <div className="relative">
-                        <div className="absolute inset-0 bg-blue-500 blur-3xl opacity-20 animate-pulse" />
-                        <Activity className="h-32 w-32 text-blue-500 relative z-10" />
+
+               <motion.div variants={fadeInUp} className="p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] bg-emerald-500/5 border border-emerald-500/20 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-[50px]" />
+                  <ShieldCheck className="h-6 w-6 md:h-8 md:w-8 text-emerald-400 mb-4 md:mb-6" />
+                  <h3 className="text-lg md:text-xl font-bold text-white mb-3">How Heal Her Protects Them</h3>
+                  <ul className="space-y-3 md:space-y-4 text-xs md:text-sm lg:text-base text-[#CCCCD9] font-light">
+                     <li className="flex items-start gap-2.5">
+                        <span className="text-emerald-400 font-bold mt-0.5">✓</span> Honest, doctor-approved facts are delivered clearly without any judgment.
+                     </li>
+                     <li className="flex items-start gap-2.5">
+                        <span className="text-emerald-400 font-bold mt-0.5">✓</span> Total anonymity keeps questions strictly private so girls never feel shame.
+                     </li>
+                     <li className="flex items-start gap-2.5">
+                        <span className="text-emerald-400 font-bold mt-0.5">✓</span> Dynamic games train users to see red flags and block manipulators safely.
+                     </li>
+                  </ul>
+               </motion.div>
+            </motion.div>
+         </div>
+      </section>
+
+      {/* --- SECTION 3: TRI-TIER ARCHITECTURE (Structural Relief) --- */}
+      <section className="py-20 md:py-32 bg-[#231854]/20 border-y border-white/5">
+         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <motion.div 
+               initial={{ opacity: 0, y: 20 }}
+               whileInView={{ opacity: 1, y: 0 }}
+               viewport={{ once: true, margin: "-50px" }}
+               transition={{ duration: 1.2, ease: premiumSmooth }}
+               className="text-center mb-12 md:mb-16"
+            >
+               <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 md:mb-6">Strict, Safe Separation</h2>
+               <p className="text-[#CCCCD9] text-base md:text-lg max-w-3xl mx-auto font-light leading-relaxed px-2">
+                  We treat safety with total seriousness. Content is entirely restricted by age, meaning a child will only see lessons that are strictly safe and right for them.
+               </p>
+            </motion.div>
+
+            <motion.div 
+              variants={staggerContainer}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-50px" }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8"
+            >
+               <motion.div variants={fadeInUp} className="h-full">
+                  <SpotlightCard className="p-6 md:p-8 h-full bg-[#1C1246]">
+                     <div className="flex justify-between items-start mb-6">
+                        <div className="h-12 w-12 md:h-14 md:w-14 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
+                           <Baby className="h-6 w-6 md:h-7 md:w-7 text-indigo-400" />
+                        </div>
+                        <span className="text-[9px] font-bold tracking-widest text-indigo-400 uppercase bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20">0 - 12 Years</span>
                      </div>
+                     <h3 className="text-xl md:text-2xl font-bold text-white mb-3">Kids Category</h3>
+                     <p className="text-[#CCCCD9] text-xs md:text-sm leading-relaxed font-light">
+                        Gentle, guarded lessons. Focuses on basic body facts, healthy hygiene, and learning how to set firm personal space boundaries early.
+                     </p>
                   </SpotlightCard>
                </motion.div>
+
+               <motion.div variants={fadeInUp} className="h-full">
+                  <SpotlightCard className="p-6 md:p-8 h-full bg-[#1C1246] border-[#DA8CA0]/30 shadow-[0_0_30px_rgba(218,140,160,0.1)]">
+                     <div className="flex justify-between items-start mb-6">
+                        <div className="h-12 w-12 md:h-14 md:w-14 rounded-xl bg-[#DA8CA0]/10 flex items-center justify-center border border-[#DA8CA0]/20">
+                           <User className="h-6 w-6 md:h-7 md:w-7 text-[#DA8CA0]" />
+                        </div>
+                        <span className="text-[9px] font-bold tracking-widest text-[#DA8CA0] uppercase bg-[#DA8CA0]/10 px-3 py-1 rounded-full border border-[#DA8CA0]/20">13 - 17 Years</span>
+                     </div>
+                     <h3 className="text-xl md:text-2xl font-bold text-white mb-3">Teens Category</h3>
+                     <p className="text-[#CCCCD9] text-xs md:text-sm leading-relaxed font-light">
+                        Navigating peer changes. Guides them through periods, body shifts, handling internet dating pressure, and learning how to refuse sharing private pictures.
+                     </p>
+                  </SpotlightCard>
+               </motion.div>
+
+               <motion.div variants={fadeInUp} className="h-full">
+                  <SpotlightCard className="p-6 md:p-8 h-full bg-[#1C1246]">
+                     <div className="flex justify-between items-start mb-6">
+                        <div className="h-12 w-12 md:h-14 md:w-14 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                           <Users className="h-6 w-6 md:h-7 md:w-7 text-emerald-400" />
+                        </div>
+                        <span className="text-[9px] font-bold tracking-widest text-emerald-400 uppercase bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">18+ Years</span>
+                     </div>
+                     <h3 className="text-xl md:text-2xl font-bold text-white mb-3">Young Adults</h3>
+                     <p className="text-[#CCCCD9] text-xs md:text-sm leading-relaxed font-light">
+                        Complete reproductive health literacy. Covers adult wellness, legal self-defense rights, relationship equality, and secure clinical guidance.
+                     </p>
+                  </SpotlightCard>
+               </motion.div>
+            </motion.div>
+         </div>
+      </section>
+
+      {/* --- SECTION 4: THE ACTIVE SHIELD (Core Features) --- */}
+      <section className="py-20 md:py-32 bg-[#1C1246]">
+         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <motion.div 
+               initial={{ opacity: 0, x: -30 }}
+               whileInView={{ opacity: 1, x: 0 }}
+               viewport={{ once: true, margin: "-50px" }}
+               transition={{ duration: 1.2, ease: premiumSmooth }}
+               className="mb-12 md:mb-16 text-center md:text-left"
+            >
+               <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 md:mb-6">The Platform Features</h2>
+               <p className="text-[#CCCCD9] text-base md:text-lg max-w-2xl font-light leading-relaxed mx-auto md:mx-0">
+                  Every tool inside Heal Her is built with intention. We provide the protective education that traditional systems fail to deliver.
+               </p>
+            </motion.div>
+
+            <motion.div 
+              variants={staggerContainer}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-50px" }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
+            >
+               <motion.div variants={fadeInUp} className="h-full">
+                  <SpotlightCard className="p-6 md:p-8 h-full bg-[#231854]/40">
+                     <AlertTriangle className="h-6 w-6 md:h-8 md:w-8 text-rose-400 mb-4 md:mb-6" />
+                     <h3 className="text-base md:text-lg font-bold text-white mb-2">Red-Flag Detector</h3>
+                     <p className="text-[#CCCCD9] text-xs md:text-sm font-light leading-relaxed">
+                        An advanced helper module. Users can test messaging scenarios to see if an online stranger is utilizing manipulation or grooming tactics against them.
+                     </p>
+                  </SpotlightCard>
+               </motion.div>
+
+               <motion.div variants={fadeInUp} className="h-full">
+                  <SpotlightCard className="p-6 md:p-8 h-full bg-[#231854]/40">
+                     <CalendarHeart className="h-6 w-6 md:h-8 md:w-8 text-[#DA8CA0] mb-4 md:mb-6" />
+                     <h3 className="text-base md:text-lg font-bold text-white mb-2">Cycle & Phase Logs</h3>
+                     <p className="text-[#CCCCD9] text-xs md:text-sm font-light leading-relaxed">
+                        Enables older users to track periods and follicular phases safely. Connects daily body variations with real medical science.
+                     </p>
+                  </SpotlightCard>
+               </motion.div>
+
+               <motion.div variants={fadeInUp} className="h-full">
+                  <SpotlightCard className="p-6 md:p-8 h-full bg-[#231854]/40">
+                     <Brain className="h-6 w-6 md:h-8 md:w-8 text-indigo-400 mb-4 md:mb-6" />
+                     <h3 className="text-base md:text-lg font-bold text-white mb-2">Interactive Scenarios</h3>
+                     <p className="text-[#CCCCD9] text-xs md:text-sm font-light leading-relaxed">
+                        Safe learning games where girls practice identifying real-world dangers, answering practice prompts to boost their boundary-setting skills.
+                     </p>
+                  </SpotlightCard>
+               </motion.div>
+
+               <motion.div variants={fadeInUp} className="h-full">
+                  <SpotlightCard className="p-6 md:p-8 h-full bg-[#231854]/40">
+                     <Video className="h-6 w-6 md:h-8 md:w-8 text-emerald-400 mb-4 md:mb-6" />
+                     <h3 className="text-base md:text-lg font-bold text-white mb-2">Video & Lesson Vault</h3>
+                     <p className="text-[#CCCCD9] text-xs md:text-sm font-light leading-relaxed">
+                        Clear, short video assets that break down anatomical facts simply. Keeps attention focused on verified, clinically solid facts.
+                     </p>
+                  </SpotlightCard>
+                </motion.div>
+            </motion.div>
+         </div>
+      </section>
+
+      {/* --- SECTION 5: ESCALATION PROTOCOL (Authority & Control) --- */}
+      <section className="py-20 md:py-32 bg-[#231854]/20 border-y border-white/5 overflow-hidden">
+         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+               
+               <motion.div 
+                 initial={{ opacity: 0, x: -30 }}
+                 whileInView={{ opacity: 1, x: 0 }}
+                 viewport={{ once: true, margin: "-50px" }}
+                 transition={{ duration: 1.2, ease: premiumSmooth }}
+                 className="order-2 lg:order-1"
+               >
+                  <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 md:mb-6">When danger is real, help is one tap away.</h2>
+                  <p className="text-[#CCCCD9] text-sm md:text-lg font-light leading-relaxed mb-6 md:mb-8">
+                     Education builds protection, but crisis requires active assistance. Heal Her provides a direct bridge to real-world safety whenever defensive limits are crossed.
+                  </p>
+                  <ul className="space-y-4 md:space-y-6">
+                     <li className="flex items-start gap-3 md:gap-4">
+                        <div className="p-2.5 md:p-3 rounded-xl bg-[#1C1246] border border-white/10 shrink-0">
+                           <PhoneCall className="h-4 w-4 md:h-5 md:w-5 text-emerald-400" />
+                        </div>
+                        <div>
+                           <h4 className="text-white font-bold mb-1 text-sm md:text-base">Authority Connections</h4>
+                           <p className="text-xs md:text-sm text-[#CCCCD9] font-light">Enables immediate routing to verified support help, school guidance advisors, or local protection groups when a real threat is active.</p>
+                        </div>
+                     </li>
+                     <li className="flex items-start gap-3 md:gap-4">
+                        <div className="p-2.5 md:p-3 rounded-xl bg-[#1C1246] border border-white/10 shrink-0">
+                           <ShieldCheck className="h-4 w-4 md:h-5 md:w-5 text-indigo-400" />
+                        </div>
+                        <div>
+                           <h4 className="text-white font-bold mb-1 text-sm md:text-base">Trusted Guardians Ping</h4>
+                           <p className="text-xs md:text-sm text-[#CCCCD9] font-light">Users can securely add trusted contacts. In a scary situation, emergency alerts are dispatched instantly to their pre-chosen support circles.</p>
+                        </div>
+                     </li>
+                  </ul>
+               </motion.div>
+
+               <motion.div 
+                 initial={{ opacity: 0, scale: 0.95 }}
+                 whileInView={{ opacity: 1, scale: 1 }}
+                 viewport={{ once: true, margin: "-50px" }}
+                 transition={{ duration: 1.4, ease: premiumSmooth }}
+                 className="order-1 lg:order-2 w-full max-w-md mx-auto lg:max-w-none"
+               >
+                  <RedFlagSimulator />
+               </motion.div>
+
             </div>
          </div>
       </section>
 
-      {/* --- MODULE 3: PRIVACY & TECH SPECS --- */}
-      <section className="py-20 bg-[#1C1246] border-t border-white/5">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-           <div className="flex items-center gap-4 mb-12">
-              <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-[#DA8CA0]/50" />
-              <div className="flex items-center gap-2 px-4 py-1 rounded-full bg-[#DA8CA0]/10 border border-[#DA8CA0]/30 text-[#DA8CA0] text-sm font-mono tracking-widest uppercase">
-                 <Lock className="h-4 w-4" /> The Vault
-              </div>
-              <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-[#DA8CA0]/50" />
-           </div>
-
-           <div className="grid md:grid-cols-3 gap-8">
-              {[
-                 { 
-                    title: "Ephemeral Storage", 
-                    desc: "Chats are 'Ram-Only' for the duration of the session. Once you clear history, it's digitally shredded.",
-                    icon: Zap,
-                    color: "text-amber-400"
-                 },
-                 { 
-                    title: "Zero-Knowledge ID", 
-                    desc: "We don't link your chat logs to your email. Your health profile is stored under a random hash.",
-                    icon: Fingerprint,
-                    color: "text-cyan-400"
-                 },
-                 { 
-                    title: "Local Caching", 
-                    desc: "Critical first-aid protocols are cached on your device, so the app works even if the internet fails.",
-                    icon: Activity,
-                    color: "text-rose-400"
-                 }
-              ].map((feature, i) => (
-                 <SpotlightCard key={i} className="p-8 h-full bg-[#231854]/40">
-                    <div className="flex items-center gap-4 mb-4">
-                       <feature.icon className={`h-6 w-6 ${feature.color}`} />
-                       <h3 className="text-lg font-bold text-white">{feature.title}</h3>
-                    </div>
-                    <p className="text-[#CCCCD9] text-sm leading-relaxed">{feature.desc}</p>
-                 </SpotlightCard>
-              ))}
-           </div>
-        </div>
-      </section>
-
-      {/* --- CTA --- */}
-      <section className="py-24 relative overflow-hidden">
-         <div className="absolute inset-0 bg-[#DA8CA0]/5" />
-         <div className="mx-auto max-w-3xl px-4 text-center relative z-10">
-            <h2 className="text-3xl font-bold text-white mb-6">Complex Code. Simple Mission.</h2>
-            <p className="text-[#CCCCD9] mb-8">
-               We built the most advanced health AI in Africa so that you can simply feel better.
+      {/* --- SECTION 6: THE ULTIMATUM (Final CTA) --- */}
+      <section className="py-24 md:py-40 relative overflow-hidden bg-[#1C1246]">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] md:w-[800px] h-[300px] md:h-[500px] bg-[#DA8CA0]/10 blur-[100px] md:blur-[150px] rounded-full pointer-events-none" />
+        
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 1.2, ease: premiumSmooth }}
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-white/5 border border-white/10 text-white text-[10px] md:text-xs font-bold uppercase tracking-widest mb-6 md:mb-8">
+               <Lock className="h-3 w-3 md:h-4 md:w-4 text-[#DA8CA0]" /> Break the Cycle
+            </div>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-extrabold text-white mb-6 md:mb-8 tracking-tight leading-[1.1]">
+              Every single day we wait,<br className="hidden md:block" /> more girls ask the wrong sources.
+            </h2>
+            <p className="text-sm md:text-xl text-[#CCCCD9] font-light leading-relaxed mb-10 md:mb-12 max-w-2xl mx-auto px-4">
+              Do not leave them exposed to scary myths and silent grooming tactics. Introduce them to a non-judgmental big sister asset built for their absolute safety.
             </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-               {[
-                  { label: "Uptime", val: "99.9%" },
-                  { label: "Encryption", val: "AES-256" },
-                  { label: "Response", val: "<0.5s" },
-                  { label: "Cost", val: "$0" },
-               ].map((stat, i) => (
-                  <div key={i} className="p-4 rounded-2xl bg-[#231854] border border-[#DA8CA0]/20 hover:scale-105 transition-transform cursor-default">
-                     <div className="text-xl font-bold text-white">{stat.val}</div>
-                     <div className="text-xs text-[#CCCCD9] uppercase tracking-wide">{stat.label}</div>
-                  </div>
-               ))}
-            </div>
-         </div>
+            <GlossyButton href="/login" className="scale-105 md:scale-110">
+              Deploy Shield Protection Now <ArrowRight className="h-4 w-4 md:h-5 md:w-5" />
+            </GlossyButton>
+          </motion.div>
+        </div>
       </section>
 
       <Footer />

@@ -1,51 +1,61 @@
 "use client"
 
 import React from "react"
+import Image from "next/image"
+import Link from "next/link"
 import { motion, useMotionTemplate, useMotionValue, Variants } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { cn } from "@/lib/utils"
 import { 
   CheckCircle, 
-  Target, 
   Clock, 
-  Zap, 
-  Smartphone, 
   Activity, 
-  Eye, 
-  Radio, 
   Users, 
   Heart,
   Milestone,
-  Globe,
   Sparkles,
   MessageCircle,
-  MapPin,
-  Calendar,
   Shield,
-  Link
+  Lightbulb,
+  Stethoscope,
+  Database,
+  ArrowRight
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
 
-// --- ANIMATION VARIANTS ---
+// ============================================================================
+// ULTRA-PREMIUM PHYSICS & UTILITIES
+// ============================================================================
+
+const premiumSmooth: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
 const fadeInUp: Variants = {
-  hidden: { opacity: 0, y: 40 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
+  hidden: { opacity: 0, y: 40, filter: "blur(8px)" },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    filter: "blur(0px)",
+    transition: { duration: 1.2, ease: premiumSmooth } 
+  }
 }
 
 const staggerContainer: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.15,
-      delayChildren: 0.2
-    }
+    transition: { staggerChildren: 0.12, delayChildren: 0.1 }
   }
 }
 
-// --- PRO COMPONENTS ---
+const scaleIn: Variants = {
+  hidden: { opacity: 0, scale: 0.95, filter: "blur(8px)" },
+  visible: { 
+    opacity: 1, 
+    scale: 1, 
+    filter: "blur(0px)",
+    transition: { duration: 1.2, ease: premiumSmooth } 
+  }
+}
 
 const GrainOverlay = () => (
   <div 
@@ -67,321 +77,404 @@ function SpotlightCard({ children, className = "" }: { children: React.ReactNode
   }
 
   return (
-    <motion.div
+    <div
       className={cn(
-        "group relative border border-white/10 bg-[#231854]/50 overflow-hidden rounded-3xl",
+        "group relative border border-white/10 bg-[#231854]/40 overflow-hidden rounded-[1.5rem] md:rounded-[2rem] transition-all duration-700 hover:border-[#DA8CA0]/40 hover:bg-[#231854]/60",
         className
       )}
       onMouseMove={handleMouseMove}
-      whileHover={{ y: -5, transition: { duration: 0.2 } }}
     >
       <motion.div
-        className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 transition duration-300 group-hover:opacity-100"
+        className="pointer-events-none absolute -inset-px rounded-[1.5rem] md:rounded-[2rem] opacity-0 transition duration-700 group-hover:opacity-100"
         style={{
           background: useMotionTemplate`
             radial-gradient(
               650px circle at ${mouseX}px ${mouseY}px,
-              rgba(218, 140, 160, 0.15),
+              rgba(218, 140, 160, 0.12),
               transparent 80%
             )
           `,
         }}
       />
-      <div className="relative h-full">{children}</div>
-    </motion.div>
+      <div className="relative h-full z-10">{children}</div>
+    </div>
   )
 }
 
-function TextReveal({ text, className, delay = 0 }: { text: string; className?: string; delay?: number }) {
-  const words = text.split(" ")
-  const container: Variants = {
-    hidden: { opacity: 0 },
-    visible: (i = 1) => ({ opacity: 1, transition: { staggerChildren: 0.12, delayChildren: 0.04 * i + delay } }),
-  }
-  const child: Variants = {
-    visible: { opacity: 1, y: 0, filter: "blur(0px)", transition: { type: "spring", damping: 12, stiffness: 100 } },
-    hidden: { opacity: 0, y: 20, filter: "blur(10px)", transition: { type: "spring", damping: 12, stiffness: 100 } },
-  }
-
+function GlossyButton({ href, children, className = "" }: { href: string, children: React.ReactNode, className?: string }) {
   return (
-    <motion.h1 className={className} variants={container} initial="hidden" whileInView="visible" viewport={{ once: true }}>
-      {words.map((word, index) => (
-        <motion.span variants={child} style={{ marginRight: "0.25em", display: "inline-block" }} key={index}>{word}</motion.span>
-      ))}
-    </motion.h1>
+    <Link 
+      href={href}
+      className={cn(
+        "group relative inline-flex items-center justify-center gap-2 px-6 py-3.5 md:px-8 md:py-4 rounded-full bg-gradient-to-b from-[#DA8CA0] to-[#b86981] text-[#1C1246] font-extrabold text-xs md:text-sm lg:text-base tracking-wide overflow-hidden shadow-[0_10px_40px_rgba(218,140,160,0.3)] hover:shadow-[0_10px_50px_rgba(218,140,160,0.6)] transition-all duration-500 will-change-transform hover:-translate-y-1",
+        className
+      )}
+    >
+      <div className="absolute top-0 inset-x-0 h-[45%] bg-gradient-to-b from-white/50 to-transparent rounded-t-full pointer-events-none" />
+      <div className="absolute inset-0 rounded-full border border-white/40 mix-blend-overlay pointer-events-none" />
+      <motion.div 
+        className="absolute top-0 left-0 w-[150%] h-[150%] bg-gradient-to-r from-transparent via-white/60 to-transparent skew-x-[-45deg]"
+        initial={{ x: "-150%" }}
+        whileHover={{ x: "150%" }}
+        transition={{ duration: 0.7, ease: "easeInOut" }}
+      />
+      <span className="relative z-10 flex items-center gap-2">{children}</span>
+    </Link>
   )
 }
 
-// --- PAGE COMPONENT ---
+// ============================================================================
+// MAIN PAGE COMPONENT
+// ============================================================================
 
 export default function RoadmapPage() {
   return (
-    <div className="relative min-h-screen bg-[#1C1246] text-[#FAFAFA] selection:bg-[#DA8CA0]/30 selection:text-[#DA8CA0]">
+    <div className="relative min-h-screen bg-[#1C1246] text-[#FAFAFA] selection:bg-[#DA8CA0]/30 selection:text-[#DA8CA0] overflow-x-hidden">
       <GrainOverlay />
       <Navigation />
 
-      {/* --- HERO SECTION --- */}
-      <section className="relative pt-32 pb-20 overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-[#DA8CA0]/10 blur-[120px] rounded-full -z-10" />
+      {/* --- SECTION 1: THE ILLUMINATED HORIZON (Hero) --- */}
+      <section className="relative pt-32 pb-20 md:pt-40 md:pb-32 min-h-[100svh] flex flex-col justify-center border-b border-white/5 overflow-hidden">
         
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-           <motion.div
-             initial={{ scale: 0.9, opacity: 0 }}
-             animate={{ scale: 1, opacity: 1 }}
-             transition={{ duration: 0.8 }}
-             className="mb-8 inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-[#231854] border border-[#DA8CA0]/20 shadow-2xl shadow-[#DA8CA0]/10"
-           >
-             <Milestone className="h-8 w-8 text-[#DA8CA0]" />
-           </motion.div>
-
-           <TextReveal 
-             text="The Path Forward." 
-             className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-6"
-           />
-
-           <p className="max-w-2xl mx-auto text-lg text-[#CCCCD9] leading-relaxed">
-             Our vision for the future of Heal Her. From a campus pilot to a national movement for girls' health and safety.
-           </p>
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/eleven-hero.png"
+            alt="The Clear Path Forward"
+            fill
+            className="object-cover object-center opacity-70 md:opacity-85"
+            priority
+          />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,#1C1246_90%)]" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#1C1246]/95 via-[#1C1246]/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#1C1246] via-transparent to-[#1C1246]/40" />
         </div>
+        
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10 w-full text-left pt-12 md:pt-0">
+           <motion.div 
+             initial="hidden"
+             animate="visible"
+             variants={staggerContainer}
+             className="max-w-2xl"
+           >
+              <motion.div variants={scaleIn} className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-white/5 border border-white/10 text-white text-[10px] md:text-xs font-bold uppercase tracking-widest mb-6 md:mb-8 backdrop-blur-md shadow-[0_0_20px_rgba(218,140,160,0.15)]">
+                 <Milestone className="h-3.5 w-3.5 text-[#DA8CA0]" /> Strategic Trajectory
+              </motion.div>
+
+              <motion.h1 
+                variants={fadeInUp}
+                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white mb-6 leading-[1.1] drop-shadow-2xl"
+              >
+                The Path Forward.<br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#DA8CA0] to-[#E8B4C1]">Built by the community.</span>
+              </motion.h1>
+
+              <motion.p 
+                variants={fadeInUp}
+                className="text-sm sm:text-base md:text-xl text-[#CCCCD9] leading-relaxed font-light mb-8 md:mb-10 max-w-lg drop-shadow-lg"
+              >
+                We do not guess what young women need. We listen. Explore how our active, organic grassroots movement is shaping the future of global digital health.
+              </motion.p>
+           </motion.div>
+        </div>
+
+        {/* THIN WATERMARK COVER STICKER */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 1, duration: 1.2, ease: premiumSmooth }}
+          className="absolute bottom-6 right-4 md:bottom-8 md:right-8 z-50 flex items-center gap-2 bg-[#1C1246]/95 backdrop-blur-xl border border-[#DA8CA0]/30 px-3 py-1.5 md:px-4 md:py-2 rounded-full shadow-[0_8px_30px_rgba(218,140,160,0.15)]"
+        >
+           <div className="relative flex h-2 w-2 md:h-2.5 md:w-2.5">
+             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#DA8CA0] opacity-75"></span>
+             <span className="relative inline-flex rounded-full h-2 w-2 md:h-2.5 md:w-2.5 bg-[#DA8CA0]"></span>
+           </div>
+           <span className="text-[#DA8CA0] text-[9px] md:text-[10px] uppercase font-mono tracking-widest mt-0.5">Timeline: SYNCHRONIZED</span>
+        </motion.div>
       </section>
 
-      {/* --- TIMELINE CONTAINER --- */}
-      <div className="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 pb-32">
-         {/* Vertical Connector Line */}
-         <div className="absolute left-8 md:left-1/2 top-0 bottom-0 w-[2px] bg-gradient-to-b from-[#DA8CA0] via-purple-500 to-[#1C1246] md:-translate-x-1/2 opacity-20" />
-
-         {/* --- PHASE 1: FOUNDATION (Completed) --- */}
-         <div className="relative mb-24">
-            <div className="flex flex-col md:flex-row items-center justify-between mb-8">
-               <div className="md:w-1/2 md:pr-12 md:text-right pl-16 md:pl-0 relative">
-                  <div className="absolute left-[-2px] md:left-auto md:right-[-6px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)] z-10 ring-4 ring-[#1C1246]" />
-                  <h2 className="text-3xl font-bold text-white mb-2">Phase 1: Foundation</h2>
-                  <div className="inline-flex items-center gap-2 px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 text-xs font-mono border border-emerald-500/20">
-                     <CheckCircle className="h-3 w-3" /> STATUS: LIVE (Campus Beta)
-                  </div>
-               </div>
-               <div className="md:w-1/2 pl-16 md:pl-12 hidden md:block" />
-            </div>
-
-            <motion.div 
-              variants={staggerContainer}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              className="grid md:grid-cols-2 gap-8 pl-16 md:pl-0"
-            >
-               <motion.div variants={fadeInUp}>
-                 <SpotlightCard className="p-6 bg-[#231854]/80 md:mr-6 border-[#DA8CA0]/10">
-                    <div className="flex items-center gap-3 mb-4">
-                       <Heart className="h-6 w-6 text-[#DA8CA0]" />
-                       <h3 className="font-bold text-white">Core Empathy Engine</h3>
-                    </div>
-                    <ul className="space-y-2 text-sm text-[#CCCCD9]">
-                       <li className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-emerald-500" /> Sentiment analysis for comforting responses</li>
-                       <li className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-emerald-500" /> "Big Sister" persona calibration</li>
-                       <li className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-emerald-500" /> Basic cycle tracking advice</li>
-                    </ul>
-                 </SpotlightCard>
-               </motion.div>
-
-               <motion.div variants={fadeInUp}>
-                 <SpotlightCard className="p-6 bg-[#231854]/80 md:ml-6 border-[#DA8CA0]/10">
-                    <div className="flex items-center gap-3 mb-4">
-                       <Shield className="h-6 w-6 text-[#DA8CA0]" />
-                       <h3 className="font-bold text-white">Privacy Architecture</h3>
-                    </div>
-                    <ul className="space-y-2 text-sm text-[#CCCCD9]">
-                       <li className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-emerald-500" /> Zero-knowledge user IDs</li>
-                       <li className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-emerald-500" /> Ephemeral chat storage</li>
-                       <li className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-emerald-500" /> "Red Flag" safety overrides</li>
-                    </ul>
-                 </SpotlightCard>
-               </motion.div>
-            </motion.div>
-         </div>
-
-         {/* --- PHASE 2: GROWTH (Active) --- */}
-         <div className="relative mb-24">
-            <div className="flex flex-col md:flex-row-reverse items-center justify-between mb-8">
-               <div className="md:w-1/2 md:pl-12 pl-16 relative">
-                  <div className="absolute left-[-2px] md:left-[-6px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#DA8CA0] shadow-[0_0_15px_rgba(218,140,160,0.5)] z-10 ring-4 ring-[#1C1246]" />
-                  <h2 className="text-3xl font-bold text-white mb-2">Phase 2: Growth</h2>
-                  <div className="inline-flex items-center gap-2 px-2 py-1 rounded bg-[#DA8CA0]/10 text-[#DA8CA0] text-xs font-mono border border-[#DA8CA0]/20">
-                     <Activity className="h-3 w-3 animate-pulse" /> STATUS: IN PROGRESS (Q2 2026)
-                  </div>
-               </div>
-               <div className="md:w-1/2 md:pr-12 md:text-right hidden md:block" />
-            </div>
-
-            <motion.div 
-              variants={staggerContainer}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              className="grid md:grid-cols-2 gap-8 pl-16 md:pl-0"
-            >
-               {/* Left Column */}
-               <div className="space-y-6 md:mr-6 md:text-right">
-                  <motion.div variants={fadeInUp}>
-                    <SpotlightCard className="p-6 bg-[#231854]/60 border-l-4 md:border-l-0 md:border-r-4 border-[#DA8CA0]">
-                       <h3 className="font-bold text-white mb-2">Mobile App Launch</h3>
-                       <p className="text-sm text-[#CCCCD9]">Dedicated iOS and Android apps with offline mode for girls in rural areas with poor internet.</p>
-                    </SpotlightCard>
-                  </motion.div>
-                  <motion.div variants={fadeInUp}>
-                    <SpotlightCard className="p-6 bg-[#231854]/60 border-l-4 md:border-l-0 md:border-r-4 border-[#DA8CA0]">
-                       <h3 className="font-bold text-white mb-2">Local Languages</h3>
-                       <p className="text-sm text-[#CCCCD9]">Adding Pidgin, Hausa, Yoruba, and Igbo to ensure language is never a barrier to health.</p>
-                    </SpotlightCard>
-                  </motion.div>
-               </div>
-
-               {/* Right Column */}
-               <div className="space-y-6 md:ml-6">
-                  <motion.div variants={fadeInUp}>
-                    <SpotlightCard className="p-6 bg-[#231854]/60 border-l-4 border-[#DA8CA0]">
-                       <h3 className="font-bold text-white mb-2">Community Hub</h3>
-                       <p className="text-sm text-[#CCCCD9]">Verified, anonymous forums where girls can share stories and support each other.</p>
-                    </SpotlightCard>
-                  </motion.div>
-                  <motion.div variants={fadeInUp}>
-                    <SpotlightCard className="p-6 bg-[#231854]/60 border-l-4 border-[#DA8CA0]">
-                       <h3 className="font-bold text-white mb-2">Voice Chat</h3>
-                       <p className="text-sm text-[#CCCCD9]">Speak naturally to Heal Her. Perfect for users who struggle with typing or reading.</p>
-                    </SpotlightCard>
-                  </motion.div>
-               </div>
-            </motion.div>
-         </div>
-
-         {/* --- PHASE 3: EXPANSION (Future) --- */}
-         <div className="relative">
-            <div className="flex flex-col md:flex-row items-center justify-between mb-8">
-               <div className="md:w-1/2 md:pr-12 md:text-right pl-16 md:pl-0 relative">
-                  <div className="absolute left-[-2px] md:left-auto md:right-[-6px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.5)] z-10 ring-4 ring-[#1C1246]" />
-                  <h2 className="text-3xl font-bold text-white mb-2">Phase 3: Impact</h2>
-                  <div className="inline-flex items-center gap-2 px-2 py-1 rounded bg-purple-500/10 text-purple-400 text-xs font-mono border border-purple-500/20">
-                     <Clock className="h-3 w-3" /> STATUS: PLANNED (2027+)
-                  </div>
-               </div>
-               <div className="md:w-1/2 pl-16 md:pl-12 hidden md:block" />
-            </div>
-
-            <motion.div 
-              variants={staggerContainer}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              className="grid md:grid-cols-2 gap-8 pl-16 md:pl-0"
-            >
-               <motion.div variants={fadeInUp}>
-                 <SpotlightCard className="p-6 bg-[#231854]/40 md:mr-6 border border-purple-500/20">
-                    <div className="flex items-center gap-3 mb-3">
-                       <MapPin className="h-5 w-5 text-purple-500" />
-                       <h3 className="font-bold text-white">Tele-Health Connect</h3>
-                    </div>
-                    <p className="text-sm text-[#CCCCD9] mb-4">Direct booking integration with partner clinics and verified doctors for cases AI cannot handle.</p>
-                 </SpotlightCard>
-               </motion.div>
-
-               <motion.div variants={fadeInUp}>
-                 <SpotlightCard className="p-6 bg-[#231854]/40 md:ml-6 border border-purple-500/20">
-                    <div className="flex items-center gap-3 mb-3">
-                       <Users className="h-5 w-5 text-purple-500" />
-                       <h3 className="font-bold text-white">School Partnerships</h3>
-                    </div>
-                    <p className="text-sm text-[#CCCCD9] mb-4">Official rollout into secondary school curriculums across Nigeria as a digital health supplement.</p>
-                 </SpotlightCard>
-               </motion.div>
-            </motion.div>
-         </div>
-
-      </div>
-
-      {/* --- WHY THIS TIMELINE? (New Section) --- */}
-      <section className="py-24 bg-[#231854]/20 border-t border-white/5">
-         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-bold text-white text-center mb-16">The Strategy</h2>
+      {/* --- SECTION 2: THE ENHANCED LADDER (Timeline) --- */}
+      <section className="py-20 md:py-32 bg-[#1C1246]">
+         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 relative">
             
-            <div className="grid md:grid-cols-3 gap-8">
-               <SpotlightCard className="p-8 h-full bg-[#1C1246] border-[#DA8CA0]/10">
-                  <div className="w-12 h-12 rounded-full bg-[#DA8CA0]/10 flex items-center justify-center mb-6">
-                     <Heart className="h-6 w-6 text-[#DA8CA0]" />
-                  </div>
-                  <h3 className="text-xl font-bold text-white mb-4">1. Build Trust First</h3>
-                  <p className="text-[#CCCCD9] text-sm leading-relaxed">
-                     We started on a university campus (Uni Jos) because trust is local. By proving our value to 5,000 students, we create ambassadors who will carry the message home.
-                  </p>
-               </SpotlightCard>
+            {/* The Glowing Spine */}
+            <div className="absolute left-[39px] md:left-[49px] top-8 bottom-8 w-[2px] bg-gradient-to-b from-[#DA8CA0] via-indigo-500 to-[#1C1246] opacity-30 shadow-[0_0_15px_rgba(218,140,160,0.5)]" />
 
-               <SpotlightCard className="p-8 h-full bg-[#1C1246] border-[#DA8CA0]/10">
-                  <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center mb-6">
-                     <Globe className="h-6 w-6 text-emerald-500" />
+            <div className="space-y-20 md:space-y-32">
+               
+               {/* PHASE 1 */}
+               <motion.div 
+                 initial="hidden" 
+                 whileInView="visible" 
+                 viewport={{ once: true, margin: "-100px" }} 
+                 variants={staggerContainer}
+                 className="relative pl-20 md:pl-28"
+               >
+                  {/* Spine Node */}
+                  <div className="absolute left-[24px] md:left-[34px] top-0 w-8 h-8 rounded-full bg-[#1C1246] border-2 border-emerald-500 flex items-center justify-center z-10 shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+                     <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-4">2. Solve Access</h3>
-                  <p className="text-[#CCCCD9] text-sm leading-relaxed">
-                     Once the AI is perfect, we focus on distribution. Offline mode and local languages break the barriers that keep rural girls from getting help.
-                  </p>
-               </SpotlightCard>
 
-               <SpotlightCard className="p-8 h-full bg-[#1C1246] border-[#DA8CA0]/10">
-                  <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center mb-6">
-                     <Target className="h-6 w-6 text-purple-500" />
+                  <motion.div variants={fadeInUp} className="mb-6">
+                     <h2 className="text-3xl md:text-5xl font-bold text-white mb-3">Grassroots Foundation</h2>
+                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-emerald-500/10 text-emerald-400 text-[10px] md:text-xs font-bold tracking-widest uppercase border border-emerald-500/20">
+                        <CheckCircle className="h-3 w-3" /> Status: Active Alignment
+                     </div>
+                  </motion.div>
+
+                  <motion.div variants={fadeInUp}>
+                     <SpotlightCard className="p-6 md:p-8 bg-[#231854]/40 border-emerald-500/10">
+                        <div className="flex items-center gap-4 mb-4">
+                           <div className="p-3 bg-emerald-500/10 rounded-xl">
+                              <Users className="h-6 w-6 text-emerald-400" />
+                           </div>
+                           <h3 className="text-xl md:text-2xl font-bold text-white">The Core 200+</h3>
+                        </div>
+                        <p className="text-[#CCCCD9] text-sm md:text-base leading-relaxed font-light mb-6">
+                           We bypassed hypothetical data and built our foundation on truth. Over 200 individuals have organically come together in our community. They are actively testing the platform, breaking long-held taboos, and sharing exactly what information they need regarding their bodies. Their immediate feedback dictates our entire architecture.
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                           <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] md:text-xs text-[#CCCCD9]">Real-world validation</span>
+                           <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] md:text-xs text-[#CCCCD9]">Direct feedback loops</span>
+                        </div>
+                     </SpotlightCard>
+                  </motion.div>
+               </motion.div>
+
+               {/* PHASE 2 */}
+               <motion.div 
+                 initial="hidden" 
+                 whileInView="visible" 
+                 viewport={{ once: true, margin: "-100px" }} 
+                 variants={staggerContainer}
+                 className="relative pl-20 md:pl-28"
+               >
+                  {/* Spine Node */}
+                  <div className="absolute left-[24px] md:left-[34px] top-0 w-8 h-8 rounded-full bg-[#1C1246] border-2 border-[#DA8CA0] flex items-center justify-center z-10 shadow-[0_0_20px_rgba(218,140,160,0.3)]">
+                     <div className="w-2.5 h-2.5 rounded-full bg-[#DA8CA0] animate-pulse" />
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-4">3. Systemic Change</h3>
-                  <p className="text-[#CCCCD9] text-sm leading-relaxed">
-                     Ultimately, we integrate with the healthcare system. We don't replace doctors; we become the smartest, fastest triage nurse in the country.
-                  </p>
-               </SpotlightCard>
+
+                  <motion.div variants={fadeInUp} className="mb-6">
+                     <h2 className="text-3xl md:text-5xl font-bold text-white mb-3">Feature Expansion</h2>
+                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-[#DA8CA0]/10 text-[#DA8CA0] text-[10px] md:text-xs font-bold tracking-widest uppercase border border-[#DA8CA0]/20">
+                        <Activity className="h-3 w-3" /> Status: In Development
+                     </div>
+                  </motion.div>
+
+                  <motion.div variants={fadeInUp}>
+                     <SpotlightCard className="p-6 md:p-8 bg-[#231854]/40 border-[#DA8CA0]/20 shadow-[0_10px_40px_rgba(218,140,160,0.05)]">
+                        <div className="flex items-center gap-4 mb-4">
+                           <div className="p-3 bg-[#DA8CA0]/10 rounded-xl">
+                              <Database className="h-6 w-6 text-[#DA8CA0]" />
+                           </div>
+                           <h3 className="text-xl md:text-2xl font-bold text-white">Engineering Scale</h3>
+                        </div>
+                        <p className="text-[#CCCCD9] text-sm md:text-base leading-relaxed font-light">
+                           Translating grassroots insights into robust technology. We are currently finalizing our lightweight offline-caching protocols to ensure girls in areas with slow internet can still access critical cycle logs and emergency red-flag simulations instantly.
+                        </p>
+                     </SpotlightCard>
+                  </motion.div>
+               </motion.div>
+
+               {/* PHASE 3 */}
+               <motion.div 
+                 initial="hidden" 
+                 whileInView="visible" 
+                 viewport={{ once: true, margin: "-100px" }} 
+                 variants={staggerContainer}
+                 className="relative pl-20 md:pl-28"
+               >
+                  {/* Spine Node */}
+                  <div className="absolute left-[24px] md:left-[34px] top-0 w-8 h-8 rounded-full bg-[#1C1246] border-2 border-indigo-500 flex items-center justify-center z-10 shadow-[0_0_20px_rgba(99,102,241,0.3)]">
+                     <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
+                  </div>
+
+                  <motion.div variants={fadeInUp} className="mb-6">
+                     <h2 className="text-3xl md:text-5xl font-bold text-white mb-3">Systemic Impact</h2>
+                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-indigo-500/10 text-indigo-400 text-[10px] md:text-xs font-bold tracking-widest uppercase border border-indigo-500/20">
+                        <Clock className="h-3 w-3" /> Status: Scheduled Roadmap
+                     </div>
+                  </motion.div>
+
+                  <motion.div variants={fadeInUp}>
+                     <SpotlightCard className="p-6 md:p-8 bg-[#231854]/40 border-indigo-500/10">
+                        <div className="flex items-center gap-4 mb-4">
+                           <div className="p-3 bg-indigo-500/10 rounded-xl">
+                              <Shield className="h-6 w-6 text-indigo-400" />
+                           </div>
+                           <h3 className="text-xl md:text-2xl font-bold text-white">Institutional Integration</h3>
+                        </div>
+                        <p className="text-[#CCCCD9] text-sm md:text-base leading-relaxed font-light">
+                           The ultimate goal is to fuse the Heal Her platform with official educational and healthcare infrastructure. Deploying customized, age-gated versions directly into school curriculums and establishing secure bridges to certified clinical professionals.
+                        </p>
+                     </SpotlightCard>
+                  </motion.div>
+               </motion.div>
+
             </div>
          </div>
       </section>
 
-      {/* --- COMMUNITY MILESTONES (New Section) --- */}
-      <section className="py-24 border-t border-white/5 bg-[#231854]/30">
+      {/* --- SECTION 3: FEATURE RELEASE PLAN --- */}
+      <section className="py-20 md:py-32 bg-[#231854]/20 border-y border-white/5">
          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between mb-12">
-               <h2 className="text-3xl font-bold text-white">Community Goals</h2>
-               <div className="flex items-center gap-2 text-xs text-[#DA8CA0] font-mono">
-                  <Calendar className="h-4 w-4" /> 2026 PROJECTIONS
-               </div>
-            </div>
+            <motion.div 
+               initial={{ opacity: 0, y: 20 }}
+               whileInView={{ opacity: 1, y: 0 }}
+               viewport={{ once: true, margin: "-50px" }}
+               transition={{ duration: 1.2, ease: premiumSmooth }}
+               className="text-center mb-16 md:mb-20"
+            >
+               <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Feature Release Plan</h2>
+               <p className="text-[#CCCCD9] text-sm md:text-lg max-w-2xl mx-auto font-light leading-relaxed px-2">
+                  We do not believe in phantom metrics. Here is exactly what our community is interacting with right now, and what we are building next.
+               </p>
+            </motion.div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-               <div className="p-6 rounded-2xl bg-[#1C1246] border border-[#DA8CA0]/20 text-center">
-                  <div className="text-3xl font-bold text-white mb-2">10k+</div>
-                  <div className="text-xs text-[#CCCCD9] uppercase">Active Users</div>
-               </div>
-               <div className="p-6 rounded-2xl bg-[#1C1246] border border-[#DA8CA0]/20 text-center">
-                  <div className="text-3xl font-bold text-blue-400 mb-2">50</div>
-                  <div className="text-xs text-[#CCCCD9] uppercase">Partner Schools</div>
-               </div>
-               <div className="p-6 rounded-2xl bg-[#1C1246] border border-[#DA8CA0]/20 text-center">
-                  <div className="text-3xl font-bold text-emerald-400 mb-2">100k</div>
-                  <div className="text-xs text-[#CCCCD9] uppercase">Questions Answered</div>
-               </div>
-               <div className="p-6 rounded-2xl bg-[#1C1246] border border-[#DA8CA0]/20 text-center">
-                  <div className="text-3xl font-bold text-rose-400 mb-2">5</div>
-                  <div className="text-xs text-[#CCCCD9] uppercase">Universities</div>
-               </div>
+            <div className="grid md:grid-cols-2 gap-8 md:gap-12">
+               
+               {/* In Beta */}
+               <motion.div 
+                 initial={{ opacity: 0, x: -30 }}
+                 whileInView={{ opacity: 1, x: 0 }}
+                 viewport={{ once: true, margin: "-50px" }}
+                 transition={{ duration: 1.2, ease: premiumSmooth }}
+                 className="space-y-6"
+               >
+                  <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+                     <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                     <h3 className="text-xl font-bold text-white uppercase tracking-wider">Live in Beta</h3>
+                  </div>
+                  
+                  <SpotlightCard className="p-6 bg-[#1C1246] border-emerald-500/20">
+                     <h4 className="text-white font-bold text-lg mb-2">Plain-Language Interface</h4>
+                     <p className="text-[#CCCCD9] text-xs md:text-sm font-light">Stripping away complex medical jargon so explanations about puberty and cycles are instantly understandable for young users.</p>
+                  </SpotlightCard>
+
+                  <SpotlightCard className="p-6 bg-[#1C1246] border-emerald-500/20">
+                     <h4 className="text-white font-bold text-lg mb-2">Red-Flag Simulator</h4>
+                     <p className="text-[#CCCCD9] text-xs md:text-sm font-light">An interactive module where users practice identifying predatory language and coercion tactics in safe, simulated chat scenarios.</p>
+                  </SpotlightCard>
+               </motion.div>
+
+               {/* In Queue */}
+               <motion.div 
+                 initial={{ opacity: 0, x: 30 }}
+                 whileInView={{ opacity: 1, x: 0 }}
+                 viewport={{ once: true, margin: "-50px" }}
+                 transition={{ duration: 1.2, ease: premiumSmooth }}
+                 className="space-y-6"
+               >
+                  <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+                     <div className="h-2 w-2 rounded-full bg-[#DA8CA0]" />
+                     <h3 className="text-xl font-bold text-white uppercase tracking-wider">In the Queue</h3>
+                  </div>
+                  
+                  <SpotlightCard className="p-6 bg-[#1C1246] border-[#DA8CA0]/20">
+                     <h4 className="text-white font-bold text-lg mb-2">Clinical Bridge API</h4>
+                     <p className="text-[#CCCCD9] text-xs md:text-sm font-light">A secure routing system that detects acute medical distress and offers direct connection links to verified partner clinics and counselors.</p>
+                  </SpotlightCard>
+
+                  <SpotlightCard className="p-6 bg-[#1C1246] border-[#DA8CA0]/20">
+                     <h4 className="text-white font-bold text-lg mb-2">Vernacular Support</h4>
+                     <p className="text-[#CCCCD9] text-xs md:text-sm font-light">Expanding the core logic engine to natively process and respond in Pidgin English, Hausa, Yoruba, and Igbo dialects.</p>
+                  </SpotlightCard>
+               </motion.div>
+
             </div>
          </div>
       </section>
 
-      {/* --- CTA --- */}
-      <section className="py-24 relative overflow-hidden">
-         <div className="absolute inset-0 bg-[#DA8CA0]/10" />
-         <div className="mx-auto max-w-4xl px-4 text-center relative z-10">
-            <h2 className="text-4xl font-bold text-white mb-6">Be Part of the Journey.</h2>
-            <p className="text-lg text-[#CCCCD9] mb-8">
-               Your feedback shapes this roadmap. Join us in building the future of girls' health.
-            </p>
-            <Button asChild size="lg" className="h-14 rounded-full bg-white text-[#1C1246] text-lg font-bold hover:bg-[#DA8CA0] hover:text-white transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)]">
-               <Link href="/chat" className="flex items-center gap-2">
-                  Join the Beta <MessageCircle className="h-5 w-5" />
-               </Link>
-            </Button>
+      {/* --- SECTION 4: THE COMMUNITY PULSE (Insights Core) --- */}
+      <section className="py-20 md:py-32 bg-[#1C1246]">
+         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <motion.div 
+               initial={{ opacity: 0, y: 20 }}
+               whileInView={{ opacity: 1, y: 0 }}
+               viewport={{ once: true, margin: "-50px" }}
+               transition={{ duration: 1.2, ease: premiumSmooth }}
+               className="mb-12 md:mb-16"
+            >
+               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white text-[10px] md:text-xs font-bold uppercase tracking-widest mb-6">
+                  <Lightbulb className="h-3.5 w-3.5 text-[#DA8CA0]" /> Live Insights
+               </div>
+               <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">The Community Pulse</h2>
+               <p className="text-[#CCCCD9] text-sm md:text-lg max-w-2xl font-light leading-relaxed">
+                  Our roadmap isn't guessed in a boardroom. It is built directly from the anonymized knowledge gaps and critical needs discovered inside our 200+ member group.
+               </p>
+            </motion.div>
+
+            <motion.div 
+              variants={staggerContainer}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-50px" }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-6"
+            >
+               <motion.div variants={fadeInUp} className="h-full">
+                  <SpotlightCard className="p-6 md:p-8 h-full bg-[#231854]/40">
+                     <h3 className="text-4xl font-bold text-white mb-2 opacity-50">01</h3>
+                     <h4 className="text-lg font-bold text-[#DA8CA0] mb-4">Total Anonymity</h4>
+                     <p className="text-[#CCCCD9] text-sm font-light leading-relaxed">
+                        Insight: Girls will not ask vital questions if they fear their profile is tracked. Absolute, zero-knowledge privacy is not a feature, it is the fundamental requirement for trust.
+                     </p>
+                  </SpotlightCard>
+               </motion.div>
+
+               <motion.div variants={fadeInUp} className="h-full">
+                  <SpotlightCard className="p-6 md:p-8 h-full bg-[#231854]/40">
+                     <h3 className="text-4xl font-bold text-white mb-2 opacity-50">02</h3>
+                     <h4 className="text-lg font-bold text-indigo-400 mb-4">Myth Decoupling</h4>
+                     <p className="text-[#CCCCD9] text-sm font-light leading-relaxed">
+                        Insight: Over 60% of initial health questions involve verifying dangerous internet rumors. The AI must aggressively detect and dismantle social media misinformation instantly.
+                     </p>
+                  </SpotlightCard>
+               </motion.div>
+
+               <motion.div variants={fadeInUp} className="h-full">
+                  <SpotlightCard className="p-6 md:p-8 h-full bg-[#231854]/40">
+                     <h3 className="text-4xl font-bold text-white mb-2 opacity-50">03</h3>
+                     <h4 className="text-lg font-bold text-emerald-400 mb-4">Actionable Scripts</h4>
+                     <p className="text-[#CCCCD9] text-sm font-light leading-relaxed">
+                        Insight: Knowing a situation is unsafe isn't enough. Users explicitly requested exact phrases and scripts they can copy to shut down manipulation from online strangers.
+                     </p>
+                  </SpotlightCard>
+               </motion.div>
+            </motion.div>
          </div>
+      </section>
+
+      {/* --- SECTION 5: CO-CREATION FRAMEWORK (Institutional CTA) --- */}
+      <section className="py-24 md:py-32 relative overflow-hidden bg-[#231854]/20 border-t border-white/5">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-indigo-500/10 blur-[100px] md:blur-[150px] rounded-full pointer-events-none" />
+        
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 1.2, ease: premiumSmooth }}
+          >
+            <div className="mx-auto w-16 h-16 rounded-2xl bg-[#1C1246] border border-white/10 flex items-center justify-center mb-8 shadow-xl">
+               <Stethoscope className="h-8 w-8 text-white" />
+            </div>
+            
+            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-white mb-6 tracking-tight leading-[1.1]">
+              Shape the Architecture.
+            </h2>
+            <p className="text-sm md:text-lg text-[#CCCCD9] font-light leading-relaxed mb-10 md:mb-12 max-w-3xl mx-auto px-4">
+              We are actively expanding our Co-Creation Framework. If you are a medical practitioner, a specialized health educator, or a UI/UX architect passionate about digital safety, we invite you to audit, refine, and build alongside us.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+               <GlossyButton href="/contact" className="w-full sm:w-auto">
+                 Initiate Collaboration <ArrowRight className="h-4 w-4" />
+               </GlossyButton>
+               <Link href="/about" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10 transition-colors font-bold text-sm tracking-wide">
+                 Review Our Methodology
+               </Link>
+            </div>
+          </motion.div>
+        </div>
       </section>
 
       <Footer />

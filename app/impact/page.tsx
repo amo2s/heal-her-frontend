@@ -1,52 +1,69 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
+import Image from "next/image"
 import { motion, useMotionTemplate, useMotionValue, Variants, AnimatePresence } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { cn } from "@/lib/utils"
 import { 
-  Heart, Globe, Users, TrendingUp, Target, Lightbulb, Activity, 
-  HandHeart, Leaf, Network, Check, Server, Code2, 
-  Copy, Building2, User, ShieldCheck, ChevronRight,
-  Scale, BookOpen, Sparkles, Quote, Baby, GraduationCap,
-  Zap, Share2
+  Heart, 
+  Globe, 
+  Users, 
+  Activity, 
+  Network, 
+  Code2, 
+  User, 
+  ShieldCheck, 
+  ChevronRight,
+  Quote, 
+  Baby,
+  Shield,
+  Zap
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
 
-// --- ANIMATION VARIANTS ---
+// ============================================================================
+// ULTRA-PREMIUM UTILITY COMPONENTS & ANIMATIONS
+// ============================================================================
+
+const ultraSmooth: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
 const fadeInUp: Variants = {
-  hidden: { opacity: 0, y: 40 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
+  hidden: { opacity: 0, y: 40, filter: "blur(10px)" },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    filter: "blur(0px)", 
+    transition: { duration: 1.2, ease: ultraSmooth } 
+  }
 }
 
 const staggerContainer: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.15,
-      delayChildren: 0.2
-    }
+    transition: { staggerChildren: 0.12, delayChildren: 0.1 }
   }
 }
 
 const scaleIn: Variants = {
-  hidden: { scale: 0.8, opacity: 0 },
-  visible: { scale: 1, opacity: 1, transition: { duration: 0.5, ease: "backOut" } }
+  hidden: { scale: 0.9, opacity: 0, filter: "blur(10px)" },
+  visible: { 
+    scale: 1, 
+    opacity: 1, 
+    filter: "blur(0px)", 
+    transition: { duration: 1.2, ease: ultraSmooth } 
+  }
 }
 
 const drawLine: Variants = {
   hidden: { pathLength: 0, opacity: 0 },
   visible: { 
     pathLength: 1, 
-    opacity: 0.4, 
-    transition: { duration: 1.5, ease: "easeInOut" } 
+    opacity: 0.5, 
+    transition: { duration: 2.5, ease: ultraSmooth } 
   }
 }
-
-// --- PRO COMPONENTS ---
 
 const GrainOverlay = () => (
   <div 
@@ -57,51 +74,18 @@ const GrainOverlay = () => (
   />
 )
 
-function SpotlightCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  const mouseX = useMotionValue(0)
-  const mouseY = useMotionValue(0)
-
-  function handleMouseMove({ currentTarget, clientX, clientY }: React.MouseEvent) {
-    const { left, top } = currentTarget.getBoundingClientRect()
-    mouseX.set(clientX - left)
-    mouseY.set(clientY - top)
-  }
-
-  return (
-    <motion.div
-      className={cn(
-        "group relative border border-white/10 bg-[#231854]/50 overflow-hidden rounded-3xl",
-        className
-      )}
-      onMouseMove={handleMouseMove}
-      whileHover={{ y: -5, transition: { duration: 0.2 } }}
-    >
-      <motion.div
-        className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 transition duration-300 group-hover:opacity-100"
-        style={{
-          background: useMotionTemplate`
-            radial-gradient(
-              650px circle at ${mouseX}px ${mouseY}px,
-              rgba(218, 140, 160, 0.15),
-              transparent 80%
-            )
-          `,
-        }}
-      />
-      <div className="relative h-full">{children}</div>
-    </motion.div>
-  )
-}
-
 function TextReveal({ text, className, delay = 0 }: { text: string; className?: string; delay?: number }) {
   const words = text.split(" ")
   const container: Variants = {
     hidden: { opacity: 0 },
-    visible: (i = 1) => ({ opacity: 1, transition: { staggerChildren: 0.12, delayChildren: 0.04 * i + delay } }),
+    visible: (i = 1) => ({ 
+      opacity: 1, 
+      transition: { staggerChildren: 0.08, delayChildren: 0.04 * i + delay } 
+    }),
   }
   const child: Variants = {
-    visible: { opacity: 1, y: 0, filter: "blur(0px)", transition: { type: "spring", damping: 12, stiffness: 100 } },
-    hidden: { opacity: 0, y: 20, filter: "blur(10px)", transition: { type: "spring", damping: 12, stiffness: 100 } },
+    visible: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 1, ease: ultraSmooth } },
+    hidden: { opacity: 0, y: 20, filter: "blur(10px)" },
   }
 
   return (
@@ -113,114 +97,112 @@ function TextReveal({ text, className, delay = 0 }: { text: string; className?: 
   )
 }
 
-// --- NEW COMPONENT: THE LIVING CONNECTION VISUALIZATION ---
+// ============================================================================
+// THE LIVING CONNECTION VISUALIZATION (Premium Gradient & Smooth Motion)
+// ============================================================================
 const RippleVisualization = () => {
-  // Coordinates for the visualization
   const center = { x: 200, y: 200 }
-  
-  // Layer 1: Friends (5 nodes)
   const layer1 = [
     { x: 200, y: 120 }, { x: 276, y: 175 }, { x: 247, y: 265 }, { x: 153, y: 265 }, { x: 124, y: 175 }
   ]
-
-  // Layer 2: Community (10 nodes) - Simplified positions
   const layer2 = [
     { x: 200, y: 50 }, { x: 320, y: 140 }, { x: 350, y: 250 }, { x: 250, y: 350 }, { x: 150, y: 350 },
     { x: 50, y: 250 }, { x: 80, y: 140 }, { x: 100, y: 60 }, { x: 300, y: 80 }, { x: 300, y: 320 }
   ]
 
   return (
-    <div className="w-full h-full min-h-[400px] bg-[#1a1440] relative overflow-hidden rounded-3xl border border-[#DA8CA0]/20 shadow-2xl">
-      {/* Grid Background */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
+    <div className="w-full aspect-square md:aspect-auto md:h-full min-h-[400px] md:min-h-[500px] relative overflow-hidden rounded-[2.5rem] border border-white/10 shadow-[0_20px_50px_-15px_rgba(218,140,160,0.2)] flex items-center justify-center bg-gradient-to-br from-[#2a1b54] via-[#1C1246] to-[#120b30]">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(218,140,160,0.15)_0%,transparent_60%)] animate-pulse duration-[4000ms]" />
       
-      {/* The Pulse Effect */}
-      <div className="absolute inset-0 flex items-center justify-center">
-         <motion.div 
-            animate={{ scale: [1, 1.5, 1], opacity: [0.3, 0, 0.3] }}
-            transition={{ duration: 3, repeat: Infinity }}
-            className="w-96 h-96 bg-[#DA8CA0]/10 rounded-full blur-3xl"
-         />
-      </div>
-
-      <svg viewBox="0 0 400 400" className="w-full h-full absolute inset-0">
+      <svg viewBox="0 0 400 400" className="w-full h-full max-w-[450px] absolute drop-shadow-2xl">
         <motion.g initial="hidden" whileInView="visible" viewport={{ once: true }}>
           
-          {/* CONNECTIONS: Center to Layer 1 */}
+          {/* L1 Connections */}
           {layer1.map((pos, i) => (
             <motion.line 
               key={`L1-${i}`}
               x1={center.x} y1={center.y} x2={pos.x} y2={pos.y}
-              stroke="#DA8CA0" strokeWidth="2"
+              stroke="url(#gradientL1)" strokeWidth="2.5" strokeOpacity="0.8" strokeLinecap="round"
               variants={drawLine}
             />
           ))}
 
-          {/* CONNECTIONS: Layer 1 to Layer 2 (Each L1 connects to 2 L2s) */}
+          {/* L2 Connections */}
           {layer2.map((pos, i) => {
-            const parent = layer1[i % 5] // Reuse parents
+            const parent = layer1[i % 5]
             return (
               <motion.line 
                 key={`L2-${i}`}
                 x1={parent.x} y1={parent.y} x2={pos.x} y2={pos.y}
-                stroke="#8b5cf6" strokeWidth="1"
+                stroke="url(#gradientL2)" strokeWidth="1.5" strokeOpacity="0.5" strokeDasharray="4 4"
                 variants={drawLine}
-                transition={{ delay: 1.5 }} // Delay for second ripple
+                transition={{ delay: 1.2, duration: 2, ease: ultraSmooth }} 
               />
             )
           })}
 
-          {/* NODES: Center Girl */}
+          {/* Gradient Definitions */}
+          <defs>
+            <linearGradient id="gradientL1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#DA8CA0" />
+              <stop offset="100%" stopColor="#c084fc" />
+            </linearGradient>
+            <linearGradient id="gradientL2" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#c084fc" />
+              <stop offset="100%" stopColor="#34d399" />
+            </linearGradient>
+          </defs>
+
+          {/* Central Hub */}
           <motion.circle 
-            cx={center.x} cy={center.y} r="12" fill="#DA8CA0"
+            cx={center.x} cy={center.y} r="18" fill="#DA8CA0"
             initial={{ scale: 0 }}
-            animate={{ scale: 1, boxShadow: "0 0 20px #DA8CA0" }}
-            transition={{ type: "spring", delay: 0.2 }}
+            animate={{ scale: 1, boxShadow: "0 0 40px #DA8CA0" }}
+            transition={{ duration: 1.2, ease: ultraSmooth }}
           />
           <motion.circle 
-            cx={center.x} cy={center.y} r="25" stroke="#DA8CA0" strokeWidth="1" fill="none"
+            cx={center.x} cy={center.y} r="45" stroke="#DA8CA0" strokeWidth="1.5" fill="none"
             initial={{ scale: 0, opacity: 1 }}
-            animate={{ scale: 2, opacity: 0 }}
-            transition={{ duration: 2, repeat: Infinity }}
+            animate={{ scale: 2.8, opacity: 0 }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeOut" }}
           />
 
-          {/* NODES: Layer 1 (Friends) */}
+          {/* L1 Nodes */}
           {layer1.map((pos, i) => (
             <motion.circle 
-              key={`N1-${i}`} cx={pos.x} cy={pos.y} r="6" fill="#c084fc"
+              key={`N1-${i}`} cx={pos.x} cy={pos.y} r="8" fill="#c084fc"
               initial={{ scale: 0 }}
               whileInView={{ scale: 1 }}
-              transition={{ delay: 1 + (i * 0.1) }}
+              transition={{ delay: 0.8 + (i * 0.15), ease: ultraSmooth }}
             />
           ))}
 
-          {/* NODES: Layer 2 (Community) */}
+          {/* L2 Nodes */}
           {layer2.map((pos, i) => (
             <motion.circle 
-              key={`N2-${i}`} cx={pos.x} cy={pos.y} r="4" fill="#34d399"
+              key={`N2-${i}`} cx={pos.x} cy={pos.y} r="5" fill="#34d399"
               initial={{ scale: 0 }}
               whileInView={{ scale: 1 }}
-              transition={{ delay: 2.5 + (i * 0.1) }}
+              transition={{ delay: 2 + (i * 0.08), ease: ultraSmooth }}
             />
           ))}
 
         </motion.g>
       </svg>
 
-      {/* Overlay Text */}
-      <div className="absolute bottom-6 left-6 right-6">
+      <div className="absolute bottom-6 left-6 right-6 md:bottom-8 md:left-8 md:right-8">
          <motion.div 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ delay: 3.5 }}
-            className="bg-black/60 backdrop-blur-md border border-white/10 p-4 rounded-xl flex items-center gap-4"
+            transition={{ delay: 2.8, duration: 1.2, ease: ultraSmooth }}
+            className="bg-white/5 backdrop-blur-xl border border-white/10 p-5 rounded-2xl flex items-center gap-4 shadow-2xl"
          >
-            <div className="bg-emerald-500/20 p-2 rounded-full">
-               <Activity className="w-5 h-5 text-emerald-400" />
+            <div className="bg-emerald-500/20 p-3 rounded-full shrink-0 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+               <Network className="w-5 h-5 md:w-6 md:h-6 text-emerald-400" />
             </div>
             <div>
-               <p className="text-white text-sm font-bold">Network Effect Active</p>
-               <p className="text-[#CCCCD9] text-xs">1 Girl Educated = 15+ Lives Impacted</p>
+               <p className="text-white text-sm md:text-base font-bold tracking-wide">The Multiplier Effect</p>
+               <p className="text-[#CCCCD9] text-xs md:text-sm font-light mt-1">Protecting 1 girl secures an entire network.</p>
             </div>
          </motion.div>
       </div>
@@ -228,683 +210,335 @@ const RippleVisualization = () => {
   )
 }
 
-// --- ACCORDION COMPONENT ---
-const TransparencyItem = ({ 
-  icon: Icon, 
-  title, 
-  colorClass, 
-  children 
-}: { 
-  icon: any, 
-  title: string, 
-  colorClass: string, 
-  children: React.ReactNode 
-}) => {
-  const [isOpen, setIsOpen] = useState(false)
-
-  return (
-    <div className="border-b border-[#DA8CA0]/20">
-      <button 
-        onClick={() => setIsOpen(!isOpen)} 
-        className="flex w-full items-center justify-between py-4 text-left group"
-      >
-        <div className="flex items-center gap-3 text-[#CCCCD9] group-hover:text-white transition-colors">
-           <Icon className={cn("h-4 w-4", colorClass)} />
-           <span className="text-sm font-medium">{title}</span>
-        </div>
-        <ChevronRight className={cn("h-4 w-4 text-[#DA8CA0] transition-transform duration-200", isOpen && "rotate-90")} />
-      </button>
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }} 
-            animate={{ height: "auto", opacity: 1 }} 
-            exit={{ height: 0, opacity: 0 }} 
-            className="overflow-hidden"
-          >
-            <div className="pb-4 pl-7 text-xs text-[#CCCCD9] leading-relaxed">
-              {children}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  )
-}
-
-// --- DIRECT BANK WIDGET ---
-function BankTransferWidget() {
-  const [copied, setCopied] = useState(false)
-
-  const accountDetails = {
-    bankName: "ALAT by Wema",
-    accountName: "Nwaka Amos Chika",
-    accountNumber: "0272309995" 
-  }
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(accountDetails.accountNumber)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  return (
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.95 }}
-      whileInView={{ opacity: 1, scale: 1 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.8 }}
-      className="relative h-full flex flex-col justify-center"
-    >
-      <div className="p-8 bg-[#231854] rounded-3xl border border-[#DA8CA0]/20 shadow-2xl relative overflow-hidden group">
-        
-        {/* Card Design Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#DA8CA0]/10 via-[#1C1246] to-purple-900/20 opacity-50" />
-        <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#DA8CA0]/10 blur-3xl rounded-full" />
-        
-        <div className="relative z-10">
-          <div className="flex justify-between items-start mb-12">
-            <div>
-              <h3 className="text-white font-bold text-xl mb-1">Direct Funding</h3>
-              <p className="text-[#CCCCD9] text-xs">Official Project Account</p>
-            </div>
-            <div className="p-3 bg-white/5 rounded-xl border border-white/10 backdrop-blur-sm">
-               <Building2 className="h-6 w-6 text-[#DA8CA0]" />
-            </div>
-          </div>
-
-          {/* Account Number Display */}
-          <div className="mb-10 text-center">
-            <label className="text-[10px] uppercase tracking-widest text-[#DA8CA0] font-bold mb-3 block">Account Number</label>
-            <div className="flex items-center justify-center gap-4">
-              <span className="text-4xl sm:text-5xl font-mono font-bold text-white tracking-wider drop-shadow-lg">
-                {accountDetails.accountNumber}
-              </span>
-            </div>
-            <Button 
-                onClick={handleCopy}
-                variant="outline" 
-                className="mt-6 h-10 border-[#DA8CA0]/30 bg-[#1C1246]/50 hover:bg-[#DA8CA0] hover:text-[#1C1246] transition-all text-xs gap-2"
-              >
-                <AnimatePresence mode="wait" initial={false}>
-                  {copied ? (
-                    <motion.div
-                      key="check"
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="flex items-center gap-2 font-bold"
-                    >
-                      <Check className="h-3 w-3" /> Copied Successfully
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="copy"
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="flex items-center gap-2"
-                    >
-                      <Copy className="h-3 w-3" /> Copy Number
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </Button>
-          </div>
-
-          {/* Bank Details Grid */}
-          <div className="grid grid-cols-2 gap-4 border-t border-white/10 pt-6">
-            <div>
-              <label className="text-[10px] uppercase tracking-widest text-[#DA8CA0] font-bold mb-1 block">Bank Name</label>
-              <div className="text-white font-medium flex items-center gap-2 text-sm">
-                {accountDetails.bankName}
-              </div>
-            </div>
-            <div>
-              <label className="text-[10px] uppercase tracking-widest text-[#DA8CA0] font-bold mb-1 block">Account Name</label>
-              <div className="text-white font-medium flex items-center gap-2 truncate text-sm">
-                <User className="h-3 w-3 text-[#DA8CA0] shrink-0" /> {accountDetails.accountName}
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-      
-      <div className="mt-6 flex justify-center gap-6">
-         <div className="flex items-center gap-2 text-[10px] text-[#CCCCD9]">
-            <ShieldCheck className="h-3 w-3 text-emerald-500" /> Secure
-         </div>
-         <div className="flex items-center gap-2 text-[10px] text-[#CCCCD9]">
-            <Activity className="h-3 w-3 text-blue-500" /> Direct Impact
-         </div>
-         <div className="flex items-center gap-2 text-[10px] text-[#CCCCD9]">
-            <Heart className="h-3 w-3 text-[#DA8CA0]" /> No Fees
-         </div>
-      </div>
-    </motion.div>
-  )
-}
-
-// --- PAGE COMPONENT ---
+// ============================================================================
+// MAIN PAGE COMPONENT
+// ============================================================================
 
 export default function ImpactPage() {
   return (
-    <div className="relative min-h-screen bg-[#1C1246] text-[#FAFAFA] selection:bg-[#DA8CA0]/30 selection:text-[#DA8CA0]">
+    <div className="relative min-h-screen bg-[#1C1246] text-[#FAFAFA] selection:bg-[#DA8CA0]/30 selection:text-[#DA8CA0] font-sans">
       <GrainOverlay />
       <Navigation />
 
-      {/* --- HERO SECTION --- */}
-      <section className="relative pt-32 pb-20 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#DA8CA0]/20 via-[#1C1246] to-[#1C1246] -z-10" />
+      {/* --- HERO SECTION (High-Contrast Emotional Hook) --- */}
+      <section className="relative pt-32 pb-20 md:pt-40 md:pb-28 overflow-hidden min-h-[85vh] flex flex-col justify-center">
         
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/seven-hero.png"
+            alt="The Global Network Grid"
+            fill
+            className="object-cover object-center"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#1C1246]/90 via-[#1C1246]/60 to-[#1C1246]" />
+        </div>
+        
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 relative z-10 text-center">
            <motion.div
-             initial={{ scale: 0.9, opacity: 0 }}
-             animate={{ scale: 1, opacity: 1 }}
-             transition={{ duration: 0.8 }}
-             className="mb-8 inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-[#231854] border border-[#DA8CA0]/20 shadow-2xl shadow-[#DA8CA0]/10"
+             variants={scaleIn}
+             initial="hidden"
+             animate="visible"
+             className="mb-6 md:mb-8 inline-flex items-center justify-center h-14 w-14 md:h-16 md:w-16 rounded-2xl bg-[#231854]/80 backdrop-blur-xl border border-[#DA8CA0]/30 shadow-2xl shadow-[#DA8CA0]/20"
            >
-             <Heart className="h-8 w-8 text-[#DA8CA0]" />
+             <Globe className="h-6 w-6 md:h-8 md:w-8 text-[#DA8CA0]" />
            </motion.div>
 
            <TextReveal 
-             text="Impact & Sisterhood." 
-             className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-6"
+             text="The Cost of Silence." 
+             className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight text-white mb-4 md:mb-6 drop-shadow-lg"
            />
 
-           <p className="max-w-3xl mx-auto text-lg text-[#CCCCD9] leading-relaxed">
-             Technology with purpose. How Heal Her is closing the gender health gap and empowering girls everywhere.
-           </p>
+           <motion.p 
+             initial={{ opacity: 0, y: 20, filter: "blur(10px)" }}
+             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+             transition={{ delay: 0.4, duration: 1.2, ease: ultraSmooth }}
+             className="max-w-2xl mx-auto text-base sm:text-lg md:text-2xl text-[#CCCCD9] leading-relaxed font-light px-2"
+           >
+             Ignorance is a vulnerability. Knowledge is armor. We are closing the information gap that leaves young women exposed to predators, fear, and medical myths.
+           </motion.p>
         </div>
       </section>
 
-      {/* --- MISSION STATEMENT --- */}
+      {/* --- THE REALITY (Stark Moral Clarity) --- */}
       <motion.section 
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true }}
         variants={fadeInUp}
-        className="py-20 border-y border-white/5 bg-[#231854]/30"
+        className="py-16 md:py-24 border-y border-white/5 bg-[#231854]/20"
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-4xl text-center">
-            <h2 className="text-3xl font-bold text-white mb-6">More Than an App: A Movement</h2>
-            <p className="text-xl leading-relaxed text-[#CCCCD9]">
-              Heal Her exists to address a fundamental inequality: <span className="text-white font-bold">access to shame-free health education.</span> Economic status should never determine whether a girl understands her own body. Every feature serves our commitment to confidence, dignity, and safety for all girls.
+            <h2 className="text-xs md:text-sm font-bold tracking-widest text-rose-400 uppercase mb-4">The Reality We Face</h2>
+            <h3 className="text-2xl md:text-4xl lg:text-5xl font-extrabold text-white mb-6 md:mb-8 leading-tight">
+              A girl without answers is a girl at risk.
+            </h3>
+            <p className="text-base md:text-xl font-light leading-relaxed text-[#CCCCD9]">
+              Right now, millions of girls lack a safe place to ask terrifying questions about their changing bodies, mental health, or unsafe situations. When they search online, they find harmful myths. When they stay silent, they become targets. <strong className="text-white font-bold">Heal Her steps into that gap as an unshakeable digital shield.</strong>
             </p>
           </div>
         </div>
       </motion.section>
 
       {/* --- MEASURING SUCCESS (Vital Signs Dashboard) --- */}
-      <section className="py-24">
+      <section className="py-20 md:py-32">
          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between mb-8">
-               <h2 className="text-3xl font-bold text-white">How We Measure Success</h2>
-               <div className="flex items-center gap-2 text-xs text-[#DA8CA0] font-mono">
-                  <div className="h-2 w-2 rounded-full bg-[#DA8CA0] animate-pulse" />
-                  LIVE IMPACT
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 md:mb-12 gap-4">
+               <div>
+                 <h2 className="text-3xl md:text-4xl font-bold text-white mb-2">The Shield in Numbers</h2>
+                 <p className="text-[#CCCCD9] text-sm md:text-base font-light">Impact isn't abstract. It is measured in protected lives.</p>
+               </div>
+               <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-xs text-emerald-400 font-bold tracking-widest uppercase w-fit shadow-inner">
+                  <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                  Live Defense Metrics
                </div>
             </div>
-
-            <p className="text-[#CCCCD9] mb-12 max-w-2xl">
-               Impact isn't just about downloads—it's about confidence gained and fears reduced. Here is our scorecard.
-            </p>
 
             <motion.div 
               variants={staggerContainer}
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
-              className="grid grid-cols-2 md:grid-cols-4 gap-px bg-white/5 rounded-2xl overflow-hidden border border-white/5"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
             >
                {[
-                 { val: "24/7", label: "Availability", sub: "No appointment needed", color: "text-white" },
-                 { val: "10+", label: "Languages", sub: "English, Pidgin, Local", color: "text-blue-400" },
-                 { val: "100%", label: "Private", sub: "Zero Data Tracking", color: "text-emerald-400" },
-                 { val: "∞", label: "Questions", sub: "Answered Safely", color: "text-rose-400" },
+                 { val: "24/7", label: "Active Defense", sub: "Always awake, always listening", color: "text-white" },
+                 { val: "< 1s", label: "Response Time", sub: "Instant support when seconds count", color: "text-blue-400" },
+                 { val: "100%", label: "Anonymity", sub: "Zero data sold. Absolute trust.", color: "text-emerald-400" },
+                 { val: "∞", label: "Fears Resolved", sub: "Infinite patience and empathy", color: "text-[#DA8CA0]" },
                ].map((stat, i) => (
                  <motion.div 
                    key={i} 
                    variants={fadeInUp}
-                   className="bg-[#231854] p-8 flex flex-col items-center justify-center hover:bg-[#1C1246] transition-colors"
+                   className="bg-[#231854]/40 border border-white/5 p-8 md:p-10 rounded-[2rem] flex flex-col items-center justify-center hover:bg-[#231854]/60 hover:border-[#DA8CA0]/20 transition-all duration-500 shadow-lg"
                  >
-                    <div className={cn("text-4xl font-bold mb-2", stat.color)}>{stat.val}</div>
-                    <div className="text-xs text-[#DA8CA0] uppercase tracking-widest font-mono text-center">{stat.label}<br/><span className="text-[#CCCCD9]/50 normal-case">{stat.sub}</span></div>
+                    <div className={cn("text-5xl md:text-6xl font-extrabold mb-4 drop-shadow-md", stat.color)}>{stat.val}</div>
+                    <div className="text-xs md:text-sm text-white font-bold tracking-widest uppercase text-center mb-1">{stat.label}</div>
+                    <div className="text-[10px] md:text-xs text-[#CCCCD9] font-light text-center">{stat.sub}</div>
                  </motion.div>
                ))}
             </motion.div>
          </div>
       </section>
 
-      {/* --- NEW SECTION 1: STORIES FROM THE SISTERHOOD --- */}
-      <section className="py-24 bg-[#231854]/20 border-y border-white/5">
+      {/* --- THE RIPPLE EFFECT (Visualization) --- */}
+      <section className="py-20 md:py-32 bg-[#231854]/20 border-y border-white/5 overflow-hidden">
          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <motion.h2 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-3xl font-bold text-white mb-16 text-center"
-            >
-              Stories from the Sisterhood
-            </motion.h2>
-
-            <motion.div 
-              variants={staggerContainer}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              className="grid md:grid-cols-3 gap-8"
-            >
-               {[
-                 {
-                   text: "I was too scared to ask my mom about my period pains. Heal Her explained everything without making me feel weird.",
-                   age: "Student, 14",
-                   loc: "Lagos"
-                 },
-                 {
-                   text: "The mental health chat calmed me down during my exams. It felt like talking to a wise big sister who actually listens.",
-                   age: "Student, 17",
-                   loc: "Abuja"
-                 },
-                 {
-                   text: "I live in a rural area where clinics are far. This app gave me the first aid steps I needed when my sister got hurt.",
-                   age: "User, 19",
-                   loc: "Jos"
-                 }
-               ].map((story, i) => (
-                 <motion.div 
-                   key={i} 
-                   variants={fadeInUp}
-                   whileHover={{ y: -5 }}
-                   className="bg-[#1C1246] border border-[#DA8CA0]/10 p-8 rounded-2xl relative shadow-lg"
-                 >
-                    <Quote className="absolute top-6 left-6 h-8 w-8 text-[#DA8CA0]/20" />
-                    <p className="text-[#CCCCD9] italic relative z-10 pt-6 mb-6 leading-relaxed">"{story.text}"</p>
-                    <div className="flex items-center gap-3 border-t border-white/5 pt-4">
-                       <div className="h-8 w-8 rounded-full bg-[#DA8CA0]/20 flex items-center justify-center text-[#DA8CA0] text-xs font-bold">
-                          {story.age.charAt(0)}
-                       </div>
-                       <div>
-                          <p className="text-white text-xs font-bold">{story.age}</p>
-                          <p className="text-[#CCCCD9]/50 text-[10px] uppercase">{story.loc}</p>
-                       </div>
-                    </div>
-                 </motion.div>
-               ))}
-            </motion.div>
-         </div>
-      </section>
-
-      {/* --- NEW SECTION 2: THE RIPPLE EFFECT (Visualization) --- */}
-      <section className="py-24">
-         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
                <motion.div 
-                 initial={{ opacity: 0, x: -30 }}
-                 whileInView={{ opacity: 1, x: 0 }}
+                 initial={{ opacity: 0, x: -30, filter: "blur(10px)" }}
+                 whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
                  viewport={{ once: true }}
-                 transition={{ duration: 0.8 }}
+                 transition={{ duration: 1.2, ease: ultraSmooth }}
+                 className="order-2 lg:order-1"
                >
-                  <h2 className="text-3xl font-bold text-white mb-6">The Ripple Effect</h2>
-                  <p className="text-lg text-[#CCCCD9] mb-8 leading-relaxed">
-                     When you educate one girl, you don't just help her. You help her friends, her future family, and her community. Knowledge travels fast in sisterhoods.
+                  <h2 className="text-xs md:text-sm font-bold tracking-widest text-[#DA8CA0] uppercase mb-3">Exponential Protection</h2>
+                  <h3 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white mb-6 leading-tight">The Network of Sisterhood.</h3>
+                  <p className="text-base md:text-lg text-[#CCCCD9] font-light mb-8 md:mb-10 leading-relaxed">
+                      When you arm one girl with the truth, she doesn't keep it to herself. She protects her friends, educates her siblings, and breaks generational cycles of fear. A single interaction scales into community-wide defense.
                   </p>
                   
-                  <div className="space-y-8 relative">
-                     {/* Connecting Line */}
-                     <div className="absolute left-[19px] top-4 bottom-4 w-[2px] bg-[#DA8CA0]/20 -z-10" />
+                  <div className="space-y-6 md:space-y-8 relative">
+                     <div className="absolute left-[23px] md:left-[27px] top-6 bottom-6 w-[2px] bg-gradient-to-b from-[#DA8CA0] via-purple-500 to-emerald-500 opacity-20 -z-10" />
 
-                     <div className="flex gap-6 items-start">
-                        <div className="w-10 h-10 rounded-full bg-[#DA8CA0]/20 flex items-center justify-center border border-[#DA8CA0] shrink-0 z-10">
-                           <User className="h-5 w-5 text-[#DA8CA0]" />
+                     <div className="flex gap-5 md:gap-6 items-start">
+                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[#DA8CA0]/10 flex items-center justify-center border border-[#DA8CA0]/40 shrink-0 z-10 backdrop-blur-sm shadow-[0_0_15px_rgba(218,140,160,0.3)]">
+                           <User className="h-5 w-5 md:h-6 md:w-6 text-[#DA8CA0]" />
                         </div>
-                        <div>
-                           <h4 className="text-white font-bold text-lg">1 Girl Educated</h4>
-                           <p className="text-[#CCCCD9] text-sm">She gains confidence and understanding of her body.</p>
+                        <div className="pt-1">
+                           <h4 className="text-white font-bold text-lg md:text-xl mb-1">1 Girl Empowered</h4>
+                           <p className="text-[#CCCCD9] text-sm md:text-base font-light">She gains the vocabulary to set boundaries and the knowledge to protect her body.</p>
                         </div>
                      </div>
 
-                     <div className="flex gap-6 items-start">
-                        <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center border border-purple-500 shrink-0 z-10">
-                           <Users className="h-5 w-5 text-purple-500" />
+                     <div className="flex gap-5 md:gap-6 items-start">
+                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-purple-500/10 flex items-center justify-center border border-purple-500/40 shrink-0 z-10 backdrop-blur-sm shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+                           <Users className="h-5 w-5 md:h-6 md:w-6 text-purple-400" />
                         </div>
-                        <div>
-                           <h4 className="text-white font-bold text-lg">5 Friends Informed</h4>
-                           <p className="text-[#CCCCD9] text-sm">She shares safe advice with her circle, stopping myths from spreading.</p>
+                        <div className="pt-1">
+                           <h4 className="text-white font-bold text-lg md:text-xl mb-1">Her Circle Defended</h4>
+                           <p className="text-[#CCCCD9] text-sm md:text-base font-light">She recognizes when her friends are in danger and shares clinical, verified truths.</p>
                         </div>
                      </div>
 
-                     <div className="flex gap-6 items-start">
-                        <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500 shrink-0 z-10">
-                           <Baby className="h-5 w-5 text-emerald-500" />
+                     <div className="flex gap-5 md:gap-6 items-start">
+                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/40 shrink-0 z-10 backdrop-blur-sm shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                           <Baby className="h-5 w-5 md:h-6 md:w-6 text-emerald-400" />
                         </div>
-                        <div>
-                           <h4 className="text-white font-bold text-lg">Future Generations Protected</h4>
-                           <p className="text-[#CCCCD9] text-sm">An educated woman makes better health decisions for her future children.</p>
+                        <div className="pt-1">
+                           <h4 className="text-white font-bold text-lg md:text-xl mb-1">Generations Shifted</h4>
+                           <p className="text-[#CCCCD9] text-sm md:text-base font-light">An educated woman raises fiercely protected, highly literate children. The cycle is broken.</p>
                         </div>
                      </div>
                   </div>
                </motion.div>
 
                <motion.div 
-                 initial={{ opacity: 0, x: 30 }}
-                 whileInView={{ opacity: 1, x: 0 }}
+                 initial={{ opacity: 0, x: 30, filter: "blur(10px)" }}
+                 whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
                  viewport={{ once: true }}
-                 transition={{ duration: 0.8 }}
-                 className="relative"
+                 transition={{ duration: 1.2, delay: 0.2, ease: ultraSmooth }}
+                 className="order-1 lg:order-2 w-full flex justify-center lg:justify-end"
                >
-                  {/* Option 1: Living Connection Component */}
                   <RippleVisualization />
                </motion.div>
             </div>
          </div>
       </section>
 
-      {/* --- IMPACT AREAS (The 6 Cards) --- */}
-      <section className="py-24 bg-[#231854]/20 border-y border-white/5">
+      {/* --- STORIES FROM THE FRONTLINE --- */}
+      <section className="py-20 md:py-32">
          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <h2 className="mb-16 text-center text-3xl font-bold text-white">Where We're Making a Difference</h2>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1, ease: ultraSmooth }}
+              className="text-center mb-12 md:mb-20"
+            >
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white">Files of Defense</h2>
+              <p className="text-[#CCCCD9] mt-4 text-base md:text-lg font-light max-w-2xl mx-auto">Real interventions. Real protection. Details obscured to protect identities.</p>
+            </motion.div>
 
             <motion.div 
               variants={staggerContainer}
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
-              className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+              className="grid md:grid-cols-3 gap-6 md:gap-8"
             >
-               
-               <motion.div variants={fadeInUp} className="h-full">
-                 <SpotlightCard className="p-8 h-full bg-[#1C1246] border-[#DA8CA0]/10">
-                    <div className="mb-6 flex justify-between items-start">
-                       <div className="p-3 bg-blue-500/10 rounded-lg text-blue-400">
-                          <Globe className="h-6 w-6" />
+               {[
+                 {
+                   text: "A stranger online told me to keep our chats a secret. Heal Her flagged his exact words as 'grooming tactics' and gave me the script to block him before I made a mistake.",
+                   tag: "Predator Deflection",
+                   color: "text-rose-400",
+                   bg: "bg-rose-500/10",
+                   border: "border-rose-500/20"
+                 },
+                 {
+                   text: "I was having a severe panic attack in the school bathroom. The app didn't judge me; it just walked me through a 4-7-8 breathing loop until my heart stopped racing.",
+                   tag: "Clinical Grounding",
+                   color: "text-purple-400",
+                   bg: "bg-purple-500/10",
+                   border: "border-purple-500/20"
+                 },
+                 {
+                   text: "I thought the pain I felt every month was normal because my aunties said so. Heal Her gave me the exact medical words to tell a doctor, and I finally got diagnosed.",
+                   tag: "Medical Literacy",
+                   color: "text-emerald-400",
+                   bg: "bg-emerald-500/10",
+                   border: "border-emerald-500/20"
+                 }
+               ].map((story, i) => (
+                 <motion.div 
+                   key={i} 
+                   variants={fadeInUp}
+                   className="bg-[#231854]/40 border border-white/5 p-8 md:p-10 rounded-[2rem] relative shadow-[0_10px_30px_-15px_rgba(0,0,0,0.5)] hover:bg-[#231854]/60 transition-colors duration-500 flex flex-col"
+                 >
+                    <Quote className="absolute top-8 left-8 h-10 w-10 text-white/5 pointer-events-none" />
+                    <p className="text-[#FAFAFA] font-light relative z-10 pt-2 mb-8 leading-relaxed md:text-lg flex-grow">"{story.text}"</p>
+                    <div className="border-t border-white/10 pt-5 mt-auto">
+                       <div className={cn("inline-flex items-center px-3 py-1 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest border", story.bg, story.color, story.border)}>
+                          {story.tag}
                        </div>
                     </div>
-                    <h3 className="text-xl font-bold text-white mb-4">Health Equity</h3>
-                    <p className="text-[#CCCCD9] text-sm leading-relaxed">
-                       Bridging the knowledge gap for girls in underserved communities. Reliable health info should be a right, not a privilege.
-                    </p>
-                 </SpotlightCard>
-               </motion.div>
-
-               <motion.div variants={fadeInUp} className="h-full">
-                 <SpotlightCard className="p-8 h-full bg-[#1C1246] border-[#DA8CA0]/10">
-                    <div className="mb-6 flex justify-between items-start">
-                       <div className="p-3 bg-purple-500/10 rounded-lg text-purple-400">
-                          <Sparkles className="h-6 w-6" />
-                       </div>
-                    </div>
-                    <h3 className="text-xl font-bold text-white mb-4">Destigmatizing Periods</h3>
-                    <p className="text-[#CCCCD9] text-sm leading-relaxed">
-                       Changing the narrative from shame to strength. We teach girls that menstruation is a superpower, not a secret to be hidden.
-                    </p>
-                 </SpotlightCard>
-               </motion.div>
-
-               <motion.div variants={fadeInUp} className="h-full">
-                 <SpotlightCard className="p-8 h-full bg-[#1C1246] border-[#DA8CA0]/10">
-                    <div className="mb-6 flex justify-between items-start">
-                       <div className="p-3 bg-emerald-500/10 rounded-lg text-emerald-400">
-                          <Leaf className="h-6 w-6" />
-                       </div>
-                    </div>
-                    <h3 className="text-xl font-bold text-white mb-4">Rural Access</h3>
-                    <p className="text-[#CCCCD9] text-sm leading-relaxed">
-                       For girls in villages far from clinics, Heal Her acts as a first point of contact, answering questions that might otherwise go unasked.
-                    </p>
-                 </SpotlightCard>
-               </motion.div>
-
-               <motion.div variants={fadeInUp} className="h-full">
-                 <SpotlightCard className="p-8 h-full bg-[#1C1246] border-[#DA8CA0]/10">
-                    <div className="mb-6 flex justify-between items-start">
-                       <div className="p-3 bg-amber-500/10 rounded-lg text-amber-400">
-                          <Lightbulb className="h-6 w-6" />
-                       </div>
-                    </div>
-                    <h3 className="text-xl font-bold text-white mb-4">Sex Education</h3>
-                    <p className="text-[#CCCCD9] text-sm leading-relaxed">
-                       Filling the gap where schools or families might fall short. We provide factual, non-judgmental information about reproduction.
-                    </p>
-                 </SpotlightCard>
-               </motion.div>
-
-               <motion.div variants={fadeInUp} className="h-full">
-                 <SpotlightCard className="p-8 h-full bg-[#1C1246] border-[#DA8CA0]/10">
-                    <div className="mb-6 flex justify-between items-start">
-                       <div className="p-3 bg-rose-500/10 rounded-lg text-rose-400">
-                          <Target className="h-6 w-6" />
-                       </div>
-                    </div>
-                    <h3 className="text-xl font-bold text-white mb-4">Prevention First</h3>
-                    <p className="text-[#CCCCD9] text-sm leading-relaxed">
-                       Early education prevents future issues. By teaching hygiene and body awareness now, we help girls avoid health complications later.
-                    </p>
-                 </SpotlightCard>
-               </motion.div>
-
-               <motion.div variants={fadeInUp} className="h-full">
-                 <SpotlightCard className="p-8 h-full bg-[#1C1246] border-[#DA8CA0]/10">
-                    <div className="mb-6 flex justify-between items-start">
-                       <div className="p-3 bg-sky-500/10 rounded-lg text-sky-400">
-                          <TrendingUp className="h-6 w-6" />
-                       </div>
-                    </div>
-                    <h3 className="text-xl font-bold text-white mb-4">Mental Resilience</h3>
-                    <p className="text-[#CCCCD9] text-sm leading-relaxed">
-                       Equipping girls with tools to handle anxiety, peer pressure, and body image issues helps build a generation of confident women.
-                    </p>
-                 </SpotlightCard>
-               </motion.div>
-
+                 </motion.div>
+               ))}
             </motion.div>
          </div>
       </section>
 
-      {/* --- HUMANITARIAN FOCUS & PARTNERSHIPS --- */}
-      <section className="py-24">
-         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid lg:grid-cols-2 gap-16 items-center">
-               <motion.div 
-                 initial={{ opacity: 0, x: -30 }}
-                 whileInView={{ opacity: 1, x: 0 }}
-                 viewport={{ once: true }}
-                 transition={{ duration: 0.8 }}
-                 className="space-y-8"
-               >
-                  <h2 className="text-3xl font-bold text-white">We Cannot Do This Alone</h2>
-                  <p className="text-lg text-[#CCCCD9]">
-                     Heal Her is a community effort. We partner with organizations to reach the girls who need us most.
-                  </p>
-                  
-                  <div className="space-y-6">
-                     <div className="flex gap-4">
-                        <div className="mt-1 h-2 w-2 rounded-full bg-rose-500 shrink-0" />
-                        <div>
-                           <h4 className="text-white font-bold">Schools & Educators</h4>
-                           <p className="text-[#CCCCD9] text-sm">We provide digital resources to supplement health classes in secondary schools across Nigeria.</p>
-                        </div>
-                     </div>
-                     <div className="flex gap-4">
-                        <div className="mt-1 h-2 w-2 rounded-full bg-amber-500 shrink-0" />
-                        <div>
-                           <h4 className="text-white font-bold">NGOs & Clinics</h4>
-                           <p className="text-[#CCCCD9] text-sm">Partnering with rural clinics to offer Heal Her as a take-home resource for patients.</p>
-                        </div>
-                     </div>
-                     <div className="flex gap-4">
-                        <div className="mt-1 h-2 w-2 rounded-full bg-blue-500 shrink-0" />
-                        <div>
-                           <h4 className="text-white font-bold">Community Leaders</h4>
-                           <p className="text-[#CCCCD9] text-sm">Working with local leaders to ensure our content is culturally respectful and widely accepted.</p>
-                        </div>
-                     </div>
-                  </div>
-               </motion.div>
-
-               <motion.div 
-                 initial={{ opacity: 0, x: 30 }}
-                 whileInView={{ opacity: 1, x: 0 }}
-                 viewport={{ once: true }}
-                 transition={{ duration: 0.8 }}
-               >
-                 <SpotlightCard className="p-8 bg-[#1C1246] border-[#DA8CA0]/20">
-                    <div className="flex items-center gap-3 mb-6">
-                       <Network className="h-6 w-6 text-[#DA8CA0]" />
-                       <h3 className="text-xl font-bold text-white">Partnership Opportunities</h3>
-                    </div>
-                    <p className="text-[#CCCCD9] text-sm mb-6">
-                       We are actively seeking integration with organizations serving young women. If you represent:
-                    </p>
-                    <ul className="space-y-3 text-[#CCCCD9] text-sm">
-                       <li className="flex items-center gap-2">• Secondary Schools & Universities</li>
-                       <li className="flex items-center gap-2">• Women's Health NGOs</li>
-                       <li className="flex items-center gap-2">• Youth Ministries</li>
-                       <li className="flex items-center gap-2">• Educational Tech Initiatives</li>
-                    </ul>
-                    <div className="mt-8 pt-6 border-t border-white/10">
-                       <p className="text-xs text-[#CCCCD9] font-mono">
-                          Collaborate with us: <span className="text-[#DA8CA0]">partners@healher.ai</span>
-                       </p>
-                    </div>
-                 </SpotlightCard>
-               </motion.div>
-            </div>
-         </div>
-      </section>
-
-      {/* --- SDG ALIGNMENT --- */}
-      <section className="py-20 border-y border-white/5 bg-[#231854]/30">
-         <div className="mx-auto max-w-5xl px-4 flex flex-col md:flex-row items-center gap-12">
-            <div className="w-32 h-32 md:w-48 md:h-48 bg-emerald-600 rounded-xl flex flex-col items-center justify-center text-white shrink-0 shadow-2xl shadow-emerald-900/20">
-               <div className="text-5xl md:text-7xl font-bold">5</div>
-               <div className="text-[10px] md:text-xs font-bold text-center mt-2 px-2 uppercase">Gender<br/>Equality</div>
-            </div>
-            <div>
-               <h2 className="text-2xl font-bold text-white mb-4">Aligned with UN Sustainable Development Goals</h2>
-               <p className="text-[#CCCCD9] text-lg leading-relaxed">
-                  Heal Her is committed to <strong>SDG Goal 5</strong>: Achieve gender equality and empower all women and girls. By providing access to sexual and reproductive health information, we are giving girls autonomy over their futures.
-               </p>
-            </div>
-         </div>
-      </section>
-
-      {/* --- SUPPORT & DONATIONS (DETAILED) --- */}
-      <section className="py-24 relative" id="donate">
-         <div className="absolute inset-0 bg-[#1C1246]" />
-         <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#DA8CA0]/50 to-transparent" />
+      {/* --- DEEP IMPACT (Replacing Financial Ask) --- */}
+      <section className="py-24 md:py-32 relative overflow-hidden bg-[#231854]/20 border-t border-white/5" id="impact">
+         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[500px] bg-[#DA8CA0]/10 blur-[150px] rounded-full pointer-events-none" />
          
          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="grid lg:grid-cols-12 gap-16 items-center">
+            <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
                
-               {/* Left: The "Investor Pitch" */}
                <motion.div 
-                 initial={{ opacity: 0, x: -30 }}
-                 whileInView={{ opacity: 1, x: 0 }}
+                 initial={{ opacity: 0, x: -30, filter: "blur(10px)" }}
+                 whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
                  viewport={{ once: true }}
-                 transition={{ duration: 0.8 }}
-                 className="lg:col-span-7 space-y-10"
+                 transition={{ duration: 1.2, ease: ultraSmooth }}
+                 className="space-y-8 md:space-y-10"
                >
                   <div>
-                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#DA8CA0]/10 border border-[#DA8CA0]/20 text-[#DA8CA0] text-xs font-bold uppercase mb-4">
-                        <HandHeart className="h-3 w-3" /> Support the Mission
+                     <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] md:text-xs font-bold uppercase tracking-widest mb-5 md:mb-6">
+                        <Zap className="h-3 w-3 md:h-4 md:w-4" /> Systemic Disruption
                      </div>
-                     <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
-                        Help us keep Heal Her <br/> <span className="text-[#DA8CA0]">Free for Every Girl.</span>
+                     <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white mb-6 md:mb-8 leading-[1.1]">
+                        The architecture of <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#DA8CA0] to-indigo-400">empowerment.</span>
                      </h2>
-                     <p className="text-lg text-[#CCCCD9] leading-relaxed">
-                        Artificial Intelligence is expensive, but health education should be free. Your generosity ensures that no girl is ever locked out of the advice she needs because she can't afford a subscription.
+                     <p className="text-base md:text-lg text-[#CCCCD9] font-light leading-relaxed mb-6">
+                        Heal Her isn't just an application; it is a fundamental shift in how young women access critical life intelligence. By leveraging advanced AI, we bypass the stigma and geographical limitations that have kept generations in the dark.
                      </p>
-                  </div>
-                  
-                  {/* Detailed Breakdown (Custom Accordion) */}
-                  <div className="border-t border-[#DA8CA0]/20 pt-6">
-                     <h4 className="text-white font-bold text-sm uppercase tracking-wide opacity-80 mb-4">Transparency: Where Your Money Goes</h4>
-                     
-                     <div className="w-full space-y-2">
-                        <TransparencyItem 
-                           icon={Server} 
-                           title="65% - AI & Server Costs" 
-                           colorClass="text-blue-500"
-                        >
-                           Running a smart AI requires powerful servers. Your donation pays for the computing power that allows Heal Her to answer questions instantly, 24/7.
-                        </TransparencyItem>
-
-                        <TransparencyItem 
-                           icon={Code2} 
-                           title="25% - Developing New Features" 
-                           colorClass="text-purple-500"
-                        >
-                           We are building voice chat for girls who can't type well, and expanding our language support to include more local dialects.
-                        </TransparencyItem>
-
-                        <TransparencyItem 
-                           icon={Users} 
-                           title="10% - School Outreach" 
-                           colorClass="text-emerald-500"
-                        >
-                           We print physical guides and stickers for schools in rural areas where internet access is limited, ensuring no girl is left behind.
-                        </TransparencyItem>
-                     </div>
-                  </div>
-
-                  {/* The Emotional "Why" */}
-                  <div className="bg-[#231854] border border-[#DA8CA0]/20 p-6 rounded-xl relative">
-                     <div className="absolute -left-1 top-6 h-12 w-1 bg-[#DA8CA0] rounded-r-full" />
-                     <p className="text-[#CCCCD9] italic text-sm leading-relaxed">
-                        "Every donation is a message to a girl somewhere that she matters. That her health matters. That her questions deserve answers. You aren't just funding an app; you are funding confidence."
+                     <p className="text-base md:text-lg text-white font-medium leading-relaxed">
+                        Our premium infrastructure ensures that every interaction is processed with zero-latency precision. When a girl needs a shield, she gets it instantly—without compromise.
                      </p>
-                     
-                     <div className="mt-4 flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-[#1C1246] flex items-center justify-center border border-[#DA8CA0]/20">
-                           <User className="h-4 w-4 text-[#DA8CA0]" />
-                        </div>
-                        <div>
-                           <p className="text-white text-xs font-bold">Nwaka Amos Chika</p>
-                           <p className="text-[#CCCCD9] text-[10px] uppercase tracking-wider">Founder, Heal Her</p>
-                        </div>
-                     </div>
                   </div>
                </motion.div>
 
-               {/* Right: The Bank Widget */}
                <motion.div 
-                 initial={{ opacity: 0, x: 30 }}
-                 whileInView={{ opacity: 1, x: 0 }}
+                 initial={{ opacity: 0, x: 30, filter: "blur(10px)" }}
+                 whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
                  viewport={{ once: true }}
-                 transition={{ duration: 0.8 }}
-                 className="lg:col-span-5 h-full"
+                 transition={{ duration: 1.2, delay: 0.2, ease: ultraSmooth }}
+                 className="grid gap-4 md:gap-6"
                >
-                  <BankTransferWidget />
+                 <div className="p-8 rounded-[2rem] bg-gradient-to-br from-[#1C1246] to-[#2a1b54] border border-white/10 shadow-2xl relative overflow-hidden group hover:border-[#DA8CA0]/40 transition-colors duration-500">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-[50px] rounded-full pointer-events-none" />
+                    <Code2 className="h-8 w-8 text-blue-400 mb-4" />
+                    <h3 className="text-xl font-bold text-white mb-2">Unrestricted Access</h3>
+                    <p className="text-sm text-[#CCCCD9] font-light">Tearing down the walls of misinformation. Our systems deliver clinical-grade health data and psychological support directly to her device, 24/7.</p>
+                 </div>
+                 
+                 <div className="p-8 rounded-[2rem] bg-gradient-to-br from-[#1C1246] to-[#2a1b54] border border-white/10 shadow-2xl relative overflow-hidden group hover:border-emerald-400/40 transition-colors duration-500 lg:ml-8">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-[50px] rounded-full pointer-events-none" />
+                    <ShieldCheck className="h-8 w-8 text-emerald-400 mb-4" />
+                    <h3 className="text-xl font-bold text-white mb-2">Unyielding Privacy</h3>
+                    <p className="text-sm text-[#CCCCD9] font-light">Shame thrives in exposure. Our zero-logging cryptographic architecture guarantees that her most vulnerable questions remain permanently sealed.</p>
+                 </div>
                </motion.div>
 
             </div>
          </div>
       </section>
 
-      {/* --- LONG TERM VISION --- */}
-      <section className="py-24 border-t border-white/5 bg-[#231854]/20">
-         <div className="mx-auto max-w-3xl px-4 text-center">
+      {/* --- SDG ALIGNMENT & PARTNERSHIPS --- */}
+      <section className="py-20 md:py-32 border-y border-white/5 bg-[#1C1246]">
+         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
             <motion.div 
-              initial={{ scale: 0 }}
-              whileInView={{ scale: 1 }}
-              viewport={{ once: true }}
-              className="mb-6 inline-flex items-center justify-center h-12 w-12 rounded-full bg-[#1C1246] border border-[#DA8CA0]/20"
+               initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
+               whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+               viewport={{ once: true }}
+               transition={{ duration: 1.2, ease: ultraSmooth }}
+               className="flex flex-col md:flex-row items-center gap-10 md:gap-16"
             >
-               <HandHeart className="h-5 w-5 text-[#DA8CA0]" />
+               <div className="w-40 h-40 md:w-56 md:h-56 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-3xl flex flex-col items-center justify-center text-white shrink-0 shadow-[0_20px_40px_-10px_rgba(16,185,129,0.4)] border border-emerald-400/30 transform -rotate-3 hover:rotate-0 transition-transform duration-500">
+                  <div className="text-7xl md:text-8xl font-black drop-shadow-lg">5</div>
+                  <div className="text-xs md:text-sm font-bold text-center mt-2 px-4 uppercase tracking-widest">Gender<br/>Equality</div>
+               </div>
+               <div className="text-center md:text-left">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] md:text-xs font-bold uppercase tracking-widest mb-4">
+                     <Globe className="h-3 w-3 md:h-4 md:w-4" /> Global Alignment
+                  </div>
+                  <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-6">Built for UN Goal 5</h2>
+                  <p className="text-[#CCCCD9] text-base md:text-lg font-light leading-relaxed mb-8">
+                     Heal Her is an actionable, scalable weapon in the fight for global gender equality. By decentralizing access to sexual and reproductive health intelligence, we grant young women total autonomy over their physical futures.
+                  </p>
+                  
+                  <div className="p-5 md:p-6 rounded-2xl bg-[#231854]/40 border border-[#DA8CA0]/20 flex flex-col sm:flex-row items-center justify-between gap-4">
+                     <div className="flex items-center gap-3">
+                        <Network className="h-6 w-6 text-[#DA8CA0]" />
+                        <span className="text-white font-bold text-sm md:text-base">Institutional Partnerships</span>
+                     </div>
+                     <a href="mailto:partners@healher.ai" className="text-xs md:text-sm font-mono text-[#DA8CA0] hover:text-white transition-colors bg-[#DA8CA0]/10 px-4 py-2 rounded-lg border border-[#DA8CA0]/30 w-full sm:w-auto text-center">
+                        partners@healher.ai
+                     </a>
+                  </div>
+               </div>
             </motion.div>
-            <h2 className="text-3xl font-bold text-white mb-6">The Future We Are Building</h2>
-            <div className="space-y-4 text-lg leading-relaxed text-[#CCCCD9]">
-               <p>
-                  We envision a world where every girl, regardless of where she lives, grows up understanding and loving her body. A world where shame is replaced by knowledge, and fear is replaced by support.
-               </p>
-               <p>
-                  Heal Her is just the beginning. Through continuous innovation and community partnerships, we are building a digital sisterhood that spans the globe.
-               </p>
-               <p className="font-medium text-[#DA8CA0] pt-4">
-                  Every girl empowered. Every question answered. That is our promise.
-               </p>
-            </div>
          </div>
       </section>
 
