@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, Suspense } from "react"
 import Image from "next/image"
 import { useSearchParams, useRouter } from "next/navigation" 
 import { createPortal } from "react-dom"
@@ -42,7 +42,7 @@ const INTENTS: SessionIntent[] = [
   { label: "Crisis", icon: <ShieldAlert className="w-5 h-5" />, mood: "gentle", suggestion: "I'm feeling completely overwhelmed and need immediate support." },
 ];
 
-export default function YoungAdultsChatPage() {
+function ChatContent() {
   const [messages, setMessages] = useState<Message[]>([]) 
   const [isGenerating, setIsGenerating] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -545,5 +545,18 @@ function PremiumLimitModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
         </div>
       )}
     </AnimatePresence>
+  )
+}
+
+// --- MAIN PAGE EXPORT (SUSPENSE WRAPPER) ---
+export default function YoungAdultsChatPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    }>
+      <ChatContent />
+    </Suspense>
   )
 }

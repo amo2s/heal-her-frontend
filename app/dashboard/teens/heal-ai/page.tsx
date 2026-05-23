@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, Suspense } from "react"
 import Image from "next/image"
 import { useSearchParams, useRouter } from "next/navigation" 
 import { createPortal } from "react-dom"
@@ -42,7 +42,7 @@ const INTENTS: SessionIntent[] = [
   { label: "Crisis", icon: <ShieldAlert className="w-5 h-5" />, mood: "gentle", suggestion: "I'm feeling unsafe or overwhelmed and need immediate guidance." },
 ];
 
-export default function YoungAdultsChatPage() {
+function ChatContent() {
   const [messages, setMessages] = useState<Message[]>([]) 
   const [isGenerating, setIsGenerating] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -533,12 +533,25 @@ function PremiumLimitModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                   <p className="text-white/50 text-sm leading-relaxed">You have sent 50 messages today. To continue your session, upgrade to Heal Her Premium.</p>
                 </div>
                 <button onClick={() => window.open('/pricing', '_blank')} className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl transition-all shadow-lg">
-                  Upgrade for $5/mo
+                  Upgrade for ₦7,500/mo
                 </button>
              </div>
           </motion.div>
         </div>
       )}
     </AnimatePresence>
+  )
+}
+
+// --- MAIN PAGE EXPORT (SUSPENSE WRAPPER) ---
+export default function YoungAdultsChatPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    }>
+      <ChatContent />
+    </Suspense>
   )
 }

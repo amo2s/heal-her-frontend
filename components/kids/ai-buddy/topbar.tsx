@@ -1,17 +1,15 @@
 "use client"
 
-import React, { useState, useRef, useEffect } from "react"
+import React, { useState, useRef, useEffect, Suspense } from "react"
 import Image from "next/image"
 import { useSearchParams, useRouter } from "next/navigation" 
 import { createPortal } from "react-dom"
 import { 
-  Info, 
   MoreVertical, 
   Archive, 
   Trash2, 
   Flag,
   Menu,
-  Loader2,
   Sparkles
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -24,11 +22,11 @@ interface HeaderProps {
   onSidebarToggle?: () => void
 }
 
-export function Header({ onMenuAction, onSidebarToggle }: HeaderProps) {
+function HeaderContent({ onMenuAction, onSidebarToggle }: HeaderProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const currentSessionId = searchParams.get("session_id")
-  const { playSfx, speak } = useAudio()
+  const { playSfx } = useAudio()
 
   const [showMenu, setShowMenu] = useState(false)
   const [showInfo, setShowInfo] = useState(false)
@@ -235,5 +233,14 @@ function DeleteConfirmationModal({ isOpen, isLoading, onClose, onConfirm }: any)
       </motion.div>
     </div>,
     document.body
+  )
+}
+
+// --- MAIN EXPORT WITH SUSPENSE WRAPPER ---
+export function Header(props: HeaderProps) {
+  return (
+    <Suspense fallback={<div className="h-20 w-full" />}>
+      <HeaderContent {...props} />
+    </Suspense>
   )
 }

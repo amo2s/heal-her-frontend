@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, Suspense } from "react"
 import { useSearchParams } from "next/navigation" 
 import { ChatInput } from "@/components/chat-input"
 import { ChatMessage } from "@/components/chat-message" 
@@ -37,7 +37,7 @@ const MOODS: ChildMood[] = [
   { label: "Brave", emoji: "🦁", mood: "happy", color: "from-emerald-400 to-teal-500", suggestion: "I'm ready to learn!" },
 ];
 
-export default function ChatPage() {
+function ChatContent() {
   const [messages, setMessages] = useState<Message[]>([]) 
   const [isGenerating, setIsGenerating] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -373,12 +373,25 @@ function PremiumLimitModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                 <h3 className="text-2xl font-bold text-white">Daily Limit Reached 🌸</h3>
                 <p className="text-[#CCCCD9]/80 text-sm">You have sent 50 messages today! To continue, upgrade to Heal Her Premium.</p>
                 <button onClick={() => window.open('/pricing', '_blank')} className="w-full h-12 bg-white hover:bg-[#DA8CA0] hover:text-white text-[#1C1246] font-bold rounded-xl transition-all">
-                  Upgrade for $5/mo
+                  Upgrade for ₦7,500/mo
                 </button>
              </div>
           </motion.div>
         </div>
       )}
     </AnimatePresence>
+  )
+}
+
+// --- MAIN PAGE EXPORT (SUSPENSE WRAPPER) ---
+export default function ChatPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen w-full items-center justify-center bg-[#1C1246]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#DA8CA0]" />
+      </div>
+    }>
+      <ChatContent />
+    </Suspense>
   )
 }

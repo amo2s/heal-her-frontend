@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback, Suspense } from "react"
 import { createPortal } from "react-dom"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation" 
@@ -28,7 +28,7 @@ interface SidebarProps {
   onClose?: () => void
 }
 
-export function Sidebar({ className, onClose }: SidebarProps) {
+function SidebarContent({ className, onClose }: SidebarProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const currentSessionId = searchParams.get("session_id")
@@ -368,5 +368,18 @@ function DeleteConfirmationModal({ isOpen, isLoading, onClose, onConfirm }: any)
       </motion.div>
     </div>,
     document.body
+  )
+}
+
+// --- EXPORT WRAPPER WITH SUSPENSE ---
+export function Sidebar(props: SidebarProps) {
+  return (
+    <Suspense fallback={
+      <div className={cn("flex flex-col h-full w-full bg-background backdrop-blur-3xl border-r border-white/10 items-center justify-center", props.className)}>
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    }>
+      <SidebarContent {...props} />
+    </Suspense>
   )
 }

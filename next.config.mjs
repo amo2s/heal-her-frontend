@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  optimizeFonts: false, // Bypasses the build-time Google Fonts network fetch
   typescript: {
     // Keep this for now to move fast, but set to false before you go live!
     ignoreBuildErrors: true,
