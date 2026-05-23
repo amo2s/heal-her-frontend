@@ -154,7 +154,7 @@ export default function AboutPage() {
             </motion.h1>
             
             <motion.p variants={premiumSpring} className="max-w-2xl text-lg md:text-xl text-[#CCCCD9] leading-relaxed mb-10 drop-shadow-lg font-medium">
-              We are building a scalable, deeply empathetic digital sanctuary. Heal Her merges cutting-edge technology with medically backed guidance to eradicate health illiteracy.
+              We are building a scalable, deeply empathetic digital platform. Heal Her merges cutting-edge technology with medically backed guidance to eradicate health illiteracy.
             </motion.p>
 
             <motion.div variants={premiumSpring} className="flex flex-col sm:flex-row items-center gap-5 w-full sm:w-auto">
@@ -187,7 +187,7 @@ export default function AboutPage() {
                 </div>
                 <h2 className="text-3xl font-bold text-white mb-4">Our Mission</h2>
                 <p className="text-[#CCCCD9] leading-relaxed text-lg mb-8">
-                  To democratize access to vital health education, dismantling systemic stigmas. We provide institutions and individuals with a secure, judgment-free platform where every young woman can understand her body with absolute medical clarity.
+                  To democratize access to vital health education, dismantling systemic stigmas. We provide institutions, parents, families  and individuals with a secure, judgment-free platform where every young woman can understand her body with absolute medical clarity.
                 </p>
                 <div className="mt-auto pt-8 border-t border-white/10 flex items-center gap-4">
                    <div className="h-1 flex-1 bg-[#1C1246] rounded-full overflow-hidden">
@@ -301,7 +301,7 @@ export default function AboutPage() {
               </div>
               <div className="px-4 pb-6">
                 <p className="text-[#CCCCD9] leading-relaxed text-base">
-                  Architecting the secure, AI-driven engine powering Heal Her. As Founder and Technical Lead, Sliver leverages his deep backend expertise in Go and modern front-end frameworks to build a highly scalable, robust infrastructure. His rigorous architectural decisions ensure the platform maintains uncompromising standards for user privacy and data security, allowing the technology to grow seamlessly alongside our global mission.
+                  Architecting the secure, AI-driven engine powering Heal Her. As Founder and Technical Lead, Sliver leverages his deep backend expertise in Python and modern front-end frameworks to build a highly scalable, robust infrastructure. His rigorous architectural decisions ensure the platform maintains uncompromising standards for user privacy and data security, allowing the technology to grow seamlessly alongside our global mission.
                 </p>
               </div>
             </motion.div>
@@ -345,7 +345,7 @@ export default function AboutPage() {
                   { year: "2024", title: "Identifying the Gap", desc: "We identified systemic health misinformation among students, forming the blueprint for a tech-driven, empathetic solution." },
                   { year: "Early 2025", title: "Architecting the Core", desc: "Development commenced on a proprietary engine designed strictly around localized privacy protocols." },
                   { year: "Late 2025", title: "Successful Beta Deployment", desc: "Heal Her launched to a pilot group, yielding overwhelming user retention and community growth in the Girls Lounge." },
-                  { year: "The Horizon", title: "National Institutional Rollout", desc: "We are currently scaling infrastructure to deploy Heal Her across educational institutions nationwide." }
+                  { year: "The Horizon", title: "National Institutional Rollout", desc: "We are currently scaling infrastructure to deploy Heal Her across young women nationwide." }
                ].map((item, i) => (
                   <motion.div 
                      key={i}

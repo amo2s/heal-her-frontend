@@ -25,8 +25,8 @@ export default function RootLayout({
     nunito.className,
     "font-sans",
     "antialiased",
-    // Only apply global background/text if NOT in a dashboard route
-    !isDashboardRoute ? "bg-background text-foreground" : ""
+    // Force the specific hex color for the landing page to match the gradient mask
+    !isDashboardRoute ? "bg-[#1C1246] text-[#FAFAFA]" : "bg-background text-foreground"
   ].filter(Boolean).join(" ");
 
   return (

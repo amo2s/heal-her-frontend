@@ -190,7 +190,7 @@ export default function HowItWorksPage() {
   const [activeTab, setActiveTab] = useState<keyof typeof EVOLUTION_TIERS>("kids")
 
   return (
-    <div className="relative min-h-screen bg-[#1C1246] text-[#FAFAFA] selection:bg-[#DA8CA0]/30 selection:text-[#DA8CA0]">
+    <div className="relative min-h-screen bg-background text-[#FAFAFA] selection:bg-[#DA8CA0]/30 selection:text-[#DA8CA0]">
       <Navigation />
 
       {/* ========== FULL-WIDTH HERO SECTION ========== */}
@@ -206,8 +206,11 @@ export default function HowItWorksPage() {
             priority
           />
           {/* Glass-morphic Gradient Overlays for perfect text readability */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#1C1246]/70 via-[#1C1246]/40 to-[#1C1246]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_0%,_#1C1246_100%)] opacity-80" />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/40 to-background" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_0%,_var(--background)_100%)] opacity-80" />
+          
+          {/* Option 2 FIX: Gradient mask now strictly utilizes the theme's background variable */}
+          <div className="absolute bottom-0 inset-x-0 h-32 md:h-64 bg-gradient-to-t from-background to-transparent pointer-events-none" />
         </div>
         
         {/* Floating Text Content */}
@@ -272,7 +275,7 @@ export default function HowItWorksPage() {
       </section>
 
       {/* ========== THE EVOLUTION PATHS (INTERACTIVE TAB SYSTEM) ========== */}
-      <section className="relative py-24 sm:py-32 bg-[#1C1246] border-t border-white/5">
+      <section className="relative py-24 sm:py-32 bg-background border-t border-white/5">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 sm:mb-16">
             <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-6">Built to Grow With You</h2>
@@ -363,7 +366,7 @@ export default function HowItWorksPage() {
       </section>
 
       {/* ========== THE PRIVACY PROMISE (SALES PITCH) ========== */}
-      <section className="py-24 sm:py-32 relative overflow-hidden bg-[#231854]/20 border-t border-white/5">
+      <section className="py-24 sm:py-32 relative overflow-hidden bg-background border-t border-white/5">
          <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
          
          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
@@ -417,7 +420,7 @@ export default function HowItWorksPage() {
 
       {/* ========== FINAL CTA ========== */}
       <section className="relative py-24 sm:py-32 overflow-hidden border-t border-[#DA8CA0]/10">
-         <div className="absolute inset-0 bg-[#1C1246]">
+         <div className="absolute inset-0 bg-background">
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] sm:w-[1200px] h-[400px] sm:h-[600px] bg-[#DA8CA0]/15 blur-[120px] sm:blur-[150px] rounded-full pointer-events-none" />
          </div>

@@ -7,7 +7,7 @@ import { motion, useMotionTemplate, useMotionValue } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
-import Testimonial from "@/components/testimonial"
+import Testimonial from "@/components/modals/testimonial"
 import HeroCard from "@/components/hero-card"
 import { cn } from "@/lib/utils"
 import {
@@ -95,13 +95,11 @@ function PremiumEcosystemCard({
 
         <div className="mt-auto pt-6 border-t border-white/5">
           {/* Transparent Liquid Button -> Glossy Pink on Hover */}
-          <Button asChild className="group/btn relative overflow-hidden w-full bg-white/5 backdrop-blur-xl text-white border border-white/20 border-t-white/40 shadow-[inset_0_2px_4px_rgba(255,255,255,0.1)] hover:bg-gradient-to-b hover:from-[#f3cbd4] hover:to-[#DA8CA0] hover:text-[#1C1246] hover:border-[#DA8CA0] hover:shadow-[inset_0_2px_4px_rgba(255,255,255,0.8),0_10px_20px_-5px_rgba(218,140,160,0.5)] rounded-xl h-14 transition-all duration-500">
-            <Link href="/login" className="relative z-10 flex items-center justify-center gap-2 w-full h-full font-bold">
+          <Button asChild className="group/btn relative overflow-hidden w-full bg-white/5 backdrop-blur-xl text-white border border-white/20 border-t-white/40 shadow-[inset_0_2px_4px_rgba(255,255,255,0.1)] hover:bg-gradient-to-b hover:from-[#f3cbd4] hover:to-[#DA8CA0] hover:text-[#1C1246] hover:border-[#DA8CA0] hover:shadow-[inset_0_2px_4px_rgba(255,255,255,0.8),0_10px_20px_-5px_rgba(218,140,160,0.5)] rounded-xl h-14 transition-all duration-500"><Link href="/login" className="relative z-10 flex items-center justify-center gap-2 w-full h-full font-bold">
                {/* Light Sweep Animation */}
               <div className="absolute top-0 left-[-100%] w-[150%] h-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover/btn:translate-x-[150%] transition-transform duration-1000 ease-in-out" />
               Explore Path <ArrowRight className="w-5 h-5 relative z-10" />
-            </Link>
-          </Button>
+            </Link></Button>
         </div>
       </div>
     </motion.div>
@@ -159,14 +157,12 @@ export default function HomePage() {
               <div className="mt-10 flex flex-col sm:flex-row items-start sm:items-center gap-6">
                 
                 {/* Glossy Shiny Primary Button */}
-                <Button asChild size="lg" className="group relative overflow-hidden h-16 rounded-full bg-gradient-to-b from-[#f3cbd4] to-[#DA8CA0] px-10 text-lg font-bold text-[#1C1246] border border-[#DA8CA0]/50 border-t-white/80 shadow-[inset_0_2px_5px_rgba(255,255,255,0.9),0_10px_30px_-10px_rgba(218,140,160,0.6)] hover:from-[#fae0e6] hover:to-[#e19eb0] hover:scale-105 hover:shadow-[inset_0_2px_5px_rgba(255,255,255,1),0_15px_40px_-10px_rgba(218,140,160,0.8)] transition-all duration-500">
-                  <Link href="/login" className="flex items-center gap-3">
+                <Button asChild size="lg" className="group relative overflow-hidden h-16 rounded-full bg-gradient-to-b from-[#f3cbd4] to-[#DA8CA0] px-10 text-lg font-bold text-[#1C1246] border border-[#DA8CA0]/50 border-t-white/80 shadow-[inset_0_2px_5px_rgba(255,255,255,0.9),0_10px_30px_-10px_rgba(218,140,160,0.6)] hover:from-[#fae0e6] hover:to-[#e19eb0] hover:scale-105 hover:shadow-[inset_0_2px_5px_rgba(255,255,255,1),0_15px_40px_-10px_rgba(218,140,160,0.8)] transition-all duration-500"><Link href="/login" className="flex items-center gap-3">
                     {/* Glossy Light Sweep */}
                     <div className="absolute top-0 left-[-100%] w-[150%] h-full bg-gradient-to-r from-transparent via-white/50 to-transparent group-hover:translate-x-[150%] transition-transform duration-1000 ease-in-out" />
                     <span className="relative z-10">Start Your Journey</span> 
                     <ArrowRight className="h-5 w-5 relative z-10" />
-                  </Link>
-                </Button>
+                  </Link></Button>
                 
                 <div className="flex items-center gap-3 text-sm font-medium text-[#CCCCD9]">
                   <Shield className="w-5 h-5 text-[#DA8CA0]" />
@@ -391,13 +387,11 @@ export default function HomePage() {
             </p>
             <div className="flex justify-center">
                {/* Glossy Shiny Primary Button */}
-               <Button asChild className="group relative overflow-hidden h-16 rounded-full bg-gradient-to-b from-[#f3cbd4] to-[#DA8CA0] px-12 text-xl font-bold text-[#1C1246] border border-[#DA8CA0]/50 border-t-white/80 shadow-[inset_0_2px_5px_rgba(255,255,255,0.9),0_10px_30px_-10px_rgba(218,140,160,0.6)] hover:from-[#fae0e6] hover:to-[#e19eb0] hover:scale-105 hover:shadow-[inset_0_2px_5px_rgba(255,255,255,1),0_15px_40px_-10px_rgba(218,140,160,0.8)] transition-all duration-500">
-                  <Link href="/login">
+               <Button asChild className="group relative overflow-hidden h-16 rounded-full bg-gradient-to-b from-[#f3cbd4] to-[#DA8CA0] px-12 text-xl font-bold text-[#1C1246] border border-[#DA8CA0]/50 border-t-white/80 shadow-[inset_0_2px_5px_rgba(255,255,255,0.9),0_10px_30px_-10px_rgba(218,140,160,0.6)] hover:from-[#fae0e6] hover:to-[#e19eb0] hover:scale-105 hover:shadow-[inset_0_2px_5px_rgba(255,255,255,1),0_15px_40px_-10px_rgba(218,140,160,0.8)] transition-all duration-500"><Link href="/login">
                     {/* Glossy Light Sweep */}
                     <div className="absolute top-0 left-[-100%] w-[150%] h-full bg-gradient-to-r from-transparent via-white/50 to-transparent group-hover:translate-x-[150%] transition-transform duration-1000 ease-in-out" />
                     <span className="relative z-10">Create Account</span>
-                  </Link>
-               </Button>
+                  </Link></Button>
             </div>
          </motion.div>
       </section>
