@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -11,13 +11,16 @@ import {
   Users, 
   Gamepad2, 
   X, 
-  Settings, 
+  LogOut, 
   MessageCircleHeart,
   ScanSearch
 } from "lucide-react";
 import { useSidebar } from "@/store/use-sidebar";
 import { useHeal } from "@/store/heal";
 import { useAudio } from "@/components/context/audio-manager";
+
+// Import the universal logout modal
+import LogoutModal from "@/components/modals/logout-modal";
 
 // Updated with the new Magic Glass (Detector) route
 const NAV = [
@@ -35,10 +38,57 @@ export function Sidebar({ base }: { base: string }) {
   const pathname = usePathname();
   const { playSfx } = useAudio();
 
+  // New state tracking for advanced additions
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [displayName, setDisplayName] = useState(nickname || "Explorer");
+
   // Close mobile sidebar on route change
   useEffect(() => { 
     close(); 
   }, [pathname, close]);
+
+  // Secure User Data Fetching and Memory Cache Setup
+  useEffect(() => {
+    const fetchKidsProfileName = async () => {
+      // Direct cache lookup to maximize client-side request efficiency
+      const cachedKidsName = localStorage.getItem("heal_kids_user_name");
+      if (cachedKidsName) {
+        setDisplayName(cachedKidsName);
+        return;
+      }
+
+      try {
+        // Pointing cleanly to your explicit target context proxy route
+        const res = await fetch("/api/proxy/kids/dashboard/graphql", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query: `
+              query GetKidsProfile {
+                me {
+                  fullName
+                }
+              }
+            `
+          }),
+        });
+
+        const result = await res.json();
+
+        if (result?.data?.me?.fullName) {
+          const fetchedKidsName = result.data.me.fullName;
+          setDisplayName(fetchedKidsName);
+          localStorage.setItem("heal_kids_user_name", fetchedKidsName);
+        }
+      } catch (error) {
+        console.error("[UI SHIELD] Failed to resolve user name context:", error);
+      }
+    };
+
+    fetchKidsProfileName();
+  }, []);
 
   const SidebarContent = (
     <div className="flex h-full flex-col p-6">
@@ -124,25 +174,28 @@ export function Sidebar({ base }: { base: string }) {
           <div className="relative group">
             <div className="h-10 w-10 rounded-[1rem] bg-gradient-to-tr from-[#DA8CA0] to-purple-600 p-px shadow-lg">
               <div className="flex h-full w-full items-center justify-center rounded-[15px] bg-[#1C1246] text-xs font-black text-white">
-                {nickname.slice(0, 2).toUpperCase()}
+                {displayName.slice(0, 2).toUpperCase()}
               </div>
             </div>
             <div className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full border-[2.5px] border-[#1C1246] bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
           </div>
           
           <div className="flex flex-1 flex-col min-w-0">
-            <span className="truncate text-xs font-black text-white uppercase tracking-wider">{nickname}</span>
-            <span className="truncate text-[9px] text-[#DA8CA0] uppercase font-bold tracking-[0.2em]">{group} User</span>
+            <span className="truncate text-xs font-black text-white uppercase tracking-wider">{displayName}</span>
+            <span className="truncate text-[9px] text-[#DA8CA0] uppercase font-bold tracking-[0.2em]">{group || "Kids"} User</span>
           </div>
 
-          <Link 
-            href={`/dashboard/${base}/settings`}
-            onClick={() => playSfx('click')}
-            className="p-2.5 bg-white/5 rounded-xl text-[#CCCCD9] hover:text-white hover:bg-white/10 transition-all"
-            title="Settings"
+          <button 
+            type="button"
+            onClick={() => { 
+              playSfx('click'); 
+              setIsLogoutModalOpen(true); 
+            }}
+            className="p-2.5 bg-white/5 rounded-xl text-[#CCCCD9] hover:text-destructive hover:bg-destructive/10 transition-all"
+            title="Logout"
           >
-            <Settings className="h-4 w-4" />
-          </Link>
+            <LogOut className="h-4 w-4" />
+          </button>
         </motion.div>
       </div>
     </div>
@@ -180,6 +233,12 @@ export function Sidebar({ base }: { base: string }) {
           </>
         )}
       </AnimatePresence>
+
+      {/* The Universal Logout Modal Component Trigger */}
+      <LogoutModal 
+        isOpen={isLogoutModalOpen} 
+        onClose={() => setIsLogoutModalOpen(false)} 
+      />
     </>
   );
 }

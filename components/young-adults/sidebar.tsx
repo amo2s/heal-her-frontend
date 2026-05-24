@@ -11,7 +11,7 @@ import {
   Users, 
   Target, 
   X, 
-  Settings, 
+  LogOut, 
   MessageSquareDashed,
   ScanSearch,
   ShieldCheck
@@ -19,6 +19,9 @@ import {
 import { useSidebar } from "@/store/use-sidebar";
 import { useAudio } from "@/components/context/audio-manager";
 import { cn } from "@/lib/utils";
+
+// Import the universal logout modal
+import LogoutModal from "@/components/modals/logout-modal";
 
 // Upgraded navigation for the Young Adults experience
 const NAV = [
@@ -49,12 +52,22 @@ export interface SidebarProps {
 export function Sidebar({ base = "young-adults" }: SidebarProps) {
   const { isOpen, close } = useSidebar();
   const [nickname, setNickname] = useState("...");
-  const [group, setGroup] = useState("Young Adult"); // Keeping default as it's not in the new query
+  const [group, setGroup] = useState("Young Adult"); 
   const pathname = usePathname();
   const { playSfx } = useAudio();
 
-  // Fetch real user data using the exact logic from the dashboard
+  // New state tracking for the logout modal
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+
+  // Fetch real user data using the exact logic from the dashboard with Caching
   useEffect(() => {
+    // 1. Direct cache lookup to maximize client-side request efficiency
+    const cachedName = localStorage.getItem("heal_ya_user_name");
+    if (cachedName) {
+      setNickname(cachedName);
+      return; // Short-circuit to avoid redundant network calls
+    }
+
     const controller = new AbortController();
 
     const fetchDashboardProfile = async () => {
@@ -75,7 +88,7 @@ export function Sidebar({ base = "young-adults" }: SidebarProps) {
         const payload = await response.json();
         
         if (payload.errors) {
-          console.error("GraphQL Errors:", payload.errors);
+          console.error("[UI SHIELD] GraphQL Errors:", payload.errors);
           return;
         }
         
@@ -84,12 +97,14 @@ export function Sidebar({ base = "young-adults" }: SidebarProps) {
           const { profile } = payload.data.getMe;
           if (profile?.firstName) {
             setNickname(profile.firstName);
+            // 2. Commit to cache for future page reloads
+            localStorage.setItem("heal_ya_user_name", profile.firstName);
           }
         }
         
       } catch (error: any) {
         if (error.name !== 'AbortError') {
-          console.error("Sidebar profile fetch failed:", error.message);
+          console.error("[UI SHIELD] Sidebar profile fetch failed:", error.message);
         }
       }
     };
@@ -209,14 +224,17 @@ export function Sidebar({ base = "young-adults" }: SidebarProps) {
             <span className="truncate text-[9px] text-primary uppercase font-bold tracking-[0.2em]">{group || "Young Adult"} User</span>
           </div>
 
-          <Link 
-            href={`/dashboard/${base}/settings`}
-            onClick={() => playSfx('click')}
-            className="p-2.5 bg-white/5 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-all"
-            title="Settings"
+          <button 
+            type="button"
+            onClick={() => { 
+              playSfx('click'); 
+              setIsLogoutModalOpen(true); 
+            }}
+            className="p-2.5 bg-white/5 rounded-xl text-white/50 hover:text-destructive hover:bg-destructive/10 transition-all"
+            title="Logout"
           >
-            <Settings className="h-4 w-4" />
-          </Link>
+            <LogOut className="h-4 w-4" />
+          </button>
         </motion.div>
       </div>
     </div>
@@ -254,6 +272,12 @@ export function Sidebar({ base = "young-adults" }: SidebarProps) {
           </>
         )}
       </AnimatePresence>
+
+      {/* The Universal Logout Modal Component Trigger */}
+      <LogoutModal 
+        isOpen={isLogoutModalOpen} 
+        onClose={() => setIsLogoutModalOpen(false)} 
+      />
     </>
   );
 }
