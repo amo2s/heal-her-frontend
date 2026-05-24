@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ detail: "Email and password are required." }, { status: 400 });
     }
 
-    const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000/graphql";
+    const backendUrl = process.env.BACKEND_URL || "https://sliverboy-healher-backend.hf.space/graphql";
 
     // Extract the real user's IP so your backend Valkey Guard doesn't ban your Next.js server
     const forwardedFor = request.headers.get("x-forwarded-for");

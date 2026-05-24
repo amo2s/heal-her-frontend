@@ -46,7 +46,7 @@ export async function fortressFetch<T = any>(
   // =====================================================================
   if (isServer) {
     // 1. Skip the Proxy Route entirely to save latency.
-    const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000";
+    const backendUrl = process.env.BACKEND_URL || "https://sliverboy-healher-backend.hf.space";
     targetUrl = `${backendUrl}/${cleanPath}`;
 
     // 2. Dynamic Server Import (The "Isomorphic" Key)

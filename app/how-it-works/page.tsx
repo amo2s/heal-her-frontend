@@ -18,7 +18,6 @@ import {
   GraduationCap,
   Fingerprint,
   EyeOff,
-  MessageCircle,
   Activity,
   Shield
 } from "lucide-react"
@@ -196,12 +195,14 @@ export default function HowItWorksPage() {
       {/* ========== FULL-WIDTH HERO SECTION ========== */}
       <section className="relative min-h-[95vh] md:min-h-[85vh] flex items-center justify-center overflow-hidden">
         
-        {/* Full Screen Image Background */}
+        {/* Full Screen Image Background - OPTIMIZED FOR MOBILE */}
         <div className="absolute inset-0 z-0">
           <Image
             src="/first-hero.png"
             alt="The Architecture of Growth"
             fill
+            sizes="100vw"
+            quality={90}
             className="object-cover object-center"
             priority
           />
@@ -209,7 +210,6 @@ export default function HowItWorksPage() {
           <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/40 to-background" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_0%,_var(--background)_100%)] opacity-80" />
           
-          {/* Option 2 FIX: Gradient mask now strictly utilizes the theme's background variable */}
           <div className="absolute bottom-0 inset-x-0 h-32 md:h-64 bg-gradient-to-t from-background to-transparent pointer-events-none" />
         </div>
         
@@ -248,7 +248,6 @@ export default function HowItWorksPage() {
              animate={{ opacity: 1, scale: 1 }}
              transition={{ delay: 0.4, duration: 0.8, ease: smoothEase }}
            >
-             {/* Glossy Liquid Action Button */}
              <Button asChild className="group relative overflow-hidden h-16 sm:h-18 rounded-full bg-gradient-to-b from-[#f3cbd4] to-[#DA8CA0] px-10 sm:px-12 text-lg sm:text-xl font-bold text-[#1C1246] border border-[#DA8CA0]/50 border-t-white/80 shadow-[inset_0_2px_5px_rgba(255,255,255,0.9),0_15px_40px_-10px_rgba(218,140,160,0.8)] hover:from-[#fae0e6] hover:to-[#e19eb0] hover:scale-105 transition-all duration-500">
                 <Link href="/login">
                   <div className="absolute top-0 left-[-100%] w-[150%] h-full bg-gradient-to-r from-transparent via-white/50 to-transparent group-hover:translate-x-[150%] transition-transform duration-1000 ease-in-out" />
@@ -314,8 +313,8 @@ export default function HowItWorksPage() {
             })}
           </div>
 
-          {/* Tab Content Display */}
-          <div className="relative min-h-[600px] lg:min-h-[450px]">
+          {/* Tab Content Display - HEIGHT OPTIMIZED FOR MOBILE STACKING */}
+          <div className="relative min-h-[780px] sm:min-h-[650px] lg:min-h-[450px]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}
@@ -326,10 +325,10 @@ export default function HowItWorksPage() {
                 className="absolute inset-0 w-full"
               >
                 <SpotlightCard className="p-6 sm:p-8 md:p-12 h-full">
-                  <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center h-full">
+                  <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center h-full">
                     
-                    {/* Text Details */}
-                    <div className="order-2 lg:order-1 flex flex-col justify-center h-full text-center lg:text-left">
+                    {/* Text Details - REORDERED: Now explicitly first on Mobile */}
+                    <div className="order-1 flex flex-col justify-center h-full text-center lg:text-left">
                       <div className="flex flex-col lg:flex-row items-center lg:items-start gap-4 mb-6">
                         <div className={cn("p-4 rounded-2xl bg-gradient-to-br shadow-lg", EVOLUTION_TIERS[activeTab].color)}>
                            {React.createElement(EVOLUTION_TIERS[activeTab].icon, { className: "w-7 h-7 text-white" })}
@@ -353,8 +352,8 @@ export default function HowItWorksPage() {
                       </div>
                     </div>
 
-                    {/* Pro UI Visuals */}
-                    <div className="order-1 lg:order-2 h-full w-full">
+                    {/* Pro UI Visuals - REORDERED: Now explicitly second on Mobile */}
+                    <div className="order-2 h-full w-full pt-4 lg:pt-0">
                       {EVOLUTION_TIERS[activeTab].visual}
                     </div>
                   </div>

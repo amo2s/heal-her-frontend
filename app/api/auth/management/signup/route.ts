@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     }
 
     // 4. TARGET ACQUISITION
-    const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000/graphql";
+    const backendUrl = process.env.BACKEND_URL || "https://sliverboy-healher-backend.hf.space/graphql";
 
     // 5. AUDIT LOG EXTRACTION (Passing Intel to the Python Guards)
     const forwardedFor = request.headers.get("x-forwarded-for");

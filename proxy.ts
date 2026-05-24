@@ -75,7 +75,7 @@ export async function proxy(request: NextRequest) {
   // =====================================================================
   // 4. THE TWIN ENGINES: CONTEXT-AWARE SILENT REFRESH
   // =====================================================================
-  const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000/graphql";
+  const backendUrl = process.env.BACKEND_URL || "https://sliverboy-healher-backend.hf.space/graphql";
   const handshakeSecret = process.env.NEXT_PUBLIC_HANDSHAKE_SECRET || "";
 
   if (isManagementRoute) {

@@ -48,8 +48,8 @@ const nextConfig = {
                 https://res.cloudinary.com
                 http://127.0.0.1:8000 
                 ws://127.0.0.1:8000 
-                https://sliverboy-heal-her-backend.hf.space 
-                wss://sliverboy-heal-her-backend.hf.space
+               https://sliverboy-healher-backend.hf.space
+                wss://sliverboy-healher-backend.hf.space
                 https://*.supabase.co; 
             `.replace(/\s{2,}/g, ' ').trim()
           }

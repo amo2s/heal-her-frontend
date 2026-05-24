@@ -9,7 +9,7 @@ async function proxyRequest(request: NextRequest, { params }: { params: Promise<
   const { slug } = await params;
   
   // 2. RECONSTRUCT THE TARGET URL
-  const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000";
+  const backendUrl = process.env.BACKEND_URL || "https://sliverboy-healher-backend.hf.space";
   const path = slug.join("/");
   const searchParams = request.nextUrl.searchParams.toString();
   const targetUrl = `${backendUrl}/${path}${searchParams ? `?${searchParams}` : ""}`;

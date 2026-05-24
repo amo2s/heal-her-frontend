@@ -53,7 +53,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000/graphql";
+    const backendUrl = process.env.BACKEND_URL || "https://sliverboy-healher-backend.hf.space/graphql";
 
     // =====================================================================
     // 4. AUDIT INTEL EXTRACTION (Environmental Pinning)
