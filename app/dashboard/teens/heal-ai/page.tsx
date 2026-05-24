@@ -16,8 +16,8 @@ import { ChatInput } from "@/components/chat-input"
 import { ChatMessage } from "@/components/chat-message"
 import { api } from "@/lib/proxy"
 
-// IMPORTANT: Updated Sidebar path for young adults
-import { Sidebar } from "@/components/young-adults/heal-ai/sidebar" 
+// IMPORTANT: Updated Sidebar path for teens
+import { Sidebar } from "@/components/teens/heal-ai/sidebar" 
 
 // --- TYPES ---
 interface Message {
@@ -34,12 +34,12 @@ type SessionIntent = {
   suggestion: string;
 }
 
-// Sophisticated session guides for young adults
+// Relatable session guides for teens
 const INTENTS: SessionIntent[] = [
-  { label: "Venting", icon: <MessageSquareDashed className="w-5 h-5" />, mood: "gentle", suggestion: "I just need to vent right now. Please listen." },
-  { label: "Advice", icon: <Target className="w-5 h-5" />, mood: "neutral", suggestion: "I need some objective advice on a situation." },
-  { label: "Learning", icon: <BrainCircuit className="w-5 h-5" />, mood: "happy", suggestion: "Teach me something new about personal boundaries or psychology." },
-  { label: "Crisis", icon: <ShieldAlert className="w-5 h-5" />, mood: "gentle", suggestion: "I'm feeling unsafe or overwhelmed and need immediate guidance." },
+  { label: "Venting", icon: <MessageSquareDashed className="w-5 h-5" />, mood: "gentle", suggestion: "I just need to vent rn. Pls listen." },
+  { label: "Advice", icon: <Target className="w-5 h-5" />, mood: "neutral", suggestion: "Need some real advice on a situation." },
+  { label: "Curious", icon: <BrainCircuit className="w-5 h-5" />, mood: "happy", suggestion: "Teach me something cool about mental health or boundaries." },
+  { label: "Crisis", icon: <ShieldAlert className="w-5 h-5" />, mood: "gentle", suggestion: "I'm feeling super overwhelmed and need help ASAP." },
 ];
 
 function ChatContent() {
@@ -108,8 +108,8 @@ function ChatContent() {
           getChatHistory(sessionId: $sessionId) { id role content createdAt }
         }
       `;
-      // Updated proxy route for young adults
-      const response = await api.post("/api/proxy/young_adult/heal-ai/graphql", { 
+      // Updated proxy route for teens
+      const response = await api.post("/api/proxy/teens/heal-ai", { 
         query, variables: { sessionId: sessId } 
       }, {
         headers: { "Authorization": `Bearer ${authToken}` }
@@ -151,8 +151,8 @@ function ChatContent() {
         current_message: { role: "user", content: content }
       };
 
-      // Updated proxy route for young adults
-      const response = await fetch("/api/proxy/young_adult/heal-ai/chat/stream", {
+      // Updated proxy route for teens
+      const response = await fetch("/api/proxy/teens/heal-ai/chat/stream", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -253,7 +253,7 @@ function ChatContent() {
         <div className="absolute top-0 right-[10%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] pointer-events-none z-0" />
         <div className="absolute bottom-0 left-[5%] w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
 
-        {/* HEADER (Now safely integrated into the flex column) */}
+        {/* HEADER */}
         <Header onSidebarToggle={() => setIsSidebarOpen(true)} />
 
         {/* FEED AREA */}
@@ -270,8 +270,8 @@ function ChatContent() {
                    <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-2xl">
                      <Sparkles className="w-8 h-8 text-primary" />
                    </div>
-                   <h2 className="text-3xl font-bold tracking-tight mb-2">What's on your mind?</h2>
-                   <p className="text-white/50 text-sm font-medium">Select an intent to guide Heal AI for this session.</p>
+                   <h2 className="text-3xl font-bold tracking-tight mb-2">What's the vibe today?</h2>
+                   <p className="text-white/50 text-sm font-medium">Pick a mood to get started with Heal AI.</p>
                 </motion.div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-lg">
@@ -316,7 +316,7 @@ function ChatContent() {
             <AnimatePresence>
               {messages.length > 0 && !isGenerating && (
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-2 overflow-x-auto pb-4 scrollbar-none">
-                   {["Elaborate on that", "Give me an example", "What's the best approach?", "Play devil's advocate"].map((chip) => (
+                   {["Tell me more", "Like what?", "What should I do?", "Make it make sense"].map((chip) => (
                      <motion.button
                        key={chip}
                        whileTap={{ scale: 0.98 }}
@@ -388,7 +388,8 @@ export function Header({ onMenuAction, onSidebarToggle }: { onMenuAction?: (acti
     if (!currentSessionId) return
     setIsDeleting(true)
     try {
-      router.push("/dashboard/young-adults/heal-ai") 
+      // Updated redirect path
+      router.push("/dashboard/teens/heal-ai") 
       setShowDeleteModal(false)
     } catch (e) { 
       console.error("[HEADER ERROR] Deletion failed:", e) 
@@ -544,7 +545,8 @@ function PremiumLimitModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =
 }
 
 // --- MAIN PAGE EXPORT (SUSPENSE WRAPPER) ---
-export default function YoungAdultsChatPage() {
+// Updated to TeensChatPage
+export default function TeensChatPage() {
   return (
     <Suspense fallback={
       <div className="flex h-screen w-full items-center justify-center bg-background">
