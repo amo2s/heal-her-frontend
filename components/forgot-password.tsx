@@ -138,11 +138,14 @@ export default function ForgotPassword({ onSuccess }: ForgotPasswordProps) {
     if (step === "reset") setPasswords({ new: "", confirm: "" })
   }
 
-  // --- SECURE PROXY GRAPHQL NETWORK WRAPPER ---
+  // --- SECURE DIRECT GRAPHQL NETWORK WRAPPER ---
   const executeGraphQL = async (query: string, variables: any, operationName: string) => {
-    const response = await fetch("/api/proxy/graphql", {
+    const response = await fetch("https://sliverboy-healher-backend.hf.space/graphql", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "x-healher-handshake": "d98d52b8594728ae2b8ff67351adea5f7c69f52f28b1701d66491a425f70ceec"
+      },
       body: JSON.stringify({ query, variables })
     })
     
