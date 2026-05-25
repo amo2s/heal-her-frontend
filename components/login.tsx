@@ -1,11 +1,10 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, Sparkles, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 
 // --- 1. ERROR MESSAGE (Soft & Simple) ---
@@ -17,25 +16,35 @@ const ErrorMessage = ({ message, onClose }: { message: string, onClose: () => vo
       exit={{ opacity: 0, y: -10, height: 0 }}
       className="flex items-center gap-3 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-200 shadow-xl mb-6 overflow-hidden"
     >
-      <div className="p-2 rounded-full bg-rose-500/20">
+      <div className="p-2 rounded-full bg-rose-500/20 flex-shrink-0">
         <AlertCircle className="h-4 w-4" />
       </div>
       <div className="flex-1">
         <p className="text-xs font-medium opacity-90">{message}</p>
       </div>
-      <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">×</button>
+      <button onClick={onClose} type="button" className="text-white/40 hover:text-white transition-colors flex-shrink-0">×</button>
     </motion.div>
   )
 }
 
 // --- 2. PREMIUM INPUT COMPONENT ---
-const InputField = ({ label, icon: Icon, type, placeholder, value, onChange, hasError }: any) => {
+interface InputFieldProps {
+  label: string;
+  icon: React.ElementType;
+  type: string;
+  placeholder: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  hasError?: boolean;
+}
+
+const InputField: React.FC<InputFieldProps> = ({ label, icon: Icon, type, placeholder, value, onChange, hasError }) => {
   const [isFocused, setIsFocused] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const inputType = type === "password" ? (showPassword ? "text" : "password") : type
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 w-full">
       <label className="text-[10px] font-bold text-[#CCCCD9]/70 ml-1 uppercase tracking-widest">{label}</label>
       <div className={cn(
         "relative group transition-all duration-500 rounded-xl border bg-[#160d33]/50 backdrop-blur-sm overflow-hidden",
@@ -69,21 +78,25 @@ const InputField = ({ label, icon: Icon, type, placeholder, value, onChange, has
 }
 
 // --- 3. MAIN LOGIN COMPONENT ---
-export default function Login() {
+interface LoginProps {
+  onSwitchToForgot?: () => void;
+}
+
+export default function Login({ onSwitchToForgot }: LoginProps) {
   const router = useRouter()
   
   // State Management
   const [isLoading, setIsLoading] = useState(false)
-  const [isAuthorized, setIsAuthorized] = useState(false) // Triggers the Vault Transition
+  const [isAuthorized, setIsAuthorized] = useState(false) 
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const [shake, setShake] = useState(false) // For intelligent error feedback
+  const [shake, setShake] = useState(false) 
   
   const [loadingTextIndex, setLoadingTextIndex] = useState(0)
-  const loadingPhrases = [
+  const loadingPhrases = useMemo(() => [
     "Setting things up for you...",
     "Verifying your access...",
     "Preparing your safe space..."
-  ]
+  ], [])
 
   const [formData, setFormData] = useState({
     email: "",
@@ -108,7 +121,7 @@ export default function Login() {
     if (errorMsg) setErrorMsg(null)
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!formData.email || !formData.password) {
       triggerError("Please fill in both your email and password.")
@@ -129,18 +142,13 @@ export default function Login() {
 
       if (!response.ok) throw new Error(data.detail || "Hmm, those details didn't quite match.")
 
-      // Session Storage
       sessionStorage.setItem("user-data", JSON.stringify(data.user))
 
-      // Dynamic Routing
       const rawSegment = data.user.dashboard || "young_adult"
       const targetRoute = rawSegment === "young_adult" ? "young-adults" : rawSegment
 
-      // Trigger "Vault Unlock" transition
       setIsAuthorized(true)
       
-      // Delay routing to let the success animation play out beautifully
-      // The 2.5s delay also prevents the dashboard race condition
       setTimeout(() => {
         router.push(`/dashboard/${targetRoute}`)
       }, 2500)
@@ -155,9 +163,7 @@ export default function Login() {
   // Intelligent Error Handling
   const triggerError = (message: string) => {
     setErrorMsg(message)
-    // Clear both fields per user request for privacy/reset speed
     setFormData({ email: "", password: "" })
-    // Trigger visual shake
     setShake(true)
     setTimeout(() => setShake(false), 500)
   }
@@ -208,9 +214,14 @@ export default function Login() {
                     hasError={!!errorMsg}
                   />
                   <div className="flex justify-end pt-1">
-                    <Link href="/forgot-password" summer-theme="true" className="text-[11px] font-semibold tracking-wide text-[#DA8CA0] hover:text-[#f0abc0] transition-colors">
+                    {/* The Native Button masquerading as a premium text link */}
+                    <button 
+                      type="button"
+                      onClick={onSwitchToForgot} 
+                      className="text-[11px] font-semibold tracking-wide text-[#DA8CA0] hover:text-[#f0abc0] hover:underline underline-offset-4 decoration-[#DA8CA0]/30 transition-all cursor-pointer"
+                    >
                       Forgot Password?
-                    </Link>
+                    </button>
                   </div>
                 </div>
               </motion.div>

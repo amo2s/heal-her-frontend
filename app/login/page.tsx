@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 // --- YOUR COMPONENTS ---
 import Login from "@/components/login"
 import SignUp from "@/components/signup"
+import ForgotPassword from "@/components/forgot-password" // We will build this next!
 
 // --- CSS HACK: DARK MODE AUTOFILL ---
 const autofillStyles = `
@@ -39,25 +40,35 @@ const SwitchingLoader = () => (
         <Loader2 className="h-8 w-8 text-[#DA8CA0] animate-spin" />
     </div>
     <p className="mt-4 text-sm font-medium text-[#CCCCD9] animate-pulse">
-        Setting up your space...
+        Securing your space...
     </p>
   </motion.div>
 )
 
 export default function LoginPage() {
-  const [isLogin, setIsLogin] = useState(true)
+  // 1. Tri-State Architecture replaces the boolean toggle
+  type ViewState = "login" | "signup" | "forgot"
+  const [viewState, setViewState] = useState<ViewState>("login")
   const [isSwitching, setIsSwitching] = useState(false)
 
-  const handleAutoSwitch = () => {
+  const handleAutoSwitch = (targetState: ViewState) => {
     setIsSwitching(true)
     setTimeout(() => {
-        setIsLogin(true)
+        setViewState(targetState)
         setIsSwitching(false)
-    }, 2000)
+    }, 1500) // Reduced to 1.5s for a snappier premium feel
+  }
+
+  // Configuration for dynamic header content
+  const headerContent = {
+    login: { title: "Welcome Back, Sis", subtitle: "Enter your details to access your sanctuary." },
+    signup: { title: "Join Your Safe Space", subtitle: "Create an account to start your healing journey." },
+    forgot: { title: "Recover Your Vault", subtitle: "Enter your email to securely reset your password." }
   }
 
   return (
-    <div className="relative min-h-screen bg-[#1C1246] text-[#FAFAFA] overflow-hidden flex flex-col items-center justify-center p-4 selection:bg-[#DA8CA0]/30 selection:text-[#DA8CA0]">
+    // 2. 100dvh prevents mobile URL bar scrolling issues
+    <div className="relative min-h-[100dvh] bg-[#1C1246] text-[#FAFAFA] overflow-hidden flex flex-col items-center justify-center p-4 sm:p-6 selection:bg-[#DA8CA0]/30 selection:text-[#DA8CA0]">
       <style>{autofillStyles}</style>
       <GrainOverlay />
       
@@ -67,14 +78,26 @@ export default function LoginPage() {
         <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[120px]" />
       </div>
 
-      {/* Back Button */}
-      <div className="absolute top-8 left-8 z-50">
-        <Link href="/" className="flex items-center gap-2 text-[#CCCCD9]/60 hover:text-white transition-colors text-sm font-mono group">
-          <div className="p-2 rounded-full border border-white/5 bg-white/5 group-hover:bg-white/10 transition-all">
-            <ArrowLeft className="h-4 w-4" />
-          </div>
-          <span>Back to Home</span>
-        </Link>
+      {/* 3. Smart Back Button Routing */}
+      <div className="absolute top-6 left-6 z-50">
+        {viewState === "forgot" ? (
+          <button 
+            onClick={() => setViewState("login")}
+            className="flex items-center gap-2 text-[#CCCCD9]/60 hover:text-white transition-colors text-sm font-mono group"
+          >
+            <div className="p-2 rounded-full border border-white/5 bg-white/5 group-hover:bg-white/10 transition-all">
+              <ArrowLeft className="h-4 w-4" />
+            </div>
+            <span>Back to Login</span>
+          </button>
+        ) : (
+          <Link href="/" className="flex items-center gap-2 text-[#CCCCD9]/60 hover:text-white transition-colors text-sm font-mono group">
+            <div className="p-2 rounded-full border border-white/5 bg-white/5 group-hover:bg-white/10 transition-all">
+              <ArrowLeft className="h-4 w-4" />
+            </div>
+            <span>Back to Home</span>
+          </Link>
+        )}
       </div>
 
       {/* --- MAIN CARD --- */}
@@ -83,84 +106,120 @@ export default function LoginPage() {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="w-full max-w-md relative z-10"
+        className="w-full max-w-md relative z-10 flex flex-col justify-center"
       >
-        <div className="relative bg-[#231854]/40 backdrop-blur-xl border border-white/10 rounded-[32px] shadow-2xl overflow-hidden p-1">
-          
-          {/* UPDATED: Reduced padding from sm:p-10 to sm:p-8 and removed min-h */}
-          <div className="relative bg-[#1C1246]/80 rounded-[28px] p-6 sm:p-10 border border-white/5 flex flex-col">
-            
+        <motion.div 
+          layout
+          className="relative bg-[#231854]/40 backdrop-blur-xl border border-white/10 rounded-[32px] shadow-2xl overflow-hidden p-1"
+        >
+          {/* Mobile-optimized padding to save vertical space */}
+          <motion.div 
+            layout
+            className="relative bg-[#1C1246]/80 rounded-[28px] p-6 sm:p-8 border border-white/5 flex flex-col"
+          >
             <AnimatePresence>
                 {isSwitching && <SwitchingLoader />}
             </AnimatePresence>
 
-            {/* Header - Compacted Margins */}
-            <div className="text-center mb-5">
-              <Link href="/" className="inline-block relative group mb-4">
+            {/* Header - Compacted for zero-scroll */}
+            <motion.div layout className="text-center mb-5">
+              <div className="inline-block relative group mb-3">
                 <div className="absolute -inset-4 bg-[#DA8CA0]/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                {/* Reduced Logo Size */}
-                <img src="/heal-logo.png" alt="Heal Her" className="w-12 h-12 rounded-full border-2 border-[#DA8CA0]/30 shadow-lg relative z-10" />
-              </Link>
+                <img src="/heal-logo.png" alt="Heal Her" className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-[#DA8CA0]/30 shadow-lg relative z-10 mx-auto" />
+              </div>
               
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={isLogin ? "login-title" : "signup-title"}
+                  key={viewState}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <h1 className="text-xl font-bold text-white mb-1">
-                    {isLogin ? "Welcome Back, Sis" : "Join Your Safe Space"}
+                  <h1 className="text-lg sm:text-xl font-bold text-white mb-1">
+                    {headerContent[viewState].title}
                   </h1>
                   <p className="text-[#CCCCD9]/70 text-xs">
-                    {isLogin ? "Enter your details to access your sanctuary." : "Create an account to start your healing journey."}
+                    {headerContent[viewState].subtitle}
                   </p>
                 </motion.div>
               </AnimatePresence>
-            </div>
+            </motion.div>
 
-            {/* Toggle Switch - Compacted Margin */}
-            <div className="bg-[#160d33] p-1 rounded-2xl flex relative mb-6 border border-white/5">
-              <motion.div 
-                className="absolute top-1 bottom-1 rounded-xl bg-[#2A1F5E] shadow-sm"
-                initial={false}
-                animate={{ left: isLogin ? "4px" : "50%", width: "calc(50% - 4px)" }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              />
-              <button onClick={() => setIsLogin(true)} className={cn("flex-1 py-2 text-xs font-semibold rounded-xl relative z-10 transition-colors", isLogin ? "text-white" : "text-[#CCCCD9]/50")}>Sign In</button>
-              <button onClick={() => setIsLogin(false)} className={cn("flex-1 py-2 text-xs font-semibold rounded-xl relative z-10 transition-colors", !isLogin ? "text-white" : "text-[#CCCCD9]/50")}>Create Account</button>
-            </div>
+            {/* 4. Conditional Toggle Switch (Hides smoothly on "forgot" state) */}
+            <AnimatePresence mode="wait">
+              {viewState !== "forgot" && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                  animate={{ opacity: 1, height: "auto", marginBottom: 24 }}
+                  exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="bg-[#160d33] p-1 rounded-2xl flex relative border border-white/5 overflow-hidden"
+                >
+                  <motion.div 
+                    className="absolute top-1 bottom-1 rounded-xl bg-[#2A1F5E] shadow-sm"
+                    initial={false}
+                    animate={{ 
+                      left: viewState === "login" ? "4px" : "50%", 
+                      width: "calc(50% - 4px)" 
+                    }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  />
+                  <button onClick={() => setViewState("login")} className={cn("flex-1 py-2 text-xs font-semibold rounded-xl relative z-10 transition-colors", viewState === "login" ? "text-white" : "text-[#CCCCD9]/50")}>Sign In</button>
+                  <button onClick={() => setViewState("signup")} className={cn("flex-1 py-2 text-xs font-semibold rounded-xl relative z-10 transition-colors", viewState === "signup" ? "text-white" : "text-[#CCCCD9]/50")}>Create Account</button>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            {/* Component Injection */}
-            <div className="flex-1 relative">
+            {/* Component Injection Pipeline */}
+            <motion.div layout className="flex-1 relative">
               <AnimatePresence mode="wait">
-                {isLogin ? (
+                {viewState === "login" && (
                   <motion.div
                     key="login-form"
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.3 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
                   >
-                    <Login />
+                    <Login 
+                      onSwitchToForgot={() => setViewState("forgot")} 
+                    />
                   </motion.div>
-                ) : (
+                )}
+
+                {viewState === "signup" && (
                   <motion.div
                     key="signup-form"
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.3 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
                   >
-                    <SignUp onSwitchToLogin={handleAutoSwitch} />
+                    <SignUp 
+                      onSwitchToLogin={() => handleAutoSwitch("login")} 
+                    />
+                  </motion.div>
+                )}
+
+                {viewState === "forgot" && (
+                  <motion.div
+                    key="forgot-form"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                  >
+                    <ForgotPassword 
+                      onSuccess={() => handleAutoSwitch("login")} 
+                    />
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
+            </motion.div>
 
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </motion.div>
     </div>
   )
