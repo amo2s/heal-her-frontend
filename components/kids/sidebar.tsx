@@ -67,7 +67,7 @@ export function Sidebar({ base }: { base: string }) {
           body: JSON.stringify({
             query: `
               query GetKidsProfile {
-                me {
+                getMe {
                   fullName
                 }
               }

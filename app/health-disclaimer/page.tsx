@@ -207,7 +207,7 @@ export default function ScopeOfCarePage() {
            <div className="text-center mb-16">
               <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-4">Clear Medical Boundaries</h2>
               <p className="text-lg text-[#CCCCD9] font-light max-w-2xl mx-auto">
-                 We believe true safety starts with honesty. Heal Her is a powerful educational sanctuary, but it operates with absolute, strict limits to protect your well-being.
+                 We believe true safety starts with honesty. Heal Her is a powerful educational platform, but it operates with absolute, strict limits to protect your well-being.
               </p>
            </div>
 
@@ -424,7 +424,7 @@ export default function ScopeOfCarePage() {
                   <Link href="/login">
                     <div className="absolute top-0 left-[-100%] w-[150%] h-full bg-gradient-to-r from-transparent via-white/50 to-transparent group-hover:translate-x-[150%] transition-transform duration-1000 ease-in-out" />
                     <span className="relative z-10 flex items-center gap-3">
-                       Enter The Sanctuary <ArrowRight className="h-5 w-5" />
+                       Enter The Platform <ArrowRight className="h-5 w-5" />
                     </span>
                   </Link>
                </Button>

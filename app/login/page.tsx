@@ -61,9 +61,9 @@ export default function LoginPage() {
 
   // Configuration for dynamic header content
   const headerContent = {
-    login: { title: "Welcome Back, Sis", subtitle: "Enter your details to access your sanctuary." },
-    signup: { title: "Join Your Safe Space", subtitle: "Create an account to start your healing journey." },
-    forgot: { title: "Recover Your Vault", subtitle: "Enter your email to securely reset your password." }
+    login: { title: "Welcome Back, Sis", subtitle: "Enter your details to access your dashboard." },
+    signup: { title: "Join Your Safe Space", subtitle: "Create an account to start your learning journey." },
+    forgot: { title: "Recover Your Account", subtitle: "Enter your email to securely reset your password." }
   }
 
   return (

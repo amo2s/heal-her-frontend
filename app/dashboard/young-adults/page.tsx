@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { useHeal } from "@/store/heal"; 
 import { 
   Briefcase, Scale, Globe, ShieldCheck, 
@@ -10,8 +10,8 @@ import {
 } from "lucide-react";
 
 // --- ANIMATION VARIANTS ---
-const containerVars = { animate: { transition: { staggerChildren: 0.1 } } };
-const itemVars = { 
+const containerVars: Variants = { animate: { transition: { staggerChildren: 0.1 } } };
+const itemVars: Variants = { 
   initial: { opacity: 0, y: 20, scale: 0.95 }, 
   animate: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 200, damping: 20 } } 
 };

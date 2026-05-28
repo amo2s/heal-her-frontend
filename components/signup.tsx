@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Mail, Lock, User, Eye, EyeOff, ArrowRight, Loader2, CheckCircle2, AlertCircle, Circle, Calendar, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -100,11 +100,13 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
   const [shake, setShake] = useState(false)
 
   const [loadingTextIndex, setLoadingTextIndex] = useState(0)
-  const loadingPhrases = [
+  
+  // Wrapped in useMemo to prevent unnecessary re-renders
+  const loadingPhrases = useMemo(() => [
     "Creating your account...",
     "Preparing your safe space...",
     "Wrapping things up..."
-  ]
+  ], [])
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -122,12 +124,12 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
     special: false
   })
 
-  // Cycle loading text
+  // Cycle loading text (UPDATED: Stops at the last phrase)
   useEffect(() => {
     let interval: NodeJS.Timeout
     if (isLoading) {
       interval = setInterval(() => {
-        setLoadingTextIndex((prev) => (prev + 1) % loadingPhrases.length)
+        setLoadingTextIndex((prev) => Math.min(prev + 1, loadingPhrases.length - 1))
       }, 1500)
     } else {
       setLoadingTextIndex(0)

@@ -200,38 +200,41 @@ function ContactForm() {
 
         <div className="flex items-center justify-center gap-2 text-[10px] text-[#CCCCD9] pt-2">
           <ShieldCheck className="h-3 w-3 text-emerald-500" />
-          <span>End-to-End Encrypted routing via <strong>nwakaamos95@gmail.com</strong></span>
+          <span>End-to-End Encrypted routing via <strong>contact@healher.co.site</strong></span>
         </div>
       </form>
 
-      {/* Maintenance Modal */}
+      {/* Ultra-Premium Smart Maintenance Modal */}
       <AnimatePresence>
         {isModalOpen && (
           <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#1C1246]/80 backdrop-blur-md"
+            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            animate={{ opacity: 1, backdropFilter: "blur(12px)" }}
+            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+            onClick={() => setIsModalOpen(false)}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#1C1246]/80"
           >
             <motion.div 
-              initial={{ scale: 0.95, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 20 }}
-              transition={{ duration: 0.4, ease: premiumSmooth }}
-              className="relative w-full max-w-lg bg-[#231854] border border-white/10 rounded-3xl shadow-[0_30px_60px_rgba(0,0,0,0.6)] overflow-hidden"
+              initial={{ scale: 0.9, y: 30, opacity: 0, rotateX: 10, filter: "blur(10px)" }}
+              animate={{ scale: 1, y: 0, opacity: 1, rotateX: 0, filter: "blur(0px)" }}
+              exit={{ scale: 0.95, y: 20, opacity: 0, rotateX: -5, filter: "blur(8px)" }}
+              transition={{ duration: 0.7, ease: premiumSmooth }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-lg bg-[#231854] border border-white/10 rounded-3xl shadow-[0_40px_80px_rgba(0,0,0,0.8)] overflow-hidden perspective-1000"
             >
               <div className="absolute top-0 right-0 w-48 h-48 bg-[#DA8CA0]/10 blur-[60px] rounded-full pointer-events-none" />
               
               <div className="p-6 md:p-8 relative z-10">
                 <button 
                   onClick={() => setIsModalOpen(false)}
-                  className="absolute top-6 right-6 p-2 rounded-full bg-white/5 hover:bg-white/10 text-[#CCCCD9] transition-colors"
+                  className="absolute top-6 right-6 p-2 rounded-full bg-white/5 hover:bg-white/10 text-[#CCCCD9] hover:text-white transition-all hover:rotate-90 duration-300"
                 >
                   <X className="h-5 w-5" />
                 </button>
                 
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20 text-amber-400">
+                  <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
                     <AlertCircle className="h-6 w-6" />
                   </div>
                   <h3 className="text-xl md:text-2xl font-bold text-white">System Upgrade in Progress</h3>
@@ -242,40 +245,40 @@ function ContactForm() {
                 </p>
                 
                 <div className="space-y-4">
-                  <a href="https://wa.me/2349070594637" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 rounded-xl bg-[#1C1246] border border-white/5 hover:border-emerald-500/30 group transition-colors">
+                  <a href="https://wa.me/2349070594637" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 rounded-xl bg-[#1C1246] border border-white/5 hover:border-emerald-500/30 group transition-all duration-300 shadow-sm hover:shadow-[0_8px_20px_rgba(16,185,129,0.1)]">
                     <div className="flex items-center gap-4">
                       <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400">
                         <MessageCircle className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="text-white font-bold text-sm">WhatsApp Priority Line</p>
+                        <p className="text-white font-bold text-sm group-hover:text-emerald-400 transition-colors">WhatsApp Priority Line</p>
                         <p className="text-[#CCCCD9] text-xs font-mono">0907 059 4637</p>
                       </div>
                     </div>
                     <ArrowRight className="h-4 w-4 text-[#CCCCD9] group-hover:text-emerald-400 group-hover:translate-x-1 transition-all" />
                   </a>
                   
-                  <a href="tel:+2349063877703" className="flex items-center justify-between p-4 rounded-xl bg-[#1C1246] border border-white/5 hover:border-indigo-500/30 group transition-colors">
+                  <a href="tel:+2349063877703" className="flex items-center justify-between p-4 rounded-xl bg-[#1C1246] border border-white/5 hover:border-indigo-500/30 group transition-all duration-300 shadow-sm hover:shadow-[0_8px_20px_rgba(99,102,241,0.1)]">
                     <div className="flex items-center gap-4">
                       <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
                         <Phone className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="text-white font-bold text-sm">Direct Phone Line</p>
+                        <p className="text-white font-bold text-sm group-hover:text-indigo-400 transition-colors">Direct Phone Line</p>
                         <p className="text-[#CCCCD9] text-xs font-mono">0906 387 7703</p>
                       </div>
                     </div>
                     <ArrowRight className="h-4 w-4 text-[#CCCCD9] group-hover:text-indigo-400 group-hover:translate-x-1 transition-all" />
                   </a>
 
-                  <a href="mailto:medguard@gmail.com" className="flex items-center justify-between p-4 rounded-xl bg-[#1C1246] border border-white/5 hover:border-[#DA8CA0]/30 group transition-colors">
+                  <a href="mailto:contact@healher.co.site" className="flex items-center justify-between p-4 rounded-xl bg-[#1C1246] border border-white/5 hover:border-[#DA8CA0]/30 group transition-all duration-300 shadow-sm hover:shadow-[0_8px_20px_rgba(218,140,160,0.1)]">
                     <div className="flex items-center gap-4">
                       <div className="p-2 bg-[#DA8CA0]/10 rounded-lg text-[#DA8CA0]">
                         <Mail className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="text-white font-bold text-sm">Official Email</p>
-                        <p className="text-[#CCCCD9] text-xs font-mono">medguard@gmail.com</p>
+                        <p className="text-white font-bold text-sm group-hover:text-[#DA8CA0] transition-colors">Official Email</p>
+                        <p className="text-[#CCCCD9] text-xs font-mono">contact@healher.co.site</p>
                       </div>
                     </div>
                     <ArrowRight className="h-4 w-4 text-[#CCCCD9] group-hover:text-[#DA8CA0] group-hover:translate-x-1 transition-all" />
@@ -421,23 +424,23 @@ export default function InstitutionalContactPage() {
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
           >
              {[
-               { icon: LifeBuoy, label: "General Support", desc: "User assistance & app help", val: "support@healher.org", color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
-               { icon: Building2, label: "School Integration", desc: "For boards & administrators", val: "schools@healher.org", color: "text-indigo-400", bg: "bg-indigo-500/10", border: "border-indigo-500/20" },
-               { icon: Globe, label: "Global Foundations", desc: "Sponsorship & deployment", val: "partners@healher.org", color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
-               { icon: Mail, label: "Direct Admin", val: "Official correspondence", href: "nwakaamos95@gmail.com", color: "text-[#DA8CA0]", bg: "bg-[#DA8CA0]/10", border: "border-[#DA8CA0]/20" }
+               { icon: LifeBuoy, label: "General Support", desc: "User assistance & app help", val: "Contact Support", href: "mailto:contact@healher.co.site", color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
+               { icon: Building2, label: "School Integration", desc: "For boards & administrators", val: "Partner with Us", href: "mailto:contact@healher.co.site", color: "text-indigo-400", bg: "bg-indigo-500/10", border: "border-indigo-500/20" },
+               { icon: Globe, label: "Global Foundations", desc: "Sponsorship & deployment", val: "Discuss Deployment", href: "mailto:contact@healher.co.site", color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
+               { icon: Mail, label: "Direct Admin", desc: "Official correspondence", val: "Message the Founder", href: "mailto:nwakaamos95@gmail.com", color: "text-[#DA8CA0]", bg: "bg-[#DA8CA0]/10", border: "border-[#DA8CA0]/20" }
              ].map((item, i) => (
                <motion.div key={i} variants={fadeInUp} className="h-full">
                  <SpotlightCard className="p-6 md:p-8 h-full bg-[#231854]/40 cursor-pointer group">
-                   <div className="block h-full">
+                   <a href={item.href} className="block h-full">
                       <div className={cn("mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl border", item.bg, item.border, item.color)}>
                          <item.icon className="h-6 w-6" />
                       </div>
                       <h3 className="text-lg font-bold text-white mb-1">{item.label}</h3>
                       <p className="text-xs text-[#CCCCD9] mb-4 font-light">{item.desc}</p>
                       <div className="text-sm font-bold text-white group-hover:text-[#DA8CA0] transition-colors flex items-center gap-2">
-                         {item.val} <ArrowRight className="h-3 w-3 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                         {item.val} <ArrowRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                       </div>
-                   </div>
+                   </a>
                  </SpotlightCard>
                </motion.div>
              ))}

@@ -102,17 +102,19 @@ export default function ForgotPassword({ onSuccess }: ForgotPasswordProps) {
   
   const [isLoading, setIsLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  
+  // [SECURITY FIX]: State to capture the Ghost Protocol message from the backend
+  const [serverSuccessMsg, setServerSuccessMsg] = useState<string | null>(null)
   const [shake, setShake] = useState(false)
 
   // --- INTELLIGENT LOADING CYCLER ---
   const [loadingTextIndex, setLoadingTextIndex] = useState(0)
   
-  // Placed outside useEffect to prevent dependency warnings
   const loadingPhrases: Record<Step, string[]> = {
-    email: ["Locating your vault...", "Securing connection...", "Dispatching secure code..."],
+    email: ["Locating your account...", "Securing connection...", "Dispatching secure code..."],
     otp: ["Verifying handshake...", "Checking authorization...", "Decrypting token..."],
-    reset: ["Encrypting new key...", "Locking the ledger...", "Securing your vault..."],
-    success: ["Done"] // Fallback to prevent index crashes
+    reset: ["Encrypting new key...", "Locking the ledger...", "Securing your account..."],
+    success: ["Done"] 
   }
 
   useEffect(() => {
@@ -140,7 +142,7 @@ export default function ForgotPassword({ onSuccess }: ForgotPasswordProps) {
 
   // --- SECURE DIRECT GRAPHQL NETWORK WRAPPER ---
   const executeGraphQL = async (query: string, variables: any, operationName: string) => {
-    const response = await fetch("https://sliverboy-healher-backend.hf.space/graphql", {
+    const response = await fetch("api/proxy/graphql", {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
@@ -185,7 +187,10 @@ export default function ForgotPassword({ onSuccess }: ForgotPasswordProps) {
     `
 
     try {
-      await executeGraphQL(query, { input: { email } }, "requestPasswordReset")
+      const data = await executeGraphQL(query, { input: { email } }, "requestPasswordReset")
+      
+      // [SECURITY FIX]: Capture the zero-information string directly from the backend
+      setServerSuccessMsg(data.message)
       setStep("otp") 
     } catch (error: any) {
       triggerError(error.message)
@@ -323,9 +328,10 @@ export default function ForgotPassword({ onSuccess }: ForgotPasswordProps) {
           >
             <AnimatePresence>{errorMsg && <ErrorMessage message={errorMsg} onClose={() => setErrorMsg(null)} />}</AnimatePresence>
             
+            {/* [SECURITY FIX]: Render the dynamic backend message instead of exposing the raw email state */}
             <div className="bg-[#DA8CA0]/10 border border-[#DA8CA0]/20 rounded-xl p-4 mb-6">
               <p className="text-xs text-[#CCCCD9] leading-relaxed text-center">
-                We've sent a highly secure 6-digit code to <span className="text-white font-semibold">{email}</span>. It expires in 10 minutes.
+                {serverSuccessMsg || "If the provided credentials match an active account, a secure authorization code has been dispatched."}
               </p>
             </div>
 

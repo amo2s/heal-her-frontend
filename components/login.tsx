@@ -103,12 +103,12 @@ export default function Login({ onSwitchToForgot }: LoginProps) {
     password: ""
   })
 
-  // Cycle loading text
+  // Cycle loading text (UPDATED: Stops at the last phrase)
   useEffect(() => {
     let interval: NodeJS.Timeout
     if (isLoading) {
       interval = setInterval(() => {
-        setLoadingTextIndex((prev) => (prev + 1) % loadingPhrases.length)
+        setLoadingTextIndex((prev) => Math.min(prev + 1, loadingPhrases.length - 1))
       }, 1500)
     } else {
       setLoadingTextIndex(0)
