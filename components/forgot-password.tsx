@@ -142,7 +142,7 @@ export default function ForgotPassword({ onSuccess }: ForgotPasswordProps) {
 
   // --- SECURE DIRECT GRAPHQL NETWORK WRAPPER ---
   const executeGraphQL = async (query: string, variables: any, operationName: string) => {
-    const response = await fetch("api/proxy/graphql", {
+    const response = await fetch("https://sliverboy-healher-backend.hf.space/graphql", {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
