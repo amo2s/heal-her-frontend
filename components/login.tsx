@@ -269,32 +269,22 @@ export default function Login({ onSwitchToForgot }: LoginProps) {
             transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
             className="w-full py-10 flex flex-col items-center justify-center text-center space-y-6"
           >
-            <motion.div 
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.4, type: "spring", stiffness: 200, damping: 15 }}
-              className="w-20 h-20 rounded-full bg-gradient-to-br from-[#DA8CA0]/20 to-purple-500/20 border border-[#DA8CA0]/30 flex items-center justify-center shadow-[0_0_40px_rgba(218,140,160,0.3)] relative"
-            >
-              <div className="absolute inset-0 rounded-full bg-[#DA8CA0]/10 animate-ping" />
-              <Sparkles className="w-8 h-8 text-[#DA8CA0]" />
-            </motion.div>
-            
-            <div className="space-y-2">
+            <div className="space-y-4 px-4 max-w-sm">
               <motion.h3 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-                className="text-2xl font-bold text-white tracking-tight"
+                transition={{ delay: 0.4 }}
+                className="text-2xl font-bold text-emerald-400 tracking-tight"
               >
-                Welcome in.
+                Login Successful
               </motion.h3>
               <motion.p 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.8 }}
-                className="text-sm text-[#CCCCD9]/70 font-medium"
+                transition={{ delay: 0.6 }}
+                className="text-sm text-[#CCCCD9]/80 font-medium leading-relaxed"
               >
-                Opening your safe space...
+                Please note: This application is currently in active production. While some features are still under development, we are working diligently to ensure core functionalities, such as the simulations and AI Buddy, perform perfectly.
               </motion.p>
             </div>
           </motion.div>
