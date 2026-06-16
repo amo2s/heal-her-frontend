@@ -90,6 +90,7 @@ export default function Login({ onSwitchToForgot }: LoginProps) {
   const [isAuthorized, setIsAuthorized] = useState(false) 
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [shake, setShake] = useState(false) 
+  const [dashboardRoute, setDashboardRoute] = useState("young-adults")
   
   const [loadingTextIndex, setLoadingTextIndex] = useState(0)
   const loadingPhrases = useMemo(() => [
@@ -147,11 +148,12 @@ export default function Login({ onSwitchToForgot }: LoginProps) {
       const rawSegment = data.user.dashboard || "young_adult"
       const targetRoute = rawSegment === "young_adult" ? "young-adults" : rawSegment
 
+      setDashboardRoute(targetRoute)
       setIsAuthorized(true)
       
       setTimeout(() => {
         router.push(`/dashboard/${targetRoute}`)
-      }, 2500)
+      }, 5000)
 
     } catch (error: any) {
       triggerError(error.message || "Hmm, those details didn't quite match. Let's try again.")
@@ -269,7 +271,7 @@ export default function Login({ onSwitchToForgot }: LoginProps) {
             transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
             className="w-full py-10 flex flex-col items-center justify-center text-center space-y-6"
           >
-            <div className="space-y-4 px-4 max-w-sm">
+            <div className="space-y-4 px-4 max-w-sm flex flex-col items-center">
               <motion.h3 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -286,6 +288,21 @@ export default function Login({ onSwitchToForgot }: LoginProps) {
               >
                 Please note: This application is currently in active production. While some features are still under development, we are working diligently to ensure core functionalities, such as the simulations and AI Buddy, perform perfectly.
               </motion.p>
+
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.8 }}
+                className="pt-4"
+              >
+                <Button 
+                  onClick={() => router.push(`/dashboard/${dashboardRoute}`)}
+                  type="button"
+                  className="bg-transparent border border-[#DA8CA0]/30 text-[#DA8CA0] hover:bg-[#DA8CA0]/10 hover:text-[#f0abc0] rounded-xl px-6 h-10 text-xs font-bold tracking-wide transition-all"
+                >
+                  Proceed Now <ArrowRight className="ml-2 h-3 w-3" />
+                </Button>
+              </motion.div>
             </div>
           </motion.div>
         )}
