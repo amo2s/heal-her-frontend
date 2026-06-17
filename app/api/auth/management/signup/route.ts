@@ -50,8 +50,10 @@ export async function POST(request: Request) {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
-        // Cryptographic signature proving this request came from your UI
-        "x-healher-handshake": process.env.NEXT_PUBLIC_HANDSHAKE_SECRET || "",
+        // --- SECURITY ALIGNMENT FIX ---
+        // Swapped NEXT_PUBLIC_ for FRONTEND_ to match the universal proxy
+        // and keep the cryptographic signature completely hidden from the browser.
+        "x-healher-handshake": process.env.FRONTEND_HANDSHAKE_SECRET || "",
         // Passing the audit intel directly to the backend
         "x-forwarded-for": realIp,
         "user-agent": userAgent,

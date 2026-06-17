@@ -90,7 +90,10 @@ export async function POST(request: Request) {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
-        "x-healher-handshake": process.env.NEXT_PUBLIC_HANDSHAKE_SECRET || "",
+        // --- SECURITY ALIGNMENT FIX (FIRST CHANGE ONLY) ---
+        // Swapped NEXT_PUBLIC_ for FRONTEND_ to match your other proxies
+        // and keep the handshake key strictly invisible to the browser.
+        "x-healher-handshake": process.env.FRONTEND_HANDSHAKE_SECRET || "",
         "x-forwarded-for": realIp,
         "user-agent": userAgent, // CRITICAL: Required for TokenForge Blood-Binding
       },

@@ -31,7 +31,10 @@ export async function POST(request: Request) {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
-        "x-healher-handshake": process.env.NEXT_PUBLIC_HANDSHAKE_SECRET || "",
+        // --- SECURITY ALIGNMENT FIX ---
+        // Swapped NEXT_PUBLIC_ for FRONTEND_ to match your other proxies
+        // and keep the handshake key strictly invisible to the browser.
+        "x-healher-handshake": process.env.FRONTEND_HANDSHAKE_SECRET || "",
         "x-forwarded-for": realIp,
       },
       body: JSON.stringify({

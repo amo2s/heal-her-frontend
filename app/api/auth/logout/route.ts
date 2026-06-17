@@ -33,7 +33,10 @@ export async function POST(request: Request) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-healher-handshake": process.env.NEXT_PUBLIC_HANDSHAKE_SECRET || "",
+            // --- SECURITY ALIGNMENT FIX ---
+            // Replaced NEXT_PUBLIC_ with FRONTEND_ to ensure the handshake secret 
+            // remains strictly on the server and matches the universal proxy.
+            "x-healher-handshake": process.env.FRONTEND_HANDSHAKE_SECRET || "",
             "x-forwarded-for": realIp,
           },
           body: JSON.stringify({

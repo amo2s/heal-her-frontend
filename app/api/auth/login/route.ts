@@ -60,8 +60,8 @@ export async function POST(request: Request) {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
-        // The Handshake to pass your Fortress Guard
-        "x-healher-handshake": process.env.NEXT_PUBLIC_HANDSHAKE_SECRET || "",
+        // ALIGNED: Using the strict server-side secret to match the universal proxy securely
+        "x-healher-handshake": process.env.FRONTEND_HANDSHAKE_SECRET || "",
         // Pass the real IP to the backend for accurate rate limiting
         "x-forwarded-for": realIp,
       },
@@ -113,11 +113,19 @@ export async function POST(request: Request) {
       path: "/", 
     });
 
+    // --- FRONTEND ALIGNMENT FIX ---
+    // Safely map the backend's strict 'young_adult' to the frontend's 'young-adults' router layout.
+    // Leaves 'teens' and 'kids' untouched.
+    const mappedDashboard = data.user.dashboard === "young_adult" ? "young-adults" : data.user.dashboard;
+
     // Return safe data without leaking EITHER token to the browser JS.
     return NextResponse.json({
       status: data.status,
       message: data.message,
-      user: data.user
+      user: {
+        ...data.user,
+        dashboard: mappedDashboard
+      }
     });
 
   } catch (error: any) {
