@@ -99,11 +99,6 @@ export default function Login({ onSwitchToForgot }: LoginProps) {
     "Preparing your safe space..."
   ], [])
 
-  const [formData, setFormData] = useState({
-    email: "",
-    password: ""
-  })
-
   // Cycle loading text (UPDATED: Stops at the last phrase)
   useEffect(() => {
     let interval: NodeJS.Timeout
@@ -116,6 +111,11 @@ export default function Login({ onSwitchToForgot }: LoginProps) {
     }
     return () => clearInterval(interval)
   }, [isLoading, loadingPhrases.length])
+
+  const [formData, setFormData] = useState({
+    email: "",
+    password: ""
+  })
 
   const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [field]: e.target.value }))
@@ -151,9 +151,8 @@ export default function Login({ onSwitchToForgot }: LoginProps) {
       setDashboardRoute(targetRoute)
       setIsAuthorized(true)
       
-      setTimeout(() => {
-        router.push(`/dashboard/${targetRoute}`)
-      }, 5000)
+      // Removed the automatic redirect timer here.
+      // User must explicitly click "Proceed Now".
 
     } catch (error: any) {
       triggerError(error.message || "Hmm, those details didn't quite match. Let's try again.")
@@ -293,14 +292,20 @@ export default function Login({ onSwitchToForgot }: LoginProps) {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.8 }}
-                className="pt-4"
+                className="pt-6"
               >
+                {/* Liquid Glass Button Implementation */}
                 <Button 
                   onClick={() => router.push(`/dashboard/${dashboardRoute}`)}
                   type="button"
-                  className="bg-transparent border border-[#DA8CA0]/30 text-[#DA8CA0] hover:bg-[#DA8CA0]/10 hover:text-[#f0abc0] rounded-xl px-6 h-10 text-xs font-bold tracking-wide transition-all"
+                  className="relative overflow-hidden bg-gradient-to-b from-[#DA8CA0]/40 to-[#DA8CA0]/10 border border-white/30 text-white rounded-2xl px-8 h-12 text-sm font-bold tracking-wide transition-all duration-300 shadow-[inset_0_2px_4px_rgba(255,255,255,0.7),inset_0_-4px_8px_rgba(28,18,70,0.5),0_8px_20px_rgba(218,140,160,0.3)] hover:scale-[1.03] active:scale-[0.97] hover:shadow-[inset_0_2px_6px_rgba(255,255,255,0.9),inset_0_-4px_8px_rgba(28,18,70,0.5),0_10px_25px_rgba(218,140,160,0.4)]"
                 >
-                  Proceed Now <ArrowRight className="ml-2 h-3 w-3" />
+                  {/* Glossy Specular Highlight (The curved "light reflection" at the top) */}
+                  <div className="absolute top-0 left-[5%] right-[5%] h-[45%] bg-gradient-to-b from-white/70 to-transparent rounded-b-full pointer-events-none mix-blend-overlay" />
+                  
+                  <span className="relative z-10 flex items-center drop-shadow-[0_2px_2px_rgba(0,0,0,0.3)]">
+                    Proceed Now <ArrowRight className="ml-2 h-4 w-4" />
+                  </span>
                 </Button>
               </motion.div>
             </div>
