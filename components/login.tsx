@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 
-// --- 1. ERROR MESSAGE (Soft & Simple) ---
+// --- 1. ERROR MESSAGE COMPONENT ---
 const ErrorMessage = ({ message, onClose }: { message: string, onClose: () => void }) => {
   return (
     <motion.div
@@ -99,7 +99,7 @@ export default function Login({ onSwitchToForgot }: LoginProps) {
     "Preparing your safe space..."
   ], [])
 
-  // Cycle loading text (UPDATED: Stops at the last phrase)
+  // Cycle loading text (Stops at the last phrase)
   useEffect(() => {
     let interval: NodeJS.Timeout
     if (isLoading) {
@@ -145,14 +145,14 @@ export default function Login({ onSwitchToForgot }: LoginProps) {
 
       sessionStorage.setItem("user-data", JSON.stringify(data.user))
 
+      // --- FRONTEND ROUTING LAYER ---
+      // Translates the backend's strict 'young_adult' into the frontend's SEO/Folder friendly 'young-adults'.
+      // Note: The universal proxy handles mapping this back to 'young_adult' during backend API calls.
       const rawSegment = data.user.dashboard || "young_adult"
       const targetRoute = rawSegment === "young_adult" ? "young-adults" : rawSegment
 
       setDashboardRoute(targetRoute)
       setIsAuthorized(true)
-      
-      // Removed the automatic redirect timer here.
-      // User must explicitly click "Proceed Now".
 
     } catch (error: any) {
       triggerError(error.message || "Hmm, those details didn't quite match. Let's try again.")
@@ -215,7 +215,7 @@ export default function Login({ onSwitchToForgot }: LoginProps) {
                     hasError={!!errorMsg}
                   />
                   <div className="flex justify-end pt-1">
-                    {/* The Native Button masquerading as a premium text link */}
+                    {/* Native button masquerading as a premium text link */}
                     <button 
                       type="button"
                       onClick={onSwitchToForgot} 

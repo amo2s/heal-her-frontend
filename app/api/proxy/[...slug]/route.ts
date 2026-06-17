@@ -8,9 +8,16 @@ async function proxyRequest(request: NextRequest, { params }: { params: Promise<
   // 1. UNWRAP THE PARAMS FIRST (This fixes your 500 error!)
   const { slug } = await params;
   
+  // --- TRANSLATION LAYER FIX ---
+  // Silently map frontend dashboard routes to their strict backend enum equivalents
+  const mappedSlug = slug.map(segment => {
+    if (segment === "young-adults") return "young_adult";
+    return segment;
+  });
+
   // 2. RECONSTRUCT THE TARGET URL
   const backendUrl = process.env.BACKEND_URL || "https://sliverboy-healher-backend.hf.space";
-  const path = slug.join("/");
+  const path = mappedSlug.join("/"); // Uses the translated slug array
   const searchParams = request.nextUrl.searchParams.toString();
   const targetUrl = `${backendUrl}/${path}${searchParams ? `?${searchParams}` : ""}`;
 
