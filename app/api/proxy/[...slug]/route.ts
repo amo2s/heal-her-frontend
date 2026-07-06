@@ -14,10 +14,7 @@ async function proxyRequest(request: NextRequest, { params }: { params: Promise<
   const domainDictionary: Record<string, string> = {
     "young-adult": "young_adult",
     "young-adults": "young_adult",
-    "teen": "teen",
-    "teens": "teen",
-    "kid": "kid",
-    "kids": "kid"
+  
   };
 
   // Instantly translates any known mismatch, otherwise leaves the segment untouched.
