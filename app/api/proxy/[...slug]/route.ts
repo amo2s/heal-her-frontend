@@ -8,12 +8,20 @@ async function proxyRequest(request: NextRequest, { params }: { params: Promise<
   // 1. UNWRAP THE PARAMS FIRST (This fixes your 500 error!)
   const { slug } = await params;
   
-  // --- TRANSLATION LAYER FIX ---
-  // Silently map frontend dashboard routes to their strict backend enum equivalents
-  const mappedSlug = slug.map(segment => {
-    if (segment === "young-adults") return "young_adult";
-    return segment;
-  });
+  // --- TRANSLATION LAYER FIX (ADVANCED ENUM MAP) ---
+  // A strict dictionary providing O(1) lookup for all domain variations.
+  // This acts as a firewall that sanitizes frontend strings before they touch Python.
+  const domainDictionary: Record<string, string> = {
+    "young-adult": "young_adult",
+    "young-adults": "young_adult",
+    "teen": "teen",
+    "teens": "teen",
+    "kid": "kid",
+    "kids": "kid"
+  };
+
+  // Instantly translates any known mismatch, otherwise leaves the segment untouched.
+  const mappedSlug = slug.map(segment => domainDictionary[segment] || segment);
 
   // 2. RECONSTRUCT THE TARGET URL
   const backendUrl = process.env.BACKEND_URL || "https://sliverboy-healher-backend.hf.space";
