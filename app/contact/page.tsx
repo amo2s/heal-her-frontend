@@ -200,7 +200,7 @@ function ContactForm() {
 
         <div className="flex items-center justify-center gap-2 text-[10px] text-[#CCCCD9] pt-2">
           <ShieldCheck className="h-3 w-3 text-emerald-500" />
-          <span>End-to-End Encrypted routing via <strong>contact@healher.co.site</strong></span>
+          <span>End-to-End Encrypted routing via <strong>nwakaamos95@gmail.com</strong></span>
         </div>
       </form>
 
@@ -271,14 +271,14 @@ function ContactForm() {
                     <ArrowRight className="h-4 w-4 text-[#CCCCD9] group-hover:text-indigo-400 group-hover:translate-x-1 transition-all" />
                   </a>
 
-                  <a href="mailto:contact@healher.co.site" className="flex items-center justify-between p-4 rounded-xl bg-[#1C1246] border border-white/5 hover:border-[#DA8CA0]/30 group transition-all duration-300 shadow-sm hover:shadow-[0_8px_20px_rgba(218,140,160,0.1)]">
+                  <a href="mailto:nwakaamos95@gmail.com" className="flex items-center justify-between p-4 rounded-xl bg-[#1C1246] border border-white/5 hover:border-[#DA8CA0]/30 group transition-all duration-300 shadow-sm hover:shadow-[0_8px_20px_rgba(218,140,160,0.1)]">
                     <div className="flex items-center gap-4">
                       <div className="p-2 bg-[#DA8CA0]/10 rounded-lg text-[#DA8CA0]">
                         <Mail className="h-5 w-5" />
                       </div>
                       <div>
                         <p className="text-white font-bold text-sm group-hover:text-[#DA8CA0] transition-colors">Official Email</p>
-                        <p className="text-[#CCCCD9] text-xs font-mono">contact@healher.co.site</p>
+                        <p className="text-[#CCCCD9] text-xs font-mono">nwakaamos95@gmail.com</p>
                       </div>
                     </div>
                     <ArrowRight className="h-4 w-4 text-[#CCCCD9] group-hover:text-[#DA8CA0] group-hover:translate-x-1 transition-all" />
@@ -424,9 +424,9 @@ export default function InstitutionalContactPage() {
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
           >
              {[
-               { icon: LifeBuoy, label: "General Support", desc: "User assistance & app help", val: "Contact Support", href: "mailto:contact@healher.co.site", color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
-               { icon: Building2, label: "School Integration", desc: "For boards & administrators", val: "Partner with Us", href: "mailto:contact@healher.co.site", color: "text-indigo-400", bg: "bg-indigo-500/10", border: "border-indigo-500/20" },
-               { icon: Globe, label: "Global Foundations", desc: "Sponsorship & deployment", val: "Discuss Deployment", href: "mailto:contact@healher.co.site", color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
+               { icon: LifeBuoy, label: "General Support", desc: "User assistance & app help", val: "Contact Support", href: "mailto:nwakaamos95@gmail.com", color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
+               { icon: Building2, label: "School Integration", desc: "For boards & administrators", val: "Partner with Us", href: "mailto:nwakaamos95@gmail.com", color: "text-indigo-400", bg: "bg-indigo-500/10", border: "border-indigo-500/20" },
+               { icon: Globe, label: "Global Foundations", desc: "Sponsorship & deployment", val: "Discuss Deployment", href: "mailto:nwakaamos95@gmail.com", color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
                { icon: Mail, label: "Direct Admin", desc: "Official correspondence", val: "Message the Founder", href: "mailto:nwakaamos95@gmail.com", color: "text-[#DA8CA0]", bg: "bg-[#DA8CA0]/10", border: "border-[#DA8CA0]/20" }
              ].map((item, i) => (
                <motion.div key={i} variants={fadeInUp} className="h-full">

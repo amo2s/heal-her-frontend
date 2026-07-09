@@ -1,18 +1,20 @@
 "use client"
 
-import React from "react"
+import React, { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { motion, useMotionTemplate, useMotionValue, useTime, useTransform, Variants } from "framer-motion"
+import { motion, useTime, useTransform, Variants, AnimatePresence } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { cn } from "@/lib/utils"
 import { 
-  Code2, Stethoscope, ClipboardCheck, Users, Megaphone, 
+  Code2, Stethoscope, ClipboardCheck, Megaphone, 
   GraduationCap, Mail, Facebook, Instagram, Phone, Target, 
-  HeartHandshake, Library, Milestone, Crown, Sparkles, 
-  Heart, Cpu, Wand2, ArrowRight
+  HeartHandshake, Library, Crown, Heart, ArrowRight
 } from "lucide-react"
+
+// Import the newly created intelligent modal component
+import ExpandedTeamMember from "@/components/ui/modals/team-card"
 
 // ============================================================================
 // PREMIUM PHYSICS & UTILITIES
@@ -70,6 +72,8 @@ const SocialButton = ({ icon: Icon, href, label }: { icon: any, href: string, la
     rel="noopener noreferrer"
     aria-label={label}
     className="h-8 w-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#CCCCD9] hover:bg-[#DA8CA0] hover:text-[#1C1246] hover:border-[#DA8CA0] transition-all duration-300 transform hover:-translate-y-0.5"
+    // Prevent the modal from opening if a user directly clicks a social link
+    onClick={(e) => e.stopPropagation()} 
   >
     <Icon className="h-3.5 w-3.5" />
   </a>
@@ -89,7 +93,6 @@ function SynergySimulation() {
 
   return (
     <div className="relative w-full h-[350px] md:h-[400px] bg-[#231854]/20 rounded-[2rem] border border-white/5 overflow-hidden flex items-center justify-center backdrop-blur-md">
-      {/* Central Core */}
       <div className="relative z-10">
         <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-[#1C1246] border border-white/10 flex items-center justify-center relative z-20 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
            <Image 
@@ -102,7 +105,6 @@ function SynergySimulation() {
         </div>
       </div>
 
-      {/* Orbit 1: Engineering */}
       <motion.div 
         className="absolute w-[200px] h-[200px] md:w-[250px] md:h-[250px] border border-white/5 rounded-full"
         style={{ rotate: rotate1 }}
@@ -115,7 +117,6 @@ function SynergySimulation() {
          </motion.div>
       </motion.div>
 
-      {/* Orbit 2: Medical */}
       <motion.div 
         className="absolute w-[300px] h-[300px] md:w-[380px] md:h-[380px] border border-[#DA8CA0]/10 rounded-full"
         style={{ rotate: rotate2 }}
@@ -128,7 +129,6 @@ function SynergySimulation() {
          </motion.div>
       </motion.div>
 
-      {/* Overlay Text */}
       <div className="absolute bottom-6 left-6 flex items-center gap-2">
          <div className="h-1.5 w-1.5 rounded-full bg-[#DA8CA0] animate-pulse" />
          <p className="text-[10px] font-mono text-[#CCCCD9] uppercase tracking-widest">Active Development Node</p>
@@ -142,16 +142,28 @@ function SynergySimulation() {
 // ============================================================================
 
 export default function TeamPage() {
+  const [selectedMember, setSelectedMember] = useState<any | null>(null);
+
+  // Disable background scrolling when modal is open for mobile optimization
+  useEffect(() => {
+    if (selectedMember) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "auto";
+    }
+    return () => { document.body.style.overflow = "auto" };
+  }, [selectedMember]);
+
   const teamMembers = [
     {
       name: "Nwaka Amos Chika",
       nickname: "Sliverboy",
-      role: "Lead Engineer",
+      role: "Founder & Lead Engineer",
       image: "/sliver.png", 
-      bio: "Amos designed the architectural foundation of Heal Her. He bridges the gap between cold logic and human warmth, building the secure systems that allow our empathy engine to function flawlessly and safely.",
+      operationalRole: "I lead the vision and development of HEAL Her. I manage the product roadmap, coordinate the team, oversee the design and development of new features, make key product decisions, and ensure the platform stays focused on helping girls access safe, trusted, and easy-to-understand health information. I also work closely with my team to improve the platform through research, user feedback, testing, and continuous innovation.",
+      personalMission: "I founded HEAL Her because I believe every girl deserves access to trusted health education, no matter where she lives or her background. I have always wanted to use technology to solve real-life problems, and I saw that many girls struggle to get safe, simple, and reliable information about their health. HEAL Her was created to empower girls with knowledge, help them make better health decisions, and protect them from misinformation and harmful situations. My mission is to build technology that saves lives, educates people, and creates a healthier future for young girls across Africa and beyond.",
       education: "Student - B.Sc Computer Science",
       aspiration: "Full Stack Web Developer",
-      specialty: "Systems Architecture", 
       icon: Crown, 
       isFounder: true, 
       socials: {
@@ -165,9 +177,10 @@ export default function TeamPage() {
     {
       name: "Khadija Maumda Musa",
       nickname: "HT Girl",
-      role: "Medical UI Lead",
+      role: "Medical UI Lead & Co-Founder",
       image: "/khadija.jpg",
-      bio: "Khadija ensures the platform remains deeply human. She translates complex medical facts into a user interface that feels safe, intuitive, and culturally sensitive for girls across Nigeria.",
+      operationalRole: "As the Co-Founder, Khadija is the emotional and operational core of Heal Her. Her primary skills lie in community leadership, health advocacy, and empathetic content curation. Her main contribution to the project is actively managing and nurturing the 'Girls Lounge'—our secure, judgment-free peer support space that already protects a growing community of over 200 young women. She meticulously oversees our health content to ensure every girl feels heard, protected, and empowered when they seek answers. As a secondary focus, Khadija applies her interactive interface design skills to ensure the platform feels intuitive and culturally sensitive. While I handle the technical architecture, she is the human anchor, ensuring that our platform always speaks with the warmth, trust, and empathy of a digital older sister.",
+      personalMission: "Growing up, I witnessed firsthand how societal stigma and fear silence young women when it comes to vital health issues. Seeing girls in my immediate circles turn to unverified online forums—leaving themselves vulnerable to misinformation and predatory strangers—made me realize that existing clinical resources are too cold and intimidating for young women to trust. This is what drove me to co-found Heal Her. My mission is to ensure that no girl ever has to face a health scare or a question alone. By directly managing and growing our community of over 200 young women in the 'Girls Lounge,' I see every day the transformative power of safe, empathetic, and medically accurate support. I am fully committed to scaling Heal Her across Nigeria, bridging the gap between raw technology and human empathy to give the next generation of women the private, judgment-free education they deserve.",
       education: "Student - B.Sc Computer Science",
       aspiration: "Frontend Web Developer",
       specialty: "Interactive Interface Design",
@@ -182,9 +195,10 @@ export default function TeamPage() {
     {
       name: "Echezona Mbuba David",
       nickname: "David Flux", 
-      role: "Community Growth",
+      role: "Community Growth Lead",
       image: "/david.jpg",
-      bio: "David ensures our technology reaches the girls who need it most. He manages on-the-ground campus outreach, breaking down long-held stigmas through direct community engagement.",
+      operationalRole: "As our Community Growth Lead, David is the crucial bridge between our technology and the real world. His primary skills are in strategic ideation, public outreach, and direct user acquisition. His contribution starts behind the scenes. David works directly with me during our brainstorming sessions, taking the raw, unfiltered struggles he hears from young women on campus and helping me map out new app features that solve their exact problems. Once a feature is built, David takes it back to the community. He manages our on-the-ground campaigns, actively breaks down deep-rooted cultural stigmas face-to-face, and drives our user growth to ensure Heal Her reaches the girls who need it the most.",
+      personalMission: "I have always believed that technology is only as valuable as the human crises it solves. Looking beyond my own campus, watching the news, and seeing the alarming reality facing young girls today deeply frustrated me. From young teenagers to young adults, I saw an entire generation relying on dangerous, unverified online advice and predatory strangers simply because societal stigma left them with no safe place to ask questions about their bodies. Joining Heal Her was a deliberate choice to be part of the solution. This project is personal to me because I refuse to watch the younger generation suffer in silence. By constantly brainstorming new features with our technical lead and driving our outreach directly into communities, schools, and campuses, I am dedicated to dismantling these cultural walls. I want to help build a world where every young woman has access to secure, judgment-free health education.",
       education: "Student - B.Sc Computer Science",
       aspiration: "Backend Web Developer",
       icon: Megaphone, 
@@ -199,9 +213,10 @@ export default function TeamPage() {
     {
       name: "Udeh Collins Chimaobi",
       nickname: "Code Collins",
-      role: "Partnerships",
+      role: "Backend & Security Architect",
       image: "/collins.jpg",
-      bio: "Collins maps out the sustainability of our platform. He connects the engineering team with external NGOs and institutional partners to ensure the project can scale reliably.",
+      operationalRole: "As our Backend & Security Architect, Collins is the defensive shield of our platform. His primary skills lie in server-side architecture, data security, privacy protocols, and strategic technical brainstorming. His main contribution is working directly with me to design, build, and fortify the Heal Her backend. We constantly brainstorm the best technical approaches to new features, but his absolute focus is always on safety. Collins ensures that our zero-tracking ecosystem remains completely private and highly secure at the server level. By locking down our data infrastructure, he guarantees that every young woman who uses our app is fully protected from data breaches, tracking, and online predators. He makes sure our digital safe space stays truly safe.",
+      personalMission: "I have always believed that software engineering is empty without a strict commitment to user safety. In today's digital age, privacy is a luxury that many young girls cannot afford, especially when searching for sensitive health answers online. The fact that teenagers are forced to choose between seeking vital health clarity and exposing their data to unverified tracking systems or online predators is a massive engineering flaw that I am desperate to fix. Co-building Heal Her is my way of enforcing digital safety. My personal mission on this project is to brainstorm and execute a technical architecture so secure that zero-tracking isn't just a feature, but an absolute guarantee. Working daily alongside our lead engineer to lock down the backend is deeply personal to me; I am dedicated to proving that we can build robust, highly private technology that empowers young women to learn without fear.",
       education: "Student - B.Sc Computer Science",
       aspiration: "Backend Web Developer",
       icon: Target,
@@ -216,7 +231,8 @@ export default function TeamPage() {
       nickname: "Jimmy Cipher", 
       role: "Operations Manager",
       image: "/jimmy.png",
-      bio: "Jimmy transforms chaotic development cycles into structured reality. He manages deployments, documentation, and operational security to keep the entire team aligned.",
+      operationalRole: "As our Operations Manager, Jimmy is the structural backbone of our team. His core skills perfectly blend agile project management, technical documentation, and operational security. His primary contribution is transforming our rapid development phases into a structured, functioning reality. Jimmy manages our deployment cycles, organizes our technical documentation, and enforces strict operational security over our project files. He acts as our internal scrum master—managing our sprints, tracking milestones, and ensuring the entire team hits our deadlines. By taking full control of our operational logistics and workflow security, Jimmy allows the engineering team to focus entirely on writing code, guaranteeing that Heal Her scales smoothly, securely, and right on schedule.",
+      personalMission: "I have always believed that a brilliant idea is only as good as its execution, and in the realm of digital health, poor execution can actively put vulnerable users at risk. As someone deeply passionate about cybersecurity, it alarms me how often young women’s health data is treated as an afterthought online, leaving them exposed to tracking and digital exploitation when they are simply looking for a safe place to ask questions. I joined Heal Her because I wanted to build a fortress around this mission. My personal goal is to ensure that the digital safe space we are creating for these girls is operationally bulletproof from day one. By managing our deployment cycles, enforcing strict workflow security, and keeping our development team completely aligned, I am doing my part to ensure that Heal Her is not just a great concept, but a highly secure, unbreakable reality that millions of young women can trust.",
       education: "Student - B.Sc Computer Science",
       aspiration: "Cyber Security Specialist",
       icon: ClipboardCheck, 
@@ -234,10 +250,19 @@ export default function TeamPage() {
       <GrainOverlay />
       <Navigation />
 
+      {/* --- INTELLIGENT MODAL MOUNT POINT --- */}
+      <AnimatePresence>
+        {selectedMember && (
+          <ExpandedTeamMember 
+            member={selectedMember} 
+            onClose={() => setSelectedMember(null)} 
+          />
+        )}
+      </AnimatePresence>
+
       {/* --- SECTION 1: THE CONNECTED CIRCLE (Hero) --- */}
       <section className="relative pt-32 pb-20 md:pt-40 md:pb-32 min-h-[90svh] flex flex-col justify-center border-b border-white/5 overflow-hidden">
         
-        {/* Absolute Background Image */}
         <div className="absolute inset-0 z-0">
           <Image
             src="/twelve-hero.png"
@@ -246,7 +271,6 @@ export default function TeamPage() {
             className="object-cover object-center opacity-30 md:opacity-40"
             priority
           />
-          {/* Deep Muted Gradients */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,#1C1246_80%)]" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#1C1246]/95 via-[#1C1246]/50 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#1C1246] via-transparent to-[#1C1246]/60" />
@@ -281,7 +305,6 @@ export default function TeamPage() {
            </motion.div>
         </div>
 
-        {/* THIN WATERMARK COVER STICKER */}
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -296,7 +319,7 @@ export default function TeamPage() {
         </motion.div>
       </section>
 
-      {/* --- SECTION 2: THE DNA OF HEAL HER (Refined) --- */}
+      {/* --- SECTION 2: THE DNA OF HEAL HER --- */}
       <section className="py-20 md:py-28 bg-[#1C1246] border-b border-white/5">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
            <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
@@ -329,7 +352,7 @@ export default function TeamPage() {
         </div>
       </section>
 
-      {/* --- SECTION 3: THE TEAM GRID (Extra Premium, Un-Shouty) --- */}
+      {/* --- SECTION 3: THE TEAM GRID (Updated with Layout IDs & Click Handlers) --- */}
       <section className="py-24 md:py-32 bg-[#231854]/10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16 md:mb-24">
@@ -343,17 +366,20 @@ export default function TeamPage() {
             {teamMembers.map((member, index) => (
               <motion.div
                 key={member.name}
+                layoutId={`card-container-${member.name}`}
+                onClick={() => setSelectedMember(member)}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ duration: 1.2, delay: index * 0.1, ease: premiumSmooth }}
-                className="group relative flex flex-col w-full h-full bg-[#1C1246] rounded-[2rem] border border-white/5 overflow-hidden transition-all duration-500 hover:border-[#DA8CA0]/30 hover:shadow-[0_20px_60px_rgba(218,140,160,0.05)]"
+                className="group cursor-pointer relative flex flex-col w-full h-full bg-[#1C1246] rounded-[2rem] border border-white/5 overflow-hidden transition-all duration-500 hover:border-[#DA8CA0]/30 hover:shadow-[0_20px_60px_rgba(218,140,160,0.05)]"
               >
-                {/* Ultra-soft hover gradient inside the card */}
                 <div className="absolute inset-0 bg-gradient-to-b from-[#DA8CA0]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
 
-                {/* Top Image Section */}
-                <div className="relative w-full aspect-[4/5] bg-[#231854]/30 overflow-hidden border-b border-white/5">
+                <motion.div 
+                  layoutId={`image-container-${member.name}`}
+                  className="relative w-full aspect-[4/5] bg-[#231854]/30 overflow-hidden border-b border-white/5"
+                >
                   <Image 
                     src={member.image} 
                     alt={member.name} 
@@ -362,25 +388,28 @@ export default function TeamPage() {
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
                   
-                  {/* Subtle Role Badge over Image */}
-                  <div className="absolute bottom-4 left-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1C1246]/90 backdrop-blur-md border border-white/10 text-xs font-medium text-white shadow-xl">
+                  <motion.div 
+                    layoutId={`badge-${member.name}`} 
+                    className="absolute bottom-4 left-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1C1246]/90 backdrop-blur-md border border-white/10 text-xs font-medium text-white shadow-xl"
+                  >
                     <member.icon className="h-3.5 w-3.5 text-[#DA8CA0]" />
                     {member.role}
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
 
-                {/* Content Section */}
                 <div className="p-6 md:p-8 flex flex-col flex-grow relative z-10">
                   <div className="mb-6">
                     <div className="text-[10px] font-mono uppercase tracking-widest text-[#DA8CA0] mb-2 opacity-80">
                       {member.nickname}
                     </div>
-                    <h3 className="text-xl md:text-2xl font-bold text-white group-hover:text-[#DA8CA0] transition-colors duration-300">
+                    <motion.h3 
+                      layoutId={`title-${member.name}`} 
+                      className="text-xl md:text-2xl font-bold text-white group-hover:text-[#DA8CA0] transition-colors duration-300"
+                    >
                       {member.name}
-                    </h3>
+                    </motion.h3>
                   </div>
 
-                  {/* Clean, Honest Academic Tags */}
                   <div className="space-y-3 mb-6 p-4 rounded-2xl bg-[#231854]/40 border border-white/5">
                       <div className="flex items-start gap-3">
                          <GraduationCap className="h-4 w-4 text-[#CCCCD9] mt-0.5 opacity-60" />
@@ -399,17 +428,24 @@ export default function TeamPage() {
                       </div>
                   </div>
                   
-                  {/* Bio */}
-                  <p className="text-sm text-[#CCCCD9] font-light leading-relaxed mb-8 flex-grow">
-                    {member.bio}
+                  {/* Truncated operational role overview for the small card */}
+                  <p className="text-sm text-[#CCCCD9] font-light leading-relaxed mb-8 flex-grow line-clamp-3">
+                    {member.operationalRole}
                   </p>
 
-                  {/* Socials */}
-                  <div className="flex gap-2 pt-4 border-t border-white/5 mt-auto">
-                    {member.socials?.email && <SocialButton icon={Mail} href={member.socials.email} label="Email" />}
-                    {member.socials?.whatsapp && <SocialButton icon={WhatsAppIcon} href={member.socials.whatsapp} label="WhatsApp" />}
-                    {member.socials?.phone && <SocialButton icon={Phone} href={member.socials.phone} label="Call" />}
-                    {member.socials?.instagram && <SocialButton icon={Instagram} href={member.socials.instagram} label="Instagram" />}
+                  <div className="flex flex-col gap-4 mt-auto">
+                    {/* Read More Trigger Text */}
+                    <div className="border-t border-white/5 pt-4 flex items-center text-xs font-bold uppercase tracking-wider text-[#DA8CA0] group-hover:text-white transition-colors w-full">
+                      View Full Mission & Profile 
+                      <ArrowRight className="ml-2 w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
+                    </div>
+
+                    <div className="flex gap-2">
+                      {member.socials?.email && <SocialButton icon={Mail} href={member.socials.email} label="Email" />}
+                      {member.socials?.whatsapp && <SocialButton icon={WhatsAppIcon} href={member.socials.whatsapp} label="WhatsApp" />}
+                      {member.socials?.phone && <SocialButton icon={Phone} href={member.socials.phone} label="Call" />}
+                      {member.socials?.instagram && <SocialButton icon={Instagram} href={member.socials.instagram} label="Instagram" />}
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -418,7 +454,7 @@ export default function TeamPage() {
         </div>
       </section>
 
-      {/* --- SECTION 4: ADVISORY MENTORS (Clean & Professional) --- */}
+      {/* --- SECTION 4: ADVISORY MENTORS --- */}
       <section className="py-20 bg-[#1C1246] border-y border-white/5">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
            <div className="text-center mb-12">
@@ -460,7 +496,7 @@ export default function TeamPage() {
         </div>
       </section>
 
-      {/* --- SECTION 5: THE EXIT (Clean Partnership CTA) --- */}
+      {/* --- SECTION 5: THE EXIT --- */}
       <section className="py-24 relative overflow-hidden bg-[#231854]/20 border-b border-white/5">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#DA8CA0]/5 blur-[120px] rounded-full pointer-events-none" />
         
@@ -484,7 +520,7 @@ export default function TeamPage() {
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                <Link 
-                 href="mailto:medguardai@gmail.com"
+                 href="mailto:nwakaamos95@gmail.com"
                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-white text-[#1C1246] font-bold text-sm tracking-wide hover:bg-[#DA8CA0] hover:text-white transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)]"
                >
                  <Mail className="h-4 w-4" /> Reach Out via Email
