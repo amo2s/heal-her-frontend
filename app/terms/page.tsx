@@ -76,13 +76,20 @@ export default function TermsPage() {
   // --- SIGNATURE AUDIT STATE ---
   const [clientName, setClientName] = useState("")
   const [clientEmail, setClientEmail] = useState("")
+  const [isParentalConsent, setIsParentalConsent] = useState(false)
+  const [minorName, setMinorName] = useState("")
+  const [minorAge, setMinorAge] = useState("")
   const [validationError, setValidationError] = useState(false)
   const signatureAnchorRef = useRef<HTMLDivElement>(null)
 
   // --- PDF GENERATION & VALIDATION LOGIC ---
   const handleGeneratePDF = async () => {
     // 1. Validate Signature Fields
-    if (!clientName.trim() || !clientEmail.trim()) {
+    const isBaseInvalid = !clientName.trim() || !clientEmail.trim()
+    const parsedAge = parseInt(minorAge)
+    const isMinorInvalid = isParentalConsent && (!minorName.trim() || !minorAge.trim() || isNaN(parsedAge) || parsedAge < 8)
+
+    if (isBaseInvalid || isMinorInvalid) {
       setValidationError(true)
       signatureAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       return
@@ -114,7 +121,10 @@ export default function TermsPage() {
               reference: "HH-TOS-2026-V5",
               includeSignature: true,
               clientName: clientName,
-              clientEmail: clientEmail
+              clientEmail: clientEmail,
+              isParentalConsent: isParentalConsent,
+              minorName: isParentalConsent ? minorName : undefined,
+              minorAge: isParentalConsent ? parsedAge : undefined
             }
           }
         })
@@ -272,8 +282,6 @@ export default function TermsPage() {
                  className="prose prose-invert prose-slate max-w-none"
                >
                   
-                  {/* Sections 1 to 19 remain structurally identical to previous iteration, truncated here for brevity but assuming full inclusion in final source */}
-                  
                   {/* 1. Legal Status */}
                   <motion.div variants={fadeInUp} id="section-1" className="mb-16 scroll-mt-32">
                      <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3 border-b border-[#DA8CA0]/20 pb-3">
@@ -381,7 +389,7 @@ export default function TermsPage() {
                         <UserCheck className="h-6 w-6 text-[#DA8CA0] shrink-0 mt-1" />
                         <div className="text-base text-[#CCCCD9] leading-7">
                            <p className="mb-3"><strong>7.1. Honest Representation.</strong> You agree to provide truthful information. Providing misleading inputs to the AI can result in dangerous outputs.</p>
-                           <p><strong>7.2. Age Requirement.</strong> You must be at least 13 years of age. Users under 18 require active parental supervision to use the Service.</p>
+                           <p><strong>7.2. Age Requirement.</strong> You must be at least 8 years of age. Users under 18 require active parental supervision to use the Service.</p>
                         </div>
                      </div>
                   </motion.div>
@@ -603,12 +611,14 @@ export default function TermsPage() {
 
                         {/* Client Signature & Email Form (Col 2) */}
                         <div className="space-y-5 relative" ref={signatureAnchorRef}>
-                           <p className="text-xs text-[#CCCCD9]/80 uppercase tracking-widest font-semibold">Executed By User:</p>
+                           <p className="text-xs text-[#CCCCD9]/80 uppercase tracking-widest font-semibold">
+                             {isParentalConsent ? "Executed By Parent/Guardian:" : "Executed By User:"}
+                           </p>
                            <div className="space-y-4 pt-2">
                              <div>
                                <input 
                                  type="text" 
-                                 placeholder="Enter Full Legal Name"
+                                 placeholder={isParentalConsent ? "Enter Parent's Full Legal Name" : "Enter Full Legal Name"}
                                  value={clientName}
                                  onChange={(e) => { setClientName(e.target.value); setValidationError(false); }}
                                  className={`w-full bg-[#1C1246] border ${validationError && !clientName ? 'border-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.3)]' : 'border-[#DA8CA0]/30'} rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-[#CCCCD9]/40 focus:outline-none focus:border-[#DA8CA0] transition-all`}
@@ -623,6 +633,57 @@ export default function TermsPage() {
                                  className={`w-full bg-[#1C1246] border ${validationError && !clientEmail ? 'border-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.3)]' : 'border-[#DA8CA0]/30'} rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-[#CCCCD9]/40 focus:outline-none focus:border-[#DA8CA0] transition-all`}
                                />
                              </div>
+
+                             {/* Parental Consent Toggle with Hidden Input for Accessibility/Interactivity */}
+                             <label className="flex items-center gap-3 cursor-pointer group mt-2 w-max">
+                               <input 
+                                 type="checkbox" 
+                                 className="hidden" 
+                                 checked={isParentalConsent}
+                                 onChange={(e) => { 
+                                   setIsParentalConsent(e.target.checked); 
+                                   setValidationError(false); 
+                                 }} 
+                               />
+                               <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isParentalConsent ? 'bg-[#DA8CA0] border-[#DA8CA0]' : 'border-[#DA8CA0]/50 bg-transparent group-hover:border-[#DA8CA0]'}`}>
+                                 {isParentalConsent && (
+                                   <svg className="w-3 h-3 text-[#1C1246]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                   </svg>
+                                 )}
+                               </div>
+                               <span className="text-xs text-[#CCCCD9] font-medium tracking-wide select-none">Signing on behalf of a minor</span>
+                             </label>
+
+                             {/* Minor Information conditionally rendered */}
+                             {isParentalConsent && (
+                               <motion.div 
+                                 initial={{ opacity: 0, height: 0 }} 
+                                 animate={{ opacity: 1, height: 'auto' }} 
+                                 className="space-y-4 pt-2 border-t border-[#DA8CA0]/20 overflow-hidden"
+                               >
+                                 <div>
+                                   <input 
+                                     type="text" 
+                                     placeholder="Enter Minor's Full Name"
+                                     value={minorName}
+                                     onChange={(e) => { setMinorName(e.target.value); setValidationError(false); }}
+                                     className={`w-full bg-[#1C1246] border ${validationError && isParentalConsent && !minorName ? 'border-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.3)]' : 'border-[#DA8CA0]/30'} rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-[#CCCCD9]/40 focus:outline-none focus:border-[#DA8CA0] transition-all`}
+                                   />
+                                 </div>
+                                 <div>
+                                   <input 
+                                     type="number" 
+                                     min="8"
+                                     max="17"
+                                     placeholder="Minor's Age (Minimum 8)"
+                                     value={minorAge}
+                                     onChange={(e) => { setMinorAge(e.target.value); setValidationError(false); }}
+                                     className={`w-full bg-[#1C1246] border ${validationError && isParentalConsent && (!minorAge || parseInt(minorAge) < 8) ? 'border-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.3)]' : 'border-[#DA8CA0]/30'} rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-[#CCCCD9]/40 focus:outline-none focus:border-[#DA8CA0] transition-all`}
+                                   />
+                                 </div>
+                               </motion.div>
+                             )}
                              
                              <div className="text-[10px] text-[#CCCCD9]/60 font-mono leading-relaxed mt-2 bg-[#DA8CA0]/5 p-3 rounded-lg border border-[#DA8CA0]/10">
                                <ShieldAlert className="h-3 w-3 inline mr-1 text-[#DA8CA0]" />

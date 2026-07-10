@@ -64,8 +64,18 @@ function SpotlightCard({ children, className = "" }: { children: React.ReactNode
   const mouseX = useMotionValue(0)
   const mouseY = useMotionValue(0)
   const [isTouch, setIsTouch] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
+
+  const backgroundTemplate = useMotionTemplate`
+    radial-gradient(
+      650px circle at ${mouseX}px ${mouseY}px,
+      rgba(218, 140, 160, 0.15),
+      transparent 80%
+    )
+  `
 
   useEffect(() => {
+    setIsMounted(true)
     setIsTouch(window.matchMedia("(pointer: coarse)").matches)
   }, [])
 
@@ -84,21 +94,13 @@ function SpotlightCard({ children, className = "" }: { children: React.ReactNode
       )}
       onMouseMove={handleMouseMove}
     >
-      {!isTouch && (
+      {isMounted && !isTouch && (
         <motion.div
           className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 transition duration-700 group-hover:opacity-100"
-          style={{
-            background: useMotionTemplate`
-              radial-gradient(
-                650px circle at ${mouseX}px ${mouseY}px,
-                rgba(218, 140, 160, 0.15),
-                transparent 80%
-              )
-            `,
-          }}
+          style={{ background: backgroundTemplate }}
         />
       )}
-      {isTouch && (
+      {isMounted && isTouch && (
         <div className="pointer-events-none absolute inset-0 rounded-3xl bg-gradient-to-br from-[#DA8CA0]/10 to-transparent opacity-0 transition duration-500 active:opacity-100" />
       )}
       <div className="relative h-full z-10">{children}</div>
