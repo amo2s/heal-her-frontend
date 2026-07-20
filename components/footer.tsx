@@ -60,7 +60,7 @@ export function Footer() {
             <ul className="space-y-5">
               <li><FooterLink href="/how-it-works">How AI Helps</FooterLink></li>
               <li><FooterLink href="/parental-guide">Parental Guide</FooterLink></li>
-              <li><FooterLink href="/privacy">My Privacy</FooterLink></li>
+              <li><FooterLink href="/trust">My Privacy</FooterLink></li>
               <li><FooterLink href="/health-disclaimer">Health Disclaimer</FooterLink></li>
               <li><FooterLink href="/use-cases">Use Cases</FooterLink></li>
             </ul>

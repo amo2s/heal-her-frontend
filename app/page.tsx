@@ -9,6 +9,7 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import Testimonial from "@/components/modals/testimonial"
 import HeroCard from "@/components/hero-card"
+import StatsCard from "@/components/home/stats-card"
 import { cn } from "@/lib/utils"
 import {
   Shield,
@@ -329,6 +330,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ========== STATS SECTION ========== */}
+      <StatsCard />
 
       {/* ========== TESTIMONIALS SECTION ========== */}
       <Testimonial />
