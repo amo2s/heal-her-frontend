@@ -2,27 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 // --- THE UNIVERSAL COURIER ---
-// Note the type change: params is now a Promise!
 async function proxyRequest(request: NextRequest, { params }: { params: Promise<{ slug: string[] }> }) {
-  
-  // 1. UNWRAP THE PARAMS FIRST (This fixes your 500 error!)
+
+  // 1. UNWRAP THE PARAMS FIRST
   const { slug } = await params;
-  
+
   // --- TRANSLATION LAYER FIX (ADVANCED ENUM MAP) ---
-  // A strict dictionary providing O(1) lookup for all domain variations.
-  // This acts as a firewall that sanitizes frontend strings before they touch Python.
   const domainDictionary: Record<string, string> = {
     "young-adult": "young_adult",
     "young-adults": "young_adult",
-  
   };
 
-  // Instantly translates any known mismatch, otherwise leaves the segment untouched.
   const mappedSlug = slug.map(segment => domainDictionary[segment] || segment);
 
   // 2. RECONSTRUCT THE TARGET URL
   const backendUrl = process.env.BACKEND_URL || "https://sliverboy-healher-backend.hf.space";
-  const path = mappedSlug.join("/"); // Uses the translated slug array
+  const path = mappedSlug.join("/");
   const searchParams = request.nextUrl.searchParams.toString();
   const targetUrl = `${backendUrl}/${path}${searchParams ? `?${searchParams}` : ""}`;
 
@@ -32,14 +27,24 @@ async function proxyRequest(request: NextRequest, { params }: { params: Promise<
 
   // 4. SANITIZE HEADERS
   const headers = new Headers(request.headers);
-  headers.delete("host"); 
-  headers.delete("cookie"); 
+  headers.delete("host");
+  headers.delete("cookie");
+  // Client JS can set these freely via fetch() — strip any inbound copy before we set our own trusted value.
+  headers.delete("x-forwarded-for");
+  headers.delete("x-healher-verified-ip");
+
+  // 4b. RESOLVE THE TRUE CLIENT IP SERVER-SIDE, NOT FROM ANYTHING THE BROWSER SENT
+  // Trustworthy ONLY because we deleted any client-forged x-forwarded-for immediately above.
+  const platformForwardedFor = request.headers.get("x-forwarded-for");
+  const resolvedIp = platformForwardedFor?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "unknown";
 
   // 5. INJECT THE FORTRESS KEYS
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
   headers.set("x-healher-handshake", process.env.FRONTEND_HANDSHAKE_SECRET || "");
+  // Backend must read THIS for audit trails — never an ipAddress field inside the GraphQL body.
+  headers.set("x-healher-verified-ip", resolvedIp);
 
   // 6. PROCESS THE PAYLOAD
   let body;
@@ -53,11 +58,10 @@ async function proxyRequest(request: NextRequest, { params }: { params: Promise<
       method: request.method,
       headers,
       body,
-      redirect: "manual", 
+      redirect: "manual",
     });
 
     // 8. THE ELITE STREAMING BYPASS (Fixes the AI Chat Delay)
-    // If the backend sends an event stream, pipe it directly! Do not use .text()
     if (response.headers.get("content-type")?.includes("text/event-stream")) {
       return new NextResponse(response.body, {
         status: response.status,
