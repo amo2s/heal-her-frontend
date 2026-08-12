@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 import { 
   Code2, Stethoscope, ClipboardCheck, Megaphone, 
   GraduationCap, Mail, Facebook, Instagram, Phone, Target, 
-  HeartHandshake, Library, Crown, Heart, ArrowRight
+  HeartHandshake, Library, Crown, Heart, ArrowRight, Github, Briefcase
 } from "lucide-react"
 
 // Import the newly created intelligent modal component
@@ -163,7 +163,7 @@ export default function TeamPage() {
       operationalRole: "I lead the vision and development of HEAL Her. I manage the product roadmap, coordinate the team, oversee the design and development of new features, make key product decisions, and ensure the platform stays focused on helping girls access safe, trusted, and easy-to-understand health information. I also work closely with my team to improve the platform through research, user feedback, testing, and continuous innovation.",
       personalMission: "I founded HEAL Her because I believe every girl deserves access to trusted health education, no matter where she lives or her background. I have always wanted to use technology to solve real-life problems, and I saw that many girls struggle to get safe, simple, and reliable information about their health. HEAL Her was created to empower girls with knowledge, help them make better health decisions, and protect them from misinformation and harmful situations. My mission is to build technology that saves lives, educates people, and creates a healthier future for young girls across Africa and beyond.",
       education: "Student - B.Sc Computer Science",
-      aspiration: "Full Stack Web Developer",
+      aspiration: "Full Stack Website & Mobile  Developer",
       icon: Crown, 
       isFounder: true, 
       socials: {
@@ -171,7 +171,9 @@ export default function TeamPage() {
         facebook: "https://www.facebook.com/share/1FC78LeYK8/",
         email: "mailto:nwakaamos95@gmail.com",
         whatsapp: "https://wa.me/2349063877703",
-        phone: "tel:09063877703"
+        phone: "tel:09063877703",
+        github: "https://github.com/amo2s",
+        portfolio: "https://sliver-designs.vercel.app/sliverboy"
       }
     },
     {
@@ -445,6 +447,8 @@ export default function TeamPage() {
                       {member.socials?.whatsapp && <SocialButton icon={WhatsAppIcon} href={member.socials.whatsapp} label="WhatsApp" />}
                       {member.socials?.phone && <SocialButton icon={Phone} href={member.socials.phone} label="Call" />}
                       {member.socials?.instagram && <SocialButton icon={Instagram} href={member.socials.instagram} label="Instagram" />}
+                      {member.socials?.github && <SocialButton icon={Github} href={member.socials.github} label="GitHub" />}
+                      {member.socials?.portfolio && <SocialButton icon={Briefcase} href={member.socials.portfolio} label="Portfolio" />}
                     </div>
                   </div>
                 </div>

@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 import { 
   Heart, Sparkles, Shield, Globe, Lock, Activity,
   CheckCircle2, ArrowRight, Target, Users, Stethoscope, Fingerprint,
-  Crown, Mail, Instagram, Phone, GraduationCap
+  Crown, Mail, Instagram, Phone, GraduationCap, Github, Briefcase
 } from "lucide-react"
 
 // Import the intelligent modal component we built
@@ -167,7 +167,9 @@ export default function AboutPage() {
         facebook: "https://www.facebook.com/share/1FC78LeYK8/",
         email: "mailto:nwakaamos95@gmail.com",
         whatsapp: "https://wa.me/2349063877703",
-        phone: "tel:09063877703"
+        phone: "tel:09063877703",
+        github: "https://github.com/amo2s",
+        portfolio: "https://sliver-designs.vercel.app/sliverboy"
       }
     },
     {
@@ -441,12 +443,12 @@ export default function AboutPage() {
                   { year: "The Horizon", title: "National Institutional Rollout", desc: "We are currently scaling infrastructure to deploy Heal Her across young women nationwide." }
                ].map((item, i) => (
                   <motion.div 
-                     key={i}
-                     initial={{ opacity: 0, x: i % 2 === 0 ? -20 : 20 }}
-                     whileInView={{ opacity: 1, x: 0 }}
-                     transition={{ type: "spring", stiffness: 70, damping: 20 }}
-                     viewport={{ once: true, margin: "-50px" }}
-                     className="relative pl-6 md:pl-0"
+                      key={i}
+                      initial={{ opacity: 0, x: i % 2 === 0 ? -20 : 20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      transition={{ type: "spring", stiffness: 70, damping: 20 }}
+                      viewport={{ once: true, margin: "-50px" }}
+                      className="relative pl-6 md:pl-0"
                   >
                      <div className="absolute left-[-29px] md:left-[calc(50%-9px)] top-2 h-4 w-4 rounded-full bg-[#DA8CA0] border-4 border-[#1C1246] shadow-[0_0_15px_rgba(218,140,160,0.6)] z-10" />
                      
@@ -540,6 +542,8 @@ export default function AboutPage() {
                       {member.socials?.whatsapp && <SocialButton icon={WhatsAppIcon} href={member.socials.whatsapp} label="WhatsApp" />}
                       {member.socials?.phone && <SocialButton icon={Phone} href={member.socials.phone} label="Call" />}
                       {member.socials?.instagram && <SocialButton icon={Instagram} href={member.socials.instagram} label="Instagram" />}
+                      {member.socials?.github && <SocialButton icon={Github} href={member.socials.github} label="GitHub" />}
+                      {member.socials?.portfolio && <SocialButton icon={Briefcase} href={member.socials.portfolio} label="Portfolio" />}
                     </div>
                   </div>
                 </div>
