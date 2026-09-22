@@ -10,7 +10,8 @@ import { cn } from "@/lib/utils"
 import { 
   Code2, Stethoscope, ClipboardCheck, Megaphone, 
   GraduationCap, Mail, Facebook, Instagram, Phone, Target, 
-  HeartHandshake, Library, Crown, Heart, ArrowRight, Github, Briefcase
+  HeartHandshake, Library, Crown, Heart, ArrowRight, Github, Briefcase,
+  Monitor
 } from "lucide-react"
 
 // Import the newly created intelligent modal component
@@ -78,6 +79,44 @@ const SocialButton = ({ icon: Icon, href, label }: { icon: any, href: string, la
     <Icon className="h-3.5 w-3.5" />
   </a>
 )
+
+// ============================================================================
+// PREMIUM IMAGE SLIDESHOW COMPONENT
+// ============================================================================
+const PremiumImageSlider = ({ images, alt }: { images: string[], alt: string }) => {
+  const [currentIndex, setCurrentIndex] = useState(0)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % images.length)
+    }, 4500) // 4.5 seconds per slide
+    return () => clearInterval(timer)
+  }, [images.length])
+
+  return (
+    <div className="absolute inset-0 w-full h-full bg-[#231854]/30">
+      <AnimatePresence mode="popLayout">
+        <motion.div
+          key={currentIndex}
+          initial={{ opacity: 0, scale: 1.08 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, transition: { duration: 1.5, ease: premiumSmooth } }}
+          transition={{ duration: 1.8, ease: premiumSmooth }}
+          className="absolute inset-0 w-full h-full"
+        >
+          <Image 
+            src={images[currentIndex]} 
+            alt={`${alt} view ${currentIndex + 1}`} 
+            fill
+            className="object-cover object-center opacity-80 group-hover:opacity-100 transition-all duration-700 group-hover:scale-105 filter grayscale-[20%] group-hover:grayscale-0"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            priority={currentIndex === 0}
+          />
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  )
+}
 
 // ============================================================================
 // SIMULATION: THE REFINED SYNERGY CORE
@@ -160,6 +199,12 @@ export default function TeamPage() {
       nickname: "Sliverboy",
       role: "Founder & Lead Engineer",
       image: "/sliver.png", 
+      images: [
+        "/sliver.png",
+        "/sliver-1.png",
+        "/sliver-2.png",
+        "/sliver-4.jpg"
+      ], // Slideshow assets
       operationalRole: "I lead the vision and development of HEAL Her. I manage the product roadmap, coordinate the team, oversee the design and development of new features, make key product decisions, and ensure the platform stays focused on helping girls access safe, trusted, and easy-to-understand health information. I also work closely with my team to improve the platform through research, user feedback, testing, and continuous innovation.",
       personalMission: "I founded HEAL Her because I believe every girl deserves access to trusted health education, no matter where she lives or her background. I have always wanted to use technology to solve real-life problems, and I saw that many girls struggle to get safe, simple, and reliable information about their health. HEAL Her was created to empower girls with knowledge, help them make better health decisions, and protect them from misinformation and harmful situations. My mission is to build technology that saves lives, educates people, and creates a healthier future for young girls across Africa and beyond.",
       education: "Student - B.Sc Computer Science",
@@ -229,20 +274,20 @@ export default function TeamPage() {
       }
     },
     {
-      name: "Ajilima Jimmy Oloche",
-      nickname: "Jimmy Cipher", 
-      role: "Operations Manager",
-      image: "/jimmy.png",
-      operationalRole: "As our Operations Manager, Jimmy is the structural backbone of our team. His core skills perfectly blend agile project management, technical documentation, and operational security. His primary contribution is transforming our rapid development phases into a structured, functioning reality. Jimmy manages our deployment cycles, organizes our technical documentation, and enforces strict operational security over our project files. He acts as our internal scrum master—managing our sprints, tracking milestones, and ensuring the entire team hits our deadlines. By taking full control of our operational logistics and workflow security, Jimmy allows the engineering team to focus entirely on writing code, guaranteeing that Heal Her scales smoothly, securely, and right on schedule.",
-      personalMission: "I have always believed that a brilliant idea is only as good as its execution, and in the realm of digital health, poor execution can actively put vulnerable users at risk. As someone deeply passionate about cybersecurity, it alarms me how often young women’s health data is treated as an afterthought online, leaving them exposed to tracking and digital exploitation when they are simply looking for a safe place to ask questions. I joined Heal Her because I wanted to build a fortress around this mission. My personal goal is to ensure that the digital safe space we are creating for these girls is operationally bulletproof from day one. By managing our deployment cycles, enforcing strict workflow security, and keeping our development team completely aligned, I am doing my part to ensure that Heal Her is not just a great concept, but a highly secure, unbreakable reality that millions of young women can trust.",
+      name: "Louis Ugande",
+      nickname: "Loutron", 
+      role: "Frontend Engineer",
+      image: "/louis.jpg", // Adjust to .png if necessary
+      operationalRole: "As a Frontend Engineer, Louis brings the Heal Her vision to life through highly intuitive and accessible user interfaces. He focuses on creating seamless digital experiences that allow our community to navigate complex health modules safely and effortlessly. Working closely with the core engineering team, he ensures the platform is exceptionally responsive, visually engaging, and culturally resonant for our primary user base.",
+      personalMission: "I believe that technology should break down barriers, not build them. Joining Heal Her is my way of using frontend development to craft a digital sanctuary where young women feel comfortable and secure. My core focus is building interfaces that are so welcoming and frictionless that seeking vital health clarity feels as natural as having a conversation with a trusted friend. I am dedicated to translating our protective mission into every pixel and screen interaction.",
       education: "Student - B.Sc Computer Science",
-      aspiration: "Cyber Security Specialist",
-      icon: ClipboardCheck, 
+      aspiration: "Frontend Architect",
+      icon: Monitor, 
       socials: {
-        facebook: "https://www.facebook.com/profile.php?id=61579818594870",
-        email: "mailto:bigjimmy328@gmail.com",
-        whatsapp: "https://wa.me/2349028683255", 
-        phone: "tel:09164118260"
+        facebook: "https://www.facebook.com/parzivalrules",
+        instagram: "https://www.instagram.com/_u/loutron.louis?utm_source=wa4a&utm_campaign=wa_vpl_m2_vf_web",
+        email: "mailto:louisugande001@gmail.com",
+        whatsapp: "https://wa.me/2348146864570"
       }
     },
   ]
@@ -354,7 +399,7 @@ export default function TeamPage() {
         </div>
       </section>
 
-      {/* --- SECTION 3: THE TEAM GRID (Updated with Layout IDs & Click Handlers) --- */}
+      {/* --- SECTION 3: THE TEAM GRID --- */}
       <section className="py-24 md:py-32 bg-[#231854]/10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16 md:mb-24">
@@ -382,17 +427,22 @@ export default function TeamPage() {
                   layoutId={`image-container-${member.name}`}
                   className="relative w-full aspect-[4/5] bg-[#231854]/30 overflow-hidden border-b border-white/5"
                 >
-                  <Image 
-                    src={member.image} 
-                    alt={member.name} 
-                    fill
-                    className="object-cover object-center opacity-80 group-hover:opacity-100 transition-all duration-700 group-hover:scale-105 filter grayscale-[20%] group-hover:grayscale-0"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  />
+                  {/* SLIDESHOW LOGIC INJECTED HERE */}
+                  {member.images ? (
+                    <PremiumImageSlider images={member.images} alt={member.name} />
+                  ) : (
+                    <Image 
+                      src={member.image} 
+                      alt={member.name} 
+                      fill
+                      className="object-cover object-center opacity-80 group-hover:opacity-100 transition-all duration-700 group-hover:scale-105 filter grayscale-[20%] group-hover:grayscale-0"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    />
+                  )}
                   
                   <motion.div 
                     layoutId={`badge-${member.name}`} 
-                    className="absolute bottom-4 left-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1C1246]/90 backdrop-blur-md border border-white/10 text-xs font-medium text-white shadow-xl"
+                    className="absolute bottom-4 left-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1C1246]/90 backdrop-blur-md border border-white/10 text-xs font-medium text-white shadow-xl z-20"
                   >
                     <member.icon className="h-3.5 w-3.5 text-[#DA8CA0]" />
                     {member.role}
@@ -430,13 +480,11 @@ export default function TeamPage() {
                       </div>
                   </div>
                   
-                  {/* Truncated operational role overview for the small card */}
                   <p className="text-sm text-[#CCCCD9] font-light leading-relaxed mb-8 flex-grow line-clamp-3">
                     {member.operationalRole}
                   </p>
 
                   <div className="flex flex-col gap-4 mt-auto">
-                    {/* Read More Trigger Text */}
                     <div className="border-t border-white/5 pt-4 flex items-center text-xs font-bold uppercase tracking-wider text-[#DA8CA0] group-hover:text-white transition-colors w-full">
                       View Full Mission & Profile 
                       <ArrowRight className="ml-2 w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
@@ -446,6 +494,7 @@ export default function TeamPage() {
                       {member.socials?.email && <SocialButton icon={Mail} href={member.socials.email} label="Email" />}
                       {member.socials?.whatsapp && <SocialButton icon={WhatsAppIcon} href={member.socials.whatsapp} label="WhatsApp" />}
                       {member.socials?.phone && <SocialButton icon={Phone} href={member.socials.phone} label="Call" />}
+                      {member.socials?.facebook && <SocialButton icon={Facebook} href={member.socials.facebook} label="Facebook" />}
                       {member.socials?.instagram && <SocialButton icon={Instagram} href={member.socials.instagram} label="Instagram" />}
                       {member.socials?.github && <SocialButton icon={Github} href={member.socials.github} label="GitHub" />}
                       {member.socials?.portfolio && <SocialButton icon={Briefcase} href={member.socials.portfolio} label="Portfolio" />}
