@@ -42,22 +42,24 @@ func NewOrchestrator(repo *repository.Queries) *Orchestrator {
 
 // ExecuteTOSWorkflow drives the phase 2.3 orchestration pipeline.
 func (o *Orchestrator) ExecuteTOSWorkflow(ctx context.Context, payload models.SignaturePayload, email, ipAddress string) (*repository.TosAuditLedger, error) {
-	// 1. Dispatch payload to the isolated Python rendering worker
-	pdfBytes, documentHash, err := o.requestRendering(ctx, payload)
+	// 1. Generate the deterministic Request ID first so it can be embedded in the PDF
+	requestID := uuid.New()
+
+	// 2. Dispatch enriched payload to the isolated Python rendering worker
+	pdfBytes, documentHash, err := o.requestRendering(ctx, payload, email, requestID)
 	if err != nil {
 		return nil, fmt.Errorf("rendering engine failure: %w", err)
 	}
 
-	// 2. Generate a deterministic storage path to prevent collisions
-	requestID := uuid.New()
+	// 3. Generate a deterministic storage path to prevent collisions
 	storagePath := fmt.Sprintf("%s/%s.pdf", email, requestID.String())
 
-	// 3. Upload the strictly locked PDF to the Supabase WORM bucket
+	// 4. Upload the strictly locked PDF to the Supabase WORM bucket
 	if err := o.uploadToStorage(ctx, storagePath, pdfBytes); err != nil {
 		return nil, fmt.Errorf("storage persistence failure: %w", err)
 	}
 
-	// 4. Commit the cryptographic proof and metadata to the PostgreSQL ledger
+	// 5. Commit the cryptographic proof and metadata to the PostgreSQL ledger
 	minorName := pgtype.Text{Valid: false}
 	if payload.MinorName != nil {
 		minorName = pgtype.Text{String: *payload.MinorName, Valid: true}
@@ -82,16 +84,31 @@ func (o *Orchestrator) ExecuteTOSWorkflow(ctx context.Context, payload models.Si
 
 	ledgerRecord, err := o.repo.CreateAuditRecord(ctx, insertParams)
 	if err != nil {
-		// Note: A true transactional distributed saga would attempt to rollback the storage upload here.
-		// Given WORM constraints and the storage path uniqueness, an orphaned file is acceptable over complexity.
 		return nil, fmt.Errorf("ledger commit failure: %w", err)
 	}
 
 	return &ledgerRecord, nil
 }
 
-func (o *Orchestrator) requestRendering(ctx context.Context, payload models.SignaturePayload) ([]byte, string, error) {
-	body, err := json.Marshal(payload)
+func (o *Orchestrator) requestRendering(ctx context.Context, payload models.SignaturePayload, email string, requestID uuid.UUID) ([]byte, string, error) {
+	// Construct the enriched payload mapping exactly to the Python Pydantic schema
+	enrichedPayload := struct {
+		ClientName        string  `json:"clientName"`
+		ClientEmail       string  `json:"clientEmail"`
+		RequestID         string  `json:"requestId"`
+		IsParentalConsent bool    `json:"isParentalConsent"`
+		MinorName         *string `json:"minorName"`
+		MinorAge          *int    `json:"minorAge"`
+	}{
+		ClientName:        payload.ClientName,
+		ClientEmail:       email,
+		RequestID:         requestID.String(),
+		IsParentalConsent: payload.IsParentalConsent,
+		MinorName:         payload.MinorName,
+		MinorAge:          payload.MinorAge,
+	}
+
+	body, err := json.Marshal(enrichedPayload)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to encode rendering payload: %w", err)
 	}
@@ -126,8 +143,6 @@ func (o *Orchestrator) requestRendering(ctx context.Context, payload models.Sign
 }
 
 func (o *Orchestrator) uploadToStorage(ctx context.Context, path string, data []byte) error {
-	// Construct the Supabase Storage REST API endpoint
-	// Blueprint references bucket: tos-documents
 	url := fmt.Sprintf("%s/storage/v1/object/tos-documents/%s", o.supabaseURL, path)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(data))
@@ -137,7 +152,7 @@ func (o *Orchestrator) uploadToStorage(ctx context.Context, path string, data []
 
 	req.Header.Set("Authorization", "Bearer "+o.supabaseKey)
 	req.Header.Set("Content-Type", "application/pdf")
-	req.Header.Set("x-upsert", "false") // Enforce WORM: do not overwrite existing files
+	req.Header.Set("x-upsert", "false")
 
 	res, err := o.httpClient.Do(req)
 	if err != nil {
