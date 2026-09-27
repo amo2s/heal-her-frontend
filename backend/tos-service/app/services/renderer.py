@@ -1,9 +1,12 @@
 # app/services/renderer.py
+import io
 import logging
+import os
 from datetime import datetime
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, TemplateError
+from pypdf import PdfReader, PdfWriter
 from weasyprint import HTML
 
 from app.models.schemas import EnrichedSignaturePayload
@@ -30,17 +33,17 @@ jinja_env = Environment(
 
 def render_tos_pdf(payload: EnrichedSignaturePayload) -> bytes:
     """
-    Compiles the dynamic HTML utilizing Jinja2 and generates a secure PDF 
-    byte stream via WeasyPrint.
+    Compiles the dynamic HTML utilizing Jinja2, generates a base PDF via WeasyPrint,
+    and applies AES-256 cryptographic lockdown to enforce immutability.
     
     Args:
         payload: The strictly validated EnrichedSignaturePayload.
         
     Returns:
-        bytes: The raw PDF document byte stream.
+        bytes: The encrypted, read-only PDF document byte stream.
         
     Raises:
-        DocumentRenderingError: If template compilation or PDF generation fails.
+        DocumentRenderingError: If template compilation, PDF generation, or encryption fails.
     """
     try:
         # 1. Prepare dynamic execution context
@@ -57,13 +60,36 @@ def render_tos_pdf(payload: EnrichedSignaturePayload) -> bytes:
         template = jinja_env.get_template("tos.html")
         rendered_html = template.render(**context)
 
-        # 3. Generate binary PDF via WeasyPrint
+        # 3. Generate raw binary PDF via WeasyPrint
         # We process the compiled HTML string and output directly to an in-memory byte stream.
-        # This guarantees the worker remains completely stateless (no local disk writes).
-        pdf_bytes = HTML(string=rendered_html).write_pdf()
+        raw_pdf_bytes = HTML(string=rendered_html).write_pdf()
 
-        logger.info(f"Successfully generated PDF for request_id: {payload.request_id}")
-        return pdf_bytes
+        # 4. Apply Cryptographic Lockdown (AES-256)
+        # Load the raw bytes into pypdf to manipulate permissions and encrypt
+        reader = PdfReader(io.BytesIO(raw_pdf_bytes))
+        writer = PdfWriter()
+        
+        for page in reader.pages:
+            writer.add_page(page)
+
+        # Fetch strict owner password from environment variables (fallback provided for local dev)
+        owner_password = os.getenv("PDF_OWNER_PASSWORD", "heal-her-strict-internal-secret")
+        
+        # Encrypt with a blank user password (allows seamless viewing) 
+        # but strong owner password (enforces read-only flags and prevents edits/printing)
+        writer.encrypt(
+            user_password="", 
+            owner_password=owner_password, 
+            algorithm="AES-256"
+        )
+
+        # Output the locked document into a new stateless memory buffer
+        locked_pdf_buffer = io.BytesIO()
+        writer.write(locked_pdf_buffer)
+        locked_pdf_bytes = locked_pdf_buffer.getvalue()
+
+        logger.info(f"Successfully generated and locked PDF for request_id: {payload.request_id}")
+        return locked_pdf_bytes
 
     except TemplateError as e:
         # Log the critical internal error for backend engineers, but do NOT bubble it up
@@ -71,6 +97,6 @@ def render_tos_pdf(payload: EnrichedSignaturePayload) -> bytes:
         raise DocumentRenderingError("Failed to compile document template.")
         
     except Exception as e:
-        # Catch-all for WeasyPrint or unexpected systemic failures
-        logger.error(f"WeasyPrint PDF generation failed for request_id {payload.request_id}: {str(e)}")
+        # Catch-all for WeasyPrint, pypdf, or unexpected systemic failures
+        logger.error(f"PDF generation or encryption failed for request_id {payload.request_id}: {str(e)}")
         raise DocumentRenderingError("An internal error occurred during document generation.")

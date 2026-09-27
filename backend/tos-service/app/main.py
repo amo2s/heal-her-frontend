@@ -1,17 +1,20 @@
 # app/main.py
 import hashlib
+import io
 import logging
-from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Response
-from pydantic import BaseModel, Field, model_validator
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
+
+from app.models.schemas import EnrichedSignaturePayload
+from app.services.renderer import render_tos_pdf, DocumentRenderingError
 
 # Configure structured logging for the microservice observability
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
-logger = logging.getLogger("tos_renderer")
+logger = logging.getLogger("tos_renderer.api")
 
 app = FastAPI(
     title="TOS Rendering Service",
@@ -19,63 +22,44 @@ app = FastAPI(
     version="1.0.0"
 )
 
-class SignaturePayload(BaseModel):
+@app.post("/api/v1/render", response_class=StreamingResponse)
+async def render_tos_document(payload: EnrichedSignaturePayload) -> StreamingResponse:
     """
-    Defines the exact JSON contract expected from the Go gateway.
-    Strictly enforces the dual-track parental consent boundaries using Pydantic V2.
+    Receives enriched payload from the Go gateway, delegates PDF rendering and encryption,
+    generates a cryptographic SHA-512 fingerprint, and streams the locked binary 
+    back to the orchestrator.
     """
-    client_name: str = Field(..., min_length=2, max_length=255)
-    is_parental_consent: bool
-    minor_name: Optional[str] = Field(default=None, max_length=255)
-    minor_age: Optional[int] = Field(default=None, ge=0, le=17)
-
-    @model_validator(mode='after')
-    def validate_parental_consent_matrix(self) -> 'SignaturePayload':
-        """
-        Acts as the secondary firewall to enforce the parental consent matrix,
-        perfectly mirroring the Go gateway's struct validation rules.
-        """
-        if self.is_parental_consent:
-            # Dual-Track Logic: Parental consent IS active.
-            # Minor data MUST be present and structurally valid.
-            if not self.minor_name or len(self.minor_name.strip()) < 2:
-                raise ValueError("minor_name is required and must be valid when is_parental_consent is True")
-            if self.minor_age is None:
-                raise ValueError("minor_age is required when is_parental_consent is True")
-        else:
-            # Standard Logic: Parental consent is NOT active.
-            # Minor data MUST be completely null to prevent conflicting ledger records.
-            if self.minor_name is not None or self.minor_age is not None:
-                raise ValueError("minor_name and minor_age must be exactly null when is_parental_consent is False")
-        
-        return self
-
-@app.post("/api/v1/render")
-async def render_tos_document(payload: SignaturePayload) -> Response:
-    """
-    Receives validated payload from the Go gateway, renders a PDF document 
-    (to be implemented via WeasyPrint), and returns the binary stream with 
-    a cryptographic SHA-512 hash header.
-    """
-    logger.info(f"Received rendering request for client: {payload.client_name}")
+    logger.info(f"Received rendering request [ID: {payload.request_id}] for client: {payload.client_name}")
     
     try:
-        # TODO: Phase 3.3 - Implement WeasyPrint HTML-to-PDF rendering logic here.
-        # For this step, we generate a stub binary to satisfy the Go orchestrator's contract.
-        pdf_bytes = b"%PDF-1.4\n% Simulated PDF for infrastructure validation\nEOF\n"
+        # 1. Dispatch validated payload to the stateless rendering service
+        # This handles Jinja2 compilation, WeasyPrint generation, and AES-256 lockdown.
+        locked_pdf_bytes = render_tos_pdf(payload)
         
-        # Generate deterministic SHA-512 hash of the binary payload
-        document_hash = hashlib.sha512(pdf_bytes).hexdigest()
+        # 2. Phase 5.2 - Fingerprinting: Generate deterministic SHA-512 hash 
+        # of the finalized locked binary payload for the PostgreSQL ledger.
+        document_hash = hashlib.sha512(locked_pdf_bytes).hexdigest()
         
-        # Construct response with the strictly required headers for the Go gateway
+        # 3. Phase 5.3 - Egress: Construct headers strictly required by the Go Gateway contract.
         headers = {
-            "Content-Type": "application/pdf",
             "X-Document-Hash": document_hash,
+            "Content-Disposition": f'attachment; filename="tos_{payload.request_id}.pdf"'
         }
         
-        logger.info("Successfully processed rendering request")
-        return Response(content=pdf_bytes, headers=headers, media_type="application/pdf")
+        logger.info(f"Successfully processed request [ID: {payload.request_id}]. Egressing binary stream.")
+        
+        # Wrap the byte stream in io.BytesIO and dispatch via FastAPI StreamingResponse
+        return StreamingResponse(
+            io.BytesIO(locked_pdf_bytes),
+            media_type="application/pdf",
+            headers=headers
+        )
 
-    except Exception as e:
-        logger.error(f"Failed to render document: {str(e)}")
+    except DocumentRenderingError:
+        # Masked domain exception: Return a generic 500 without leaking internal infrastructure
         raise HTTPException(status_code=500, detail="Internal document rendering failure")
+        
+    except Exception as e:
+        # Fallback for completely unhandled transport errors, strongly masked from the frontend
+        logger.critical(f"Unhandled transport failure for request [ID: {payload.request_id}]: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
