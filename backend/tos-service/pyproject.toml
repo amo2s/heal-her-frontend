@@ -1,0 +1,13 @@
+[project]
+name = "tos-service"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi[standard]>=0.141.1",
+    "jinja2>=3.1.6",
+    "pydantic>=2.13.5",
+    "pypdf>=6.19.0",
+    "weasyprint>=70.0",
+]

@@ -11,9 +11,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/google/uuid"
 	"tos-gateway/internal/models"
 	"tos-gateway/internal/repository"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // Orchestrator coordinates the complex, multi-system TOS execution workflow.
@@ -56,13 +58,23 @@ func (o *Orchestrator) ExecuteTOSWorkflow(ctx context.Context, payload models.Si
 	}
 
 	// 4. Commit the cryptographic proof and metadata to the PostgreSQL ledger
+	minorName := pgtype.Text{Valid: false}
+	if payload.MinorName != nil {
+		minorName = pgtype.Text{String: *payload.MinorName, Valid: true}
+	}
+
+	minorAge := pgtype.Int4{Valid: false}
+	if payload.MinorAge != nil {
+		minorAge = pgtype.Int4{Int32: int32(*payload.MinorAge), Valid: true}
+	}
+
 	insertParams := repository.CreateAuditRecordParams{
-		RequestID:         requestID,
+		RequestID:         pgtype.UUID{Bytes: requestID, Valid: true},
 		ClientName:        payload.ClientName,
 		ClientEmail:       email,
 		IsParentalConsent: payload.IsParentalConsent,
-		MinorName:         payload.MinorName,
-		MinorAge:          payload.MinorAge,
+		MinorName:         minorName,
+		MinorAge:          minorAge,
 		IpAddress:         ipAddress,
 		Sha512Hash:        documentHash,
 		StoragePath:       storagePath,
