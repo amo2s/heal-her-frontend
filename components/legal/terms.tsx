@@ -354,7 +354,7 @@ export default function LegalTermsDocument({ onExecuteSignature, isProcessing = 
                   <UserCheck className="h-6 w-6 text-[#DA8CA0] shrink-0 mt-1" />
                   <div className="text-base text-[#CCCCD9] leading-7">
                     <p className="mb-3"><strong>7.1. Honest Representation.</strong> You agree to provide truthful information. Providing misleading inputs to the AI can result in dangerous outputs.</p>
-                    <p><strong>7.2. Age Requirement.</strong> You must be at least 8 years of age. Users under 18 require active parental supervision to use the Service.</p>
+                    <p><strong>7.2. Age Requirement.</strong> You must be at least 5 years of age. Users under 18 require active parental supervision to use the Service.</p>
                   </div>
                 </div>
               </LegalClause>
