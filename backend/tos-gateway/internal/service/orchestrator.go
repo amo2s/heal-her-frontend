@@ -11,6 +11,7 @@ import (
 	"os"
 	"time"
 
+	"tos-gateway/internal/mailer"
 	"tos-gateway/internal/models"
 	"tos-gateway/internal/repository"
 
@@ -21,6 +22,7 @@ import (
 // Orchestrator coordinates the complex, multi-system TOS execution workflow.
 type Orchestrator struct {
 	repo         *repository.Queries
+	mailer       *mailer.Mailer
 	httpClient   *http.Client
 	pythonSvcURL string
 	supabaseURL  string
@@ -28,9 +30,10 @@ type Orchestrator struct {
 }
 
 // NewOrchestrator initializes the service with strict timeouts to prevent resource exhaustion.
-func NewOrchestrator(repo *repository.Queries) *Orchestrator {
+func NewOrchestrator(repo *repository.Queries, mailerSvc *mailer.Mailer) *Orchestrator {
 	return &Orchestrator{
-		repo: repo,
+		repo:   repo,
+		mailer: mailerSvc,
 		httpClient: &http.Client{
 			Timeout: 15 * time.Second, // Bounded execution window for rendering and network transit
 		},
@@ -87,7 +90,28 @@ func (o *Orchestrator) ExecuteTOSWorkflow(ctx context.Context, payload models.Si
 		return nil, fmt.Errorf("ledger commit failure: %w", err)
 	}
 
+	// 6. Asynchronous Email Dispatch
+	// Execute in a detached goroutine so the HTTP response returns immediately to the frontend.
+	go o.dispatchEmailAsync(email, payload.ClientName, storagePath)
+
 	return &ledgerRecord, nil
+}
+
+func (o *Orchestrator) dispatchEmailAsync(email, clientName, storagePath string) {
+	// Construct the deterministic WORM download URL for the email CTA
+	documentURL := fmt.Sprintf("%s/storage/v1/object/public/tos-documents/%s", o.supabaseURL, storagePath)
+
+	// Create a fresh detached context with a hard 10-second deadline. 
+	// Do NOT reuse the HTTP request context, as it cancels when the HTTP response is sent.
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := o.mailer.SendTOSSuccessEmail(timeoutCtx, email, clientName, documentURL); err != nil {
+		// Log infrastructure failure without interrupting the primary TOS execution flow
+		fmt.Printf("[ORCHESTRATOR] Background email dispatch failed for %s: %v\n", email, err)
+	} else {
+		fmt.Printf("[ORCHESTRATOR] TOS success email dispatched to %s\n", email)
+	}
 }
 
 func (o *Orchestrator) requestRendering(ctx context.Context, payload models.SignaturePayload, email string, requestID uuid.UUID) ([]byte, string, error) {

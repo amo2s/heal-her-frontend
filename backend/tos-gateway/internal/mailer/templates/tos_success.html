@@ -1,0 +1,55 @@
+<!-- internal/mailer/templates/tos_success.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Heal Her - Legal Document Executed</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #FAFAFA; color: #111827; margin: 0; padding: 40px 20px;">
+    
+    <table style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-collapse: collapse; width: 100%;">
+        <!-- Header -->
+        <tr>
+            <td style="background-color: #1C1246; padding: 30px; text-align: center;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 24px; letter-spacing: 1px; text-transform: uppercase;">Heal Her</h1>
+            </td>
+        </tr>
+        
+        <!-- Body -->
+        <tr>
+            <td style="padding: 40px 30px;">
+                <h2 style="color: #1C1246; margin-top: 0; font-size: 20px;">Terms of Service Executed</h2>
+                <p style="font-size: 16px; line-height: 1.6; color: #4B5563;">
+                    Hello {{ .ClientName }},
+                </p>
+                <p style="font-size: 16px; line-height: 1.6; color: #4B5563;">
+                    Your Terms of Service agreement has been successfully digitally executed and securely logged in our immutable ledger on <strong>{{ .Date }}</strong>.
+                </p>
+                <p style="font-size: 16px; line-height: 1.6; color: #4B5563;">
+                    A cryptographic fingerprint of this document has been generated to guarantee its authenticity. You can view and download your finalized, read-only PDF document using the secure link below.
+                </p>
+                
+                <!-- CTA Button -->
+                <div style="text-align: center; margin: 40px 0;">
+                    <a href="{{ .DocumentURL }}" style="background-color: #DA8CA0; color: #ffffff; text-decoration: none; padding: 14px 28px; font-weight: bold; border-radius: 6px; display: inline-block; font-size: 16px;">View Legal Document</a>
+                </div>
+                
+                <p style="font-size: 14px; line-height: 1.6; color: #9CA3AF; margin-bottom: 0;">
+                    If you did not authorize this action, please contact our legal support immediately.
+                </p>
+            </td>
+        </tr>
+        
+        <!-- Footer -->
+        <tr>
+            <td style="background-color: #F3F4F6; padding: 20px; text-align: center;">
+                <p style="margin: 0; font-size: 12px; color: #6B7280;">
+                    &copy; 2026 Heal Her. All rights reserved.<br>
+                    University of Jos, Bauchi Road, PMB 2084, Jos, Plateau State.
+                </p>
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>

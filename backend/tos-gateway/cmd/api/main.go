@@ -17,6 +17,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
+
+	"tos-gateway/internal/mailer"
+	"tos-gateway/internal/repository"
+	"tos-gateway/internal/service"
 )
 
 func main() {
@@ -71,7 +75,23 @@ func run() error {
 	}
 	slog.Info("Redis connection established")
 
-	// 3. Router Configuration
+	// 3. Mailer Initialization
+	webhookURL := os.Getenv("GOOGLE_MAILER_WEBHOOK_URL")
+	if webhookURL == "" {
+		slog.Warn("GOOGLE_MAILER_WEBHOOK_URL is missing; email dispatch will fail")
+	}
+	mailerSvc, err := mailer.New(webhookURL)
+	if err != nil {
+		return fmt.Errorf("failed to initialize mailer: %w", err)
+	}
+	slog.Info("Mailer service initialized")
+
+	// 4. Repository & Service Orchestrator Initialization
+	repo := repository.New(dbPool)
+	orchestratorSvc := service.NewOrchestrator(repo, mailerSvc)
+	_ = orchestratorSvc // Ready to be injected into internal handlers
+
+	// 5. Router Configuration
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -85,9 +105,9 @@ func run() error {
 		_, _ = w.Write([]byte(`{"status":"healthy","component":"tos-gateway"}`))
 	})
 
-	// TODO: Mount JWT middleware and internal TOS handlers here once implemented
+	// TODO: Mount JWT middleware and internal TOS handlers here passing orchestratorSvc
 
-	// 4. Server Configuration & Graceful Teardown
+	// 6. Server Configuration & Graceful Teardown
 	srv := &http.Server{
 		Addr:         ":" + port,
 		Handler:      r,
