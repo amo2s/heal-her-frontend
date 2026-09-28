@@ -90,7 +90,7 @@ func run() error {
 
 	// 4. Repository & Service Orchestrator Initialization
 	repo := repository.New(dbPool)
-	orchestratorSvc := service.NewOrchestrator(repo, mailerSvc)
+	orchestratorSvc := service.NewOrchestrator(repo, mailerSvc, redisClient)
 
 	// 5. Router Configuration
 	r := chi.NewRouter()
@@ -131,8 +131,8 @@ func run() error {
 
 		r.Post("/execute", tosHandler.GenerateTOS)
 		
-		// Mount the new API-mediated streaming endpoint
-		r.Get("/document/{id}", tosHandler.StreamDocument)
+		// Mount the new API-mediated streaming endpoint for forced downloads
+		r.Get("/download/{token}", tosHandler.DownloadDocument)
 	})
 
 	// 6. Server Configuration & Graceful Teardown

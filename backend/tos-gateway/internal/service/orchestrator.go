@@ -4,7 +4,6 @@ package service
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,12 +17,14 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/redis/go-redis/v9"
 )
 
 // Orchestrator coordinates the complex, multi-system TOS execution workflow.
 type Orchestrator struct {
 	repo         *repository.Queries
 	mailer       *mailer.Mailer
+	redis        *redis.Client
 	httpClient   *http.Client
 	pythonSvcURL string
 	supabaseURL  string
@@ -32,21 +33,22 @@ type Orchestrator struct {
 }
 
 // NewOrchestrator initializes the service with strict timeouts to prevent resource exhaustion.
-func NewOrchestrator(repo *repository.Queries, mailerSvc *mailer.Mailer) *Orchestrator {
+func NewOrchestrator(repo *repository.Queries, mailerSvc *mailer.Mailer, redisClient *redis.Client) *Orchestrator {
 	frontend := os.Getenv("FRONTEND_URL")
 	if frontend == "" {
-		frontend = "http://localhost:3000" // Fallback for local proxy testing
+		frontend = "http://localhost:3000"
 	}
 
 	return &Orchestrator{
 		repo:   repo,
 		mailer: mailerSvc,
+		redis:  redisClient,
 		httpClient: &http.Client{
-			Timeout: 15 * time.Second, // Bounded execution window for rendering and network transit
+			Timeout: 45 * time.Second, // Expanded to accommodate WeasyPrint multi-page font compilation
 		},
 		pythonSvcURL: os.Getenv("PYTHON_RENDERER_URL"),
 		supabaseURL:  os.Getenv("SUPABASE_URL"),
-		supabaseKey:  os.Getenv("SUPABASE_SERVICE_ROLE_KEY"), // Required for RLS bypass on operations
+		supabaseKey:  os.Getenv("SUPABASE_SERVICE_ROLE_KEY"),
 		frontendURL:  frontend,
 	}
 }
@@ -106,16 +108,21 @@ func (o *Orchestrator) ExecuteTOSWorkflow(ctx context.Context, payload models.Si
 }
 
 func (o *Orchestrator) dispatchEmailAsync(email, clientName, storagePath string) {
-	// Base64 encode the storage path to construct a safe URL without exposing raw PII or needing an immediate DB lookup
-	encodedPath := base64.URLEncoding.EncodeToString([]byte(storagePath))
-	
-	// Route the link through the Next.js proxy so the frontend handles the domain and CORS seamlessly
-	documentURL := fmt.Sprintf("%s/api/proxy/api/v1/tos/document/%s", o.frontendURL, encodedPath)
-
-	// Create a fresh detached context with a hard 10-second deadline. 
-	// Do NOT reuse the HTTP request context, as it cancels when the HTTP response is sent.
 	timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
+	// 1. Generate a secure, random 256-bit equivalent download token
+	downloadToken := "dl_" + uuid.New().String()
+
+	// 2. Save the internal storage path to Redis, locked to a strict 24-hour expiration TTL
+	err := o.redis.Set(timeoutCtx, downloadToken, storagePath, 24*time.Hour).Err()
+	if err != nil {
+		fmt.Printf("[ORCHESTRATOR] Redis token generation failed for %s: %v\n", email, err)
+		return
+	}
+
+	// 3. Construct a clean URL masked by the Next.js proxy
+	documentURL := fmt.Sprintf("%s/api/proxy/api/v1/tos/download/%s", o.frontendURL, downloadToken)
 
 	if err := o.mailer.SendTOSSuccessEmail(timeoutCtx, email, clientName, documentURL); err != nil {
 		// Log infrastructure failure without interrupting the primary TOS execution flow
@@ -203,10 +210,18 @@ func (o *Orchestrator) uploadToStorage(ctx context.Context, path string, data []
 	return nil
 }
 
-// FetchSecureDocument securely retrieves the raw binary from the private bucket using the service key.
-func (o *Orchestrator) FetchSecureDocument(ctx context.Context, storagePath string) ([]byte, error) {
-	url := fmt.Sprintf("%s/storage/v1/object/tos-documents/%s", o.supabaseURL, storagePath)
+// FetchSecureDocument validates the ephemeral Redis token to retrieve the raw binary.
+func (o *Orchestrator) FetchSecureDocument(ctx context.Context, token string) ([]byte, error) {
+	// 1. Resolve internal storage path from the Redis token
+	storagePath, err := o.redis.Get(ctx, token).Result()
+	if err == redis.Nil {
+		return nil, fmt.Errorf("secure download link has expired or is invalid")
+	} else if err != nil {
+		return nil, fmt.Errorf("redis lookup failed: %w", err)
+	}
 
+	// 2. Construct authenticated request to private bucket
+	url := fmt.Sprintf("%s/storage/v1/object/tos-documents/%s", o.supabaseURL, storagePath)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct fetch request: %w", err)

@@ -2,7 +2,6 @@
 package handlers
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -71,34 +70,26 @@ func (h *TOSHandler) GenerateTOS(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// StreamDocument handles the GET request to securely fetch and stream the PDF to the browser.
-func (h *TOSHandler) StreamDocument(w http.ResponseWriter, r *http.Request) {
-	encodedPath := chi.URLParam(r, "id")
-	if encodedPath == "" {
-		http.Error(w, `{"error":"missing document identifier"}`, http.StatusBadRequest)
+// DownloadDocument handles the GET request to securely fetch and FORCE DOWNLOAD the PDF.
+func (h *TOSHandler) DownloadDocument(w http.ResponseWriter, r *http.Request) {
+	token := chi.URLParam(r, "token")
+	if token == "" {
+		http.Error(w, `{"error":"missing download token"}`, http.StatusBadRequest)
 		return
 	}
 
-	// Decode the base64 URL-safe storage path
-	decodedBytes, err := base64.URLEncoding.DecodeString(encodedPath)
+	// Fetch securely from orchestrator (validates Redis token)
+	pdfBytes, err := h.Orchestrator.FetchSecureDocument(r.Context(), token)
 	if err != nil {
-		slog.Warn("StreamDocument failed: invalid base64 identifier", "ip", r.RemoteAddr)
-		http.Error(w, `{"error":"invalid document identifier"}`, http.StatusBadRequest)
-		return
-	}
-	storagePath := string(decodedBytes)
-
-	// Fetch securely from orchestrator
-	pdfBytes, err := h.Orchestrator.FetchSecureDocument(r.Context(), storagePath)
-	if err != nil {
-		slog.Error("StreamDocument fetch failed", "path", storagePath, "error", err)
-		http.Error(w, `{"error":"document not found or securely locked"}`, http.StatusNotFound)
+		slog.Error("DownloadDocument fetch failed", "token", token, "error", err)
+		http.Error(w, `{"error":"This secure link has expired or is invalid. Please request a new document."}`, http.StatusNotFound)
 		return
 	}
 
-	// Set headers for inline browser viewing (this forces the browser's PDF viewer to open)
+	// ATTACHMENT HEADER: This is the industry standard to force a native OS download
+	// It prevents the browser from staying open on the proxy URL.
 	w.Header().Set("Content-Type", "application/pdf")
-	w.Header().Set("Content-Disposition", `inline; filename="Heal_Her_Legal_Terms.pdf"`)
+	w.Header().Set("Content-Disposition", `attachment; filename="Heal_Her_Legal_Terms.pdf"`)
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(pdfBytes)))
 
 	w.WriteHeader(http.StatusOK)
