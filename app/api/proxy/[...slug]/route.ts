@@ -16,8 +16,14 @@ async function proxyRequest(request: NextRequest, { params }: { params: Promise<
   const mappedSlug = slug.map(segment => domainDictionary[segment] || segment);
 
   // 2. RECONSTRUCT THE TARGET URL
-  const backendUrl = process.env.BACKEND_URL || "https://sliverboy-healher-backend.hf.space";
   const path = mappedSlug.join("/");
+  let backendUrl = process.env.BACKEND_URL || "https://sliverboy-healher-backend.hf.space";
+
+  // --- TRAFFIC SPLITTER: Route TOS execution to the Go Gateway ---
+  if (path.startsWith("api/v1/tos")) {
+    backendUrl = process.env.GO_GATEWAY_URL || "http://localhost:8080";
+  }
+
   const searchParams = request.nextUrl.searchParams.toString();
   const targetUrl = `${backendUrl}/${path}${searchParams ? `?${searchParams}` : ""}`;
 

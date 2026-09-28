@@ -7,6 +7,7 @@ import LegalTermsDocument, { SignaturePayload } from "@/components/legal/terms"
 import { Loader2, ShieldCheck, X, MailCheck } from "lucide-react"
 
 const GRAPHQL_ENDPOINT = "api/proxy/graphql"
+const GO_GATEWAY_ENDPOINT = "/api/proxy/api/v1/tos/execute"
 
 // Masks an email for display so the modal never echoes the full address back on-screen.
 function maskEmail(email: string): string {
@@ -108,7 +109,9 @@ export default function TermsPage() {
 
       const result = await response.json()
 
-      if (result.errors) throw new Error(result.errors[0].message)
+      if (result.errors && result.errors.length > 0) {
+        throw new Error(result.errors[0].message || "Failed to send the security code.")
+      }
 
       if (result.data?.requestLegalSignatureOtp) {
         setPendingPayload(payload)
@@ -154,10 +157,10 @@ export default function TermsPage() {
 
       const result = await response.json()
 
-      if (result.errors) {
+      if (result.errors && result.errors.length > 0) {
         const err = result.errors[0]
         if (err.extensions?.retry_after_seconds) setResendCooldown(err.extensions.retry_after_seconds)
-        throw new Error(err.message)
+        throw new Error(err.message || "Failed to resend the code.")
       }
 
       if (result.data?.requestLegalSignatureOtp) {
@@ -175,7 +178,7 @@ export default function TermsPage() {
     }
   }
 
-  // --- STEP 2: EXECUTE SIGNATURE ---
+  // --- STEP 2: EXECUTE SIGNATURE (ROUTED TO GO GATEWAY) ---
   const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!pendingPayload || otpCode.length !== 6) return
@@ -184,67 +187,47 @@ export default function TermsPage() {
     setOtpError("")
 
     try {
-      // Client-side IP is only a convenience hint — the backend proxy resolves the real one.
-      let clientIp = "Unknown-IP"
-      try {
-        const ipRes = await fetch("https://api.ipify.org?format=json")
-        const ipData = await ipRes.json()
-        clientIp = ipData.ip
-      } catch (e) {
-        console.warn("Could not resolve IP address, using fallback.")
+      // Strictly construct the payload with snake_case keys to match the Go struct
+      const requestBody: Record<string, any> = {
+        client_name: pendingPayload.clientName,
+        is_parental_consent: !!pendingPayload.minorName,
       }
 
-      // name/minorName/minorAge are deliberately absent — step 2 trusts only the locked payload from step 1.
-      const response = await fetch(GRAPHQL_ENDPOINT, {
+      // Only attach minor fields if they actually exist
+      if (pendingPayload.minorName) {
+        requestBody.minor_name = pendingPayload.minorName
+        requestBody.minor_age = Number(pendingPayload.minorAge)
+      }
+
+      // Direct integration with the new Go Orchestrator Gateway
+      const response = await fetch(GO_GATEWAY_ENDPOINT, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: `
-            mutation ExecuteSignature($email: String!, $otpCode: String!, $ipAddress: String!) {
-              executeDocumentSignature(email: $email, otpCode: $otpCode, ipAddress: $ipAddress) {
-                status
-                message
-                documentHash
-                storageUrl
-              }
-            }
-          `,
-          variables: {
-            email: pendingPayload.clientEmail,
-            otpCode: otpCode,
-            ipAddress: clientIp
-          }
-        })
+        headers: {
+          "Content-Type": "application/json",
+          // Injecting mock auth context for the Go middleware
+          "X-User-Email": pendingPayload.clientEmail, 
+        },
+        body: JSON.stringify(requestBody)
       })
 
-      const result = await response.json()
+      const result = await response.json().catch(() => null) // Graceful fallback if empty body
 
-      if (result.errors) {
-        const err = result.errors[0]
-        if (err.extensions?.retry_after_seconds) setResendCooldown(err.extensions.retry_after_seconds)
-        throw new Error(err.message)
+      if (!response.ok) {
+        // Forward the specific schema/validation error from Go if present
+        throw new Error(result?.error || result?.detail || "Execution failed. Invalid payload or server error.")
       }
 
-      const executionData = result.data?.executeDocumentSignature
+      // Go Gateway returns 201 Created on success
+      setShowOtpModal(false)
+      resetOtpDigits()
+      setPendingPayload(null)
+      setResendCooldown(0)
 
-      if (executionData?.status === "success") {
-        setShowOtpModal(false)
-        resetOtpDigits()
-        setPendingPayload(null)
-        setResendCooldown(0)
-
-        if (executionData.storageUrl) window.open(executionData.storageUrl, "_blank")
-
-        alert("Success! Your document has been securely signed and saved.")
-      } else {
-        setOtpError(executionData?.message || "Invalid or expired code.")
-        resetOtpDigits()
-        triggerShake()
-        inputRefs.current[0]?.focus()
-      }
+      alert("Success! Your document has been securely generated and encrypted. Check your email for the secure access link.")
+      
     } catch (error: any) {
       console.error("Step 2 Execution Error:", error)
-      setOtpError(error.message || "An error occurred during verification.")
+      setOtpError(error.message || "An error occurred during execution.")
       resetOtpDigits()
       triggerShake()
       inputRefs.current[0]?.focus()
@@ -304,7 +287,6 @@ export default function TermsPage() {
               </div>
               <h3 className="text-lg font-bold text-white mb-1.5">Security Verification</h3>
               <div className="text-xs text-[#CCCCD9] leading-relaxed px-2 space-y-1.5">
-                {/* Shows the masked address so the user can confirm it's the right inbox without full exposure. */}
                 <p className="flex items-center justify-center gap-1.5 text-[#CCCCD9]/80">
                   <MailCheck className="h-3.5 w-3.5 text-[#DA8CA0]/70" />
                   Code sent to {pendingPayload ? maskEmail(pendingPayload.clientEmail) : "your email"}
@@ -318,7 +300,6 @@ export default function TermsPage() {
             </div>
 
             <form onSubmit={handleOtpSubmit} className="space-y-5">
-              {/* Six independent boxes replace the single masked input for a clearer, faster entry flow. */}
               <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
                 {otpDigits.map((digit, index) => (
                   <input
@@ -355,7 +336,7 @@ export default function TermsPage() {
               >
                 {isProcessing ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin text-white" /> Verifying Code...
+                    <Loader2 className="h-4 w-4 animate-spin text-white" /> Executing Securely...
                   </>
                 ) : (
                   "Securely Sign Document"
