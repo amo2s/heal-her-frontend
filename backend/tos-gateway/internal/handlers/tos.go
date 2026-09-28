@@ -2,9 +2,13 @@
 package handlers
 
 import (
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
 
 	"tos-gateway/internal/models"
 	"tos-gateway/internal/service"
@@ -65,4 +69,38 @@ func (h *TOSHandler) GenerateTOS(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(ledgerRecord); err != nil {
 		slog.Error("GenerateTOS response encoding failed", "error", err)
 	}
+}
+
+// StreamDocument handles the GET request to securely fetch and stream the PDF to the browser.
+func (h *TOSHandler) StreamDocument(w http.ResponseWriter, r *http.Request) {
+	encodedPath := chi.URLParam(r, "id")
+	if encodedPath == "" {
+		http.Error(w, `{"error":"missing document identifier"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Decode the base64 URL-safe storage path
+	decodedBytes, err := base64.URLEncoding.DecodeString(encodedPath)
+	if err != nil {
+		slog.Warn("StreamDocument failed: invalid base64 identifier", "ip", r.RemoteAddr)
+		http.Error(w, `{"error":"invalid document identifier"}`, http.StatusBadRequest)
+		return
+	}
+	storagePath := string(decodedBytes)
+
+	// Fetch securely from orchestrator
+	pdfBytes, err := h.Orchestrator.FetchSecureDocument(r.Context(), storagePath)
+	if err != nil {
+		slog.Error("StreamDocument fetch failed", "path", storagePath, "error", err)
+		http.Error(w, `{"error":"document not found or securely locked"}`, http.StatusNotFound)
+		return
+	}
+
+	// Set headers for inline browser viewing (this forces the browser's PDF viewer to open)
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", `inline; filename="Heal_Her_Legal_Terms.pdf"`)
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(pdfBytes)))
+
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(pdfBytes)
 }

@@ -130,6 +130,9 @@ func run() error {
 		})
 
 		r.Post("/execute", tosHandler.GenerateTOS)
+		
+		// Mount the new API-mediated streaming endpoint
+		r.Get("/document/{id}", tosHandler.StreamDocument)
 	})
 
 	// 6. Server Configuration & Graceful Teardown

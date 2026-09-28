@@ -4,6 +4,7 @@ package service
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -27,10 +28,16 @@ type Orchestrator struct {
 	pythonSvcURL string
 	supabaseURL  string
 	supabaseKey  string
+	frontendURL  string
 }
 
 // NewOrchestrator initializes the service with strict timeouts to prevent resource exhaustion.
 func NewOrchestrator(repo *repository.Queries, mailerSvc *mailer.Mailer) *Orchestrator {
+	frontend := os.Getenv("FRONTEND_URL")
+	if frontend == "" {
+		frontend = "http://localhost:3000" // Fallback for local proxy testing
+	}
+
 	return &Orchestrator{
 		repo:   repo,
 		mailer: mailerSvc,
@@ -39,7 +46,8 @@ func NewOrchestrator(repo *repository.Queries, mailerSvc *mailer.Mailer) *Orches
 		},
 		pythonSvcURL: os.Getenv("PYTHON_RENDERER_URL"),
 		supabaseURL:  os.Getenv("SUPABASE_URL"),
-		supabaseKey:  os.Getenv("SUPABASE_SERVICE_ROLE_KEY"), // Required for RLS bypass on INSERT
+		supabaseKey:  os.Getenv("SUPABASE_SERVICE_ROLE_KEY"), // Required for RLS bypass on operations
+		frontendURL:  frontend,
 	}
 }
 
@@ -98,8 +106,11 @@ func (o *Orchestrator) ExecuteTOSWorkflow(ctx context.Context, payload models.Si
 }
 
 func (o *Orchestrator) dispatchEmailAsync(email, clientName, storagePath string) {
-	// Construct the deterministic WORM download URL for the email CTA
-	documentURL := fmt.Sprintf("%s/storage/v1/object/public/tos-documents/%s", o.supabaseURL, storagePath)
+	// Base64 encode the storage path to construct a safe URL without exposing raw PII or needing an immediate DB lookup
+	encodedPath := base64.URLEncoding.EncodeToString([]byte(storagePath))
+	
+	// Route the link through the Next.js proxy so the frontend handles the domain and CORS seamlessly
+	documentURL := fmt.Sprintf("%s/api/proxy/api/v1/tos/document/%s", o.frontendURL, encodedPath)
 
 	// Create a fresh detached context with a hard 10-second deadline. 
 	// Do NOT reuse the HTTP request context, as it cancels when the HTTP response is sent.
@@ -190,4 +201,30 @@ func (o *Orchestrator) uploadToStorage(ctx context.Context, path string, data []
 	}
 
 	return nil
+}
+
+// FetchSecureDocument securely retrieves the raw binary from the private bucket using the service key.
+func (o *Orchestrator) FetchSecureDocument(ctx context.Context, storagePath string) ([]byte, error) {
+	url := fmt.Sprintf("%s/storage/v1/object/tos-documents/%s", o.supabaseURL, storagePath)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct fetch request: %w", err)
+	}
+
+	// Apply Service Role Key to bypass RLS and read the private bucket
+	req.Header.Set("Authorization", "Bearer "+o.supabaseKey)
+
+	res, err := o.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("storage network error: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(res.Body)
+		return nil, fmt.Errorf("supabase storage rejected fetch (status %d): %s", res.StatusCode, string(respBody))
+	}
+
+	return io.ReadAll(res.Body)
 }
