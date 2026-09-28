@@ -18,6 +18,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 
+	"tos-gateway/internal/handlers"
 	"tos-gateway/internal/mailer"
 	"tos-gateway/internal/repository"
 	"tos-gateway/internal/service"
@@ -89,7 +90,6 @@ func run() error {
 	// 4. Repository & Service Orchestrator Initialization
 	repo := repository.New(dbPool)
 	orchestratorSvc := service.NewOrchestrator(repo, mailerSvc)
-	_ = orchestratorSvc // Ready to be injected into internal handlers
 
 	// 5. Router Configuration
 	r := chi.NewRouter()
@@ -99,13 +99,30 @@ func run() error {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(30 * time.Second)) // Hard request ceiling
 
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+	r.Get("/health", func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"status":"healthy","component":"tos-gateway"}`))
 	})
 
-	// TODO: Mount JWT middleware and internal TOS handlers here passing orchestratorSvc
+	// Mount TOS Handlers
+	tosHandler := handlers.NewTOSHandler(orchestratorSvc)
+
+	r.Route("/api/v1/tos", func(r chi.Router) {
+		// Temporary middleware injection to map frontend testing header to the context key
+		// NOTE: Replace this with the actual JWT extraction middleware once fully integrated
+		r.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				if email := req.Header.Get("X-User-Email"); email != "" {
+					ctx := context.WithValue(req.Context(), handlers.EmailContextKey, email)
+					req = req.WithContext(ctx)
+				}
+				next.ServeHTTP(w, req)
+			})
+		})
+
+		r.Post("/execute", tosHandler.GenerateTOS)
+	})
 
 	// 6. Server Configuration & Graceful Teardown
 	srv := &http.Server{
