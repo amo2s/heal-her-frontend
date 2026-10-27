@@ -4,8 +4,8 @@ import React, { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { motion, useTime, useTransform, Variants, AnimatePresence } from "framer-motion"
-import { Navigation } from "@/components/navigation"
-import { Footer } from "@/components/footer"
+import { Navigation } from "@/components/layout/navigation"
+import { Footer } from "@/components/layout/footer"
 import { cn } from "@/lib/utils"
 import { 
   Code2, Stethoscope, ClipboardCheck, Megaphone, 
@@ -15,7 +15,7 @@ import {
 } from "lucide-react"
 
 // Import the newly created intelligent modal component
-import ExpandedTeamMember from "@/components/ui/modals/team-card"
+import ExpandedTeamMember from "@/components/shared/modals/team-card"
 
 // ============================================================================
 // PREMIUM PHYSICS & UTILITIES

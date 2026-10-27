@@ -3,8 +3,8 @@
 import React, { useState } from "react"
 import Image from "next/image"
 import { motion, useMotionTemplate, useMotionValue, Variants, AnimatePresence } from "framer-motion"
-import { Navigation } from "@/components/navigation"
-import { Footer } from "@/components/footer"
+import { Navigation } from "@/components/layout/navigation"
+import { Footer } from "@/components/layout/footer"
 import { cn } from "@/lib/utils"
 import { 
   Heart, 

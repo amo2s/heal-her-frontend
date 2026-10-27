@@ -1,9 +1,9 @@
 "use client"
 
 import React, { useState } from "react"
-import { Navigation } from "@/components/navigation"
-import { Footer } from "@/components/footer"
-import PrivacyPolicyDocument, { SignaturePayload } from "@/components/legal/privacy"
+import { Navigation } from "@/components/layout/navigation"
+import { Footer } from "@/components/layout/footer"
+import PrivacyPolicyDocument, { SignaturePayload } from "@/components/shared/legal/privacy"
 import { Loader2, ShieldCheck, X } from "lucide-react"
 
 // Updated to route through the Next.js API Proxy

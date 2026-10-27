@@ -3,8 +3,8 @@
 import React, { useRef, useEffect, useState } from "react"
 import { useRouter } from "next/navigation" 
 import { Loader2 } from "lucide-react" 
-import { Header } from "@/components/header"
-import { Sidebar } from "@/components/side-bar"
+import { Header } from "@/components/layout/header"
+import { Sidebar } from "@/components/layout/side-bar"
 
 // --- BACKGROUND COMPONENTS ---
 

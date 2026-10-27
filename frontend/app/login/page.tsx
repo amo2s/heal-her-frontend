@@ -7,9 +7,9 @@ import Link from "next/link"
 import { cn } from "@/lib/utils"
 
 // --- YOUR COMPONENTS ---
-import Login from "@/components/login"
-import SignUp from "@/components/signup"
-import ForgotPassword from "@/components/forgot-password" // We will build this next!
+import Login from "@/components/auth/login"
+import SignUp from "@/components/auth/signup"
+import ForgotPassword from "@/components/auth/forgot-password" // We will build this next!
 
 // --- CSS HACK: DARK MODE AUTOFILL ---
 const autofillStyles = `

@@ -10,8 +10,8 @@ import {
 import { cn } from "@/lib/utils"
 
 // Import your existing modals
-import { ProfileSettingsModal } from "@/components/modals/profile-settings-modal"
-import { ComingSoonModal } from "@/components/modals/coming-soon-modal"
+import { ProfileSettingsModal } from "@/components/shared/modals/profile-settings-modal"
+import { ComingSoonModal } from "@/components/shared/modals/coming-soon-modal"
 
 interface SettingsProps {
   isOpen: boolean

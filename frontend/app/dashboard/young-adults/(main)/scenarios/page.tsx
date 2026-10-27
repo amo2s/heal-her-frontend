@@ -16,7 +16,7 @@ import {
 // --- DOMAIN-SPECIFIC DATA IMPORT ---
 import { YOUNG_ADULT_SCENARIOS } from "@/components/young-adults/data/scenario";
 import type { Scenario } from "@/components/young-adults/data/scenario";
-import { useAudio } from "@/components/context/audio-manager"; 
+import { useAudio } from "@/components/shared/context/audio-manager"; 
 
 // Safety Extraction
 const YA_SCENARIOS: Scenario[] = YOUNG_ADULT_SCENARIOS || [];

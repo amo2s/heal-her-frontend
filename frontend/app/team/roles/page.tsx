@@ -1,9 +1,9 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Navigation } from "@/components/navigation"
-import { Footer } from "@/components/footer"
-import { PageHeader } from "@/components/page-header"
+import { Navigation } from "@/components/layout/navigation"
+import { Footer } from "@/components/layout/footer"
+import { PageHeader } from "@/components/layout/page-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Briefcase, MapPin, Clock, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"

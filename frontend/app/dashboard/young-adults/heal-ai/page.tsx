@@ -9,11 +9,11 @@ import {
   ShieldCheck, BrainCircuit, Target, MessageSquareDashed, ShieldAlert, Lock, X
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ComingSoonModal } from "@/components/modals/coming-soon-modal"
+import { ComingSoonModal } from "@/components/shared/modals/coming-soon-modal"
 import { cn } from "@/lib/utils"
-import { useAudio, MoodType } from "@/components/context/audio-manager"
-import { ChatInput } from "@/components/chat-input"
-import { ChatMessage } from "@/components/chat-message"
+import { useAudio, MoodType } from "@/components/shared/context/audio-manager"
+import { ChatInput } from "@/components/shared/chat-input"
+import { ChatMessage } from "@/components/shared/chat-message"
 import { api } from "@/lib/proxy"
 
 // IMPORTANT: Updated Sidebar path for young adults

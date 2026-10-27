@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, ShieldCheck, AlertCircle, Search, Info, MessageCircleHeart, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useAudio } from "@/components/context/audio-manager";
+import { useAudio } from "@/components/shared/context/audio-manager";
 import { RED_FLAG_TERMS } from "@/data/heal";
 
 // --- TYPES & LOGIC ---

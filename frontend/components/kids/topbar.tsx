@@ -3,7 +3,7 @@
 import { Menu, Search, Bell, Sparkles } from "lucide-react";
 import { useSidebar } from "@/store/use-sidebar";
 import { useHeal } from "@/store/heal";
-import { useAudio } from "@/components/context/audio-manager";
+import { useAudio } from "@/components/shared/context/audio-manager";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";

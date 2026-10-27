@@ -5,8 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, Plus, X, ShieldAlert } from "lucide-react";
 import { CONTACTS } from "@/data/heal";
 import type { Contact } from "@/data/heal";
-import { useAudio } from "@/components/context/audio-manager";
-import { SOSButton } from "@/components/kids/sos-feature"; 
+import { useAudio } from "@/components/shared/context/audio-manager";
+import { SOSButton } from "@/components/shared/sos-feature"; 
 
 const containerVars = {
   hidden: { opacity: 0 },

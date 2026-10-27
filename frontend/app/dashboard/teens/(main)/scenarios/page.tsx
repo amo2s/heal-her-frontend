@@ -13,7 +13,7 @@ import {
   Loader2
 } from "lucide-react";
 import { TEENS_SCENARIOS, Scenario } from "@/components/teens/data/scenario";
-import { useAudio } from "@/components/context/audio-manager"; 
+import { useAudio } from "@/components/shared/context/audio-manager"; 
 
 // --- MATURE ANIMATIONS ---
 const cardVariants = {

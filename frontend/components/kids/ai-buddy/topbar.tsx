@@ -13,9 +13,9 @@ import {
   Sparkles
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ComingSoonModal } from "@/components/modals/coming-soon-modal"
+import { ComingSoonModal } from "@/components/shared/modals/coming-soon-modal"
 import { cn } from "@/lib/utils"
-import { useAudio } from "@/components/context/audio-manager"
+import { useAudio } from "@/components/shared/context/audio-manager"
 
 interface HeaderProps {
   onMenuAction?: (action: string) => void

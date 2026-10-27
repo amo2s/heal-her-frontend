@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useRef, Suspense } from "react"
 import { useSearchParams } from "next/navigation" 
-import { ChatInput } from "@/components/chat-input"
-import { ChatMessage } from "@/components/chat-message" 
+import { ChatInput } from "@/components/shared/chat-input"
+import { ChatMessage } from "@/components/shared/chat-message" 
 import { Loader2, Lock, Sparkles, X, CheckCircle2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { createPortal } from "react-dom" 
@@ -11,8 +11,8 @@ import Image from "next/image"
 
 // 1. API & CONTEXT IMPORTS
 import { api } from "@/lib/proxy" 
-import { useAudio, MoodType } from "@/components/context/audio-manager"
-import { ComingSoonModal } from "@/components/modals/coming-soon-modal"
+import { useAudio, MoodType } from "@/components/shared/context/audio-manager"
+import { ComingSoonModal } from "@/components/shared/modals/coming-soon-modal"
 
 // --- TYPES ---
 interface Message {

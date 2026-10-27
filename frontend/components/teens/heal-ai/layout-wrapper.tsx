@@ -1,7 +1,7 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { DashLayout } from "@/components/DashLayout"
+import { DashLayout } from "@/components/layout/DashLayout"
 import { TopBar } from "@/components/teens/topbar"
 // Ensure this points to your standard teens sidebar
 import { Sidebar } from "@/components/teens/sidebar" 

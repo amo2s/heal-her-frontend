@@ -10,8 +10,8 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { FloatingCells } from "@/components/ui/floating-cells" 
-import { Settings } from "@/components/settings"
-import { ComingSoonModal } from "@/components/modals/coming-soon-modal"
+import { Settings } from "@/components/shared/settings"
+import { ComingSoonModal } from "@/components/shared/modals/coming-soon-modal"
 import { motion, AnimatePresence } from "framer-motion"
 
 interface SidebarProps {

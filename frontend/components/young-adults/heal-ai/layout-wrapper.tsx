@@ -1,7 +1,7 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { DashLayout } from "@/components/DashLayout"
+import { DashLayout } from "@/components/layout/DashLayout"
 import { TopBar } from "@/components/young-adults/topbar"
 import { Sidebar } from "@/components/young-adults/sidebar" 
 

@@ -16,7 +16,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { KIDS_SCENARIOS, Scenario } from "@/components/kids/data/scenarios";
-import { useAudio } from "@/components/context/audio-manager"; 
+import { useAudio } from "@/components/shared/context/audio-manager"; 
 
 const cardVariants = {
   hidden: { opacity: 0, scale: 0.95, y: 20 },

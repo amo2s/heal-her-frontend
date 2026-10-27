@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DashLayout } from "@/components/DashLayout";
+import { DashLayout } from "@/components/layout/DashLayout";
 
 export const metadata: Metadata = {
   title: "Kids Dashboard | HEAL Her",

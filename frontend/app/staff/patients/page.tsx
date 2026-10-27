@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, Filter, Clock, Activity } from "lucide-react"
-import { StaffNav } from "@/components/staff-nav"
+import { StaffNav } from "@/components/layout/staff-nav"
 import { getCurrentUser } from "@/lib/auth"
 import { mockPatients, type Patient } from "@/lib/chat-api"
 

@@ -2,13 +2,13 @@
 
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sidebar as KidsSidebar } from "./kids/sidebar";
-import { TopBar as KidsTopBar } from "./kids/topbar";
-import { Sidebar as TeensSidebar } from "./teens/sidebar";
-import { TopBar as TeensTopBar } from "./teens/topbar";
-import { Sidebar as YoungAdultsSidebar } from "./young-adults/sidebar";
-import { TopBar as YoungAdultsTopBar } from "./young-adults/topbar";
-import { StealthFAB, StealthOverlay } from "@/components/Stealth";
+import { Sidebar as KidsSidebar } from "@/components/kids/sidebar";
+import { TopBar as KidsTopBar } from "@/components/kids/topbar";
+import { Sidebar as TeensSidebar } from "@/components/teens/sidebar";
+import { TopBar as TeensTopBar } from "@/components/teens/topbar";
+import { Sidebar as YoungAdultsSidebar } from "@/components/young-adults/sidebar";
+import { TopBar as YoungAdultsTopBar } from "@/components/young-adults/topbar";
+import { StealthFAB, StealthOverlay } from "@/components/shared/Stealth";
 import type { ReactNode, ComponentType } from "react";
 
 export function DashLayout({

@@ -19,8 +19,8 @@ import {
 import { YOUNG_ADULT_CONTACTS } from "@/components/young-adults/data/contact";
 import type { Contact } from "@/components/young-adults/data/contact"; 
 
-import { useAudio } from "@/components/context/audio-manager";
-import { SOSButton } from "@/components/kids/sos-feature"; 
+import { useAudio } from "@/components/shared/context/audio-manager";
+import { SOSButton } from "@/components/shared/sos-feature"; 
 
 // --- SOPHISTICATED MOTION ---
 const containerVars = {

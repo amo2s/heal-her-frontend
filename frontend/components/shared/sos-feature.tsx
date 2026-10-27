@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, X, Phone, MapPin, MessageSquare } from "lucide-react";
-import { useAudio } from "@/components/context/audio-manager";
+import { useAudio } from "@/components/shared/context/audio-manager";
 
 export function SOSButton() {
   const [isOpen, setIsOpen] = useState(false);

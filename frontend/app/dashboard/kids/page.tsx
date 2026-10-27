@@ -13,7 +13,7 @@ import {
   ShieldCheck
 } from "lucide-react";
 import { useHeal } from "@/store/heal";
-import { useAudio } from "@/components/context/audio-manager";
+import { useAudio } from "@/components/shared/context/audio-manager";
 
 // --- ANIMATION VARIANTS ---
 const containerVars = { 

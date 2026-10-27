@@ -12,7 +12,7 @@ import {
   ChevronDown
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ComingSoonModal } from "@/components/modals/coming-soon-modal"
+import { ComingSoonModal } from "@/components/shared/modals/coming-soon-modal"
 import { cn } from "@/lib/utils"
 
 interface ChatInputProps {

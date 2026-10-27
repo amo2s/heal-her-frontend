@@ -17,7 +17,7 @@ import {
   Info,
   ArrowRight,
 } from "lucide-react"
-import { StaffNav } from "@/components/staff-nav"
+import { StaffNav } from "@/components/layout/staff-nav"
 import { getCurrentUser } from "@/lib/auth"
 import { mockPatients, mockAlerts, mockStats, type Patient, type Alert } from "@/lib/chat-api"
 

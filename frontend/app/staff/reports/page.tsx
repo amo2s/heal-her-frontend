@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { FileText, Download, Eye, Calendar } from "lucide-react"
-import { StaffNav } from "@/components/staff-nav"
+import { StaffNav } from "@/components/layout/staff-nav"
 import { getCurrentUser } from "@/lib/auth"
 import { mockReports, type Report } from "@/lib/chat-api"
 

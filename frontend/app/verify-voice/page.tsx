@@ -7,7 +7,7 @@ import { Loader2 } from "lucide-react"
 // --- THE FIX: DYNAMIC IMPORT ---
 // We import the component from the /components folder
 // AND we disable SSR (Server Side Rendering) so the Worker logic doesn't crash node.
-const VoiceRecorder = dynamic(() => import("@/components/VoiceRecorder"), {
+const VoiceRecorder = dynamic(() => import("@/components/shared/VoiceRecorder"), {
   ssr: false, 
   loading: () => (
     <div className="min-h-screen flex items-center justify-center bg-[#160d33] text-white">

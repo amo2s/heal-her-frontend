@@ -8,7 +8,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
-import { Navigation } from "@/components/navigation"
+import { Navigation } from "@/components/layout/navigation"
 
 // --- CONFIG ---
 const API_URL = "https://your-healher-backend.example.com" // ← replace with real endpoint

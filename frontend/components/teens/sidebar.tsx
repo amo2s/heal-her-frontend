@@ -18,11 +18,11 @@ import {
 } from "lucide-react";
 import { useSidebar } from "@/store/use-sidebar";
 import { useHeal } from "@/store/heal";
-import { useAudio } from "@/components/context/audio-manager";
+import { useAudio } from "@/components/shared/context/audio-manager";
 import { cn } from "@/lib/utils";
 
 // Import the universal logout modal
-import LogoutModal from "@/components/modals/logout-modal";
+import LogoutModal from "@/components/shared/modals/logout-modal";
 
 // Upgraded navigation for the Teens experience
 const NAV = [

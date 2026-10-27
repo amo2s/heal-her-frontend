@@ -4,8 +4,8 @@ import React, { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { motion, useMotionTemplate, useMotionValue, Variants, AnimatePresence } from "framer-motion"
-import { Navigation } from "@/components/navigation"
-import { Footer } from "@/components/footer"
+import { Navigation } from "@/components/layout/navigation"
+import { Footer } from "@/components/layout/footer"
 import { cn } from "@/lib/utils"
 import { 
   Heart, Sparkles, Shield, Globe, Lock, Activity,
@@ -14,7 +14,7 @@ import {
 } from "lucide-react"
 
 // Import the intelligent modal component we built
-import ExpandedTeamMember from "@/components/ui/modals/team-card"
+import ExpandedTeamMember from "@/components/shared/modals/team-card"
 
 // ============================================================================
 // ULTRA-SMOOTH SPRING ANIMATIONS & PHYSICS

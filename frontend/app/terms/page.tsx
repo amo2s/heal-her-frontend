@@ -1,9 +1,9 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from "react"
-import { Navigation } from "@/components/navigation"
-import { Footer } from "@/components/footer"
-import LegalTermsDocument, { SignaturePayload } from "@/components/legal/terms"
+import { Navigation } from "@/components/layout/navigation"
+import { Footer } from "@/components/layout/footer"
+import LegalTermsDocument, { SignaturePayload } from "@/components/shared/legal/terms"
 import { Loader2, ShieldCheck, X, MailCheck } from "lucide-react"
 
 const GRAPHQL_ENDPOINT = "api/proxy/graphql"

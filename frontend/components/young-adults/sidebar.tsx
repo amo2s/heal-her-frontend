@@ -17,11 +17,11 @@ import {
   ShieldCheck
 } from "lucide-react";
 import { useSidebar } from "@/store/use-sidebar";
-import { useAudio } from "@/components/context/audio-manager";
+import { useAudio } from "@/components/shared/context/audio-manager";
 import { cn } from "@/lib/utils";
 
 // Import the universal logout modal
-import LogoutModal from "@/components/modals/logout-modal";
+import LogoutModal from "@/components/shared/modals/logout-modal";
 
 // Upgraded navigation for the Young Adults experience
 const NAV = [
