@@ -1,7 +1,11 @@
 use crate::{
     domain::auth::{LoginRequest, LoginResponse, UserType},
     error::InternalAuthError,
-    infrastructure::{crypto::{execute_dummy_hash, verify_password}, jwt::forge_token_pair},
+    infrastructure::{
+        crypto::{execute_dummy_hash, verify_password},
+        jwt::generate_token_pair,
+        session_repo::create_session,
+    },
 };
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -16,11 +20,14 @@ struct UserAuthRecord {
 }
 
 /// Orchestrates the authentication lifecycle with strict timing-attack immunity,
-/// credential verification on dedicated blocking threads, and JWT token forging.
+/// credential verification on dedicated blocking threads, stateful session initialization,
+/// BLAKE3 refresh token hashing, and JWT token pair generation.
 pub async fn authenticate_user(
     pool: &PgPool,
     secret: &str,
     req: &LoginRequest,
+    user_agent: Option<&str>,
+    ip_address: Option<&str>,
 ) -> Result<LoginResponse, InternalAuthError> {
     // 1. Data Normalization
     let normalized_email = req.email.trim().to_lowercase();
@@ -74,24 +81,49 @@ pub async fn authenticate_user(
     }
     .to_string();
 
-    // 7. Forge asymmetric access (10 min) & refresh (7 day) token pair
-    let (access_token, refresh_token) =
-        forge_token_pair(&record.id.to_string(), &record.role, &dashboard, secret)?;
+    // 7. Initialize Stateful Session Identifiers (UUIDv4)
+    let session_id = Uuid::new_v4();
+    let family_id = Uuid::new_v4();
+
+    // 8. Forge asymmetric access (10 min) & refresh (7 day) token pair with BLAKE3 hashing
+    let token_pair = generate_token_pair(
+        record.id,
+        &record.role,
+        Some(&dashboard),
+        session_id,
+        family_id,
+        secret,
+    )?;
+
+    // 9. Persist stateful session ledger row in PostgreSQL
+    create_session(
+        pool,
+        session_id,
+        record.id,
+        family_id,
+        &token_pair.refresh_token_hash,
+        user_agent,
+        ip_address,
+        token_pair.refresh_expires_at,
+    )
+    .await?;
 
     tracing::info!(
         target: "auth::service",
         user_id = %record.id,
+        session_id = %session_id,
+        family_id = %family_id,
         role = %record.role,
         dashboard = %dashboard,
-        "User authenticated successfully"
+        "User authenticated and stateful session created successfully"
     );
 
-    // 8. Construct sanitized response payload
+    // 10. Construct sanitized response payload (100% backward-compatible with Next.js)
     Ok(LoginResponse {
         status: "success".to_string(),
         message: "Login successful".to_string(),
-        access_token,
-        refresh_token,
+        access_token: token_pair.access_token,
+        refresh_token: token_pair.refresh_token,
         user: UserType {
             id: record.id.to_string(),
             email: normalized_email,

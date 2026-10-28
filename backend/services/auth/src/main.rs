@@ -70,6 +70,9 @@ async fn main() -> Result<(), ApiError> {
     // 3. Establish PostgreSQL connection pool with resilience timeouts
     let pool = create_pool(&config).await?;
 
+    // 3b. Launch background non-blocking database sweeper (purges expired/revoked sessions)
+    tokio::spawn(crate::infrastructure::sweeper::start_session_sweeper(pool.clone()));
+
     // 4. Construct immutable application state
     let app_state = AppState::new(pool.clone(), config.jwt_secret_key);
 

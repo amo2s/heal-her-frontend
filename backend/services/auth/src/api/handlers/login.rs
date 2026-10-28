@@ -3,14 +3,19 @@ use crate::{
     error::ApiError,
     state::AppState,
 };
-use axum::{extract::State, Json};
+use axum::{
+    extract::State,
+    http::HeaderMap,
+    Json,
+};
 use validator::Validate;
 
 /// Thin API handler for user authentication.
 /// Enforces perimeter zero-trust validation, detects honeypot bot traps,
-/// and delegates orchestration to the secure authentication service layer.
+/// extracts client fingerprint headers, and delegates orchestration to the secure authentication service layer.
 pub async fn login_handler(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(payload): Json<LoginRequest>,
 ) -> Result<Json<LoginResponse>, ApiError> {
     // 1. Zero-trust payload validation
@@ -46,11 +51,29 @@ pub async fn login_handler(
         }
     }
 
-    // 3. Delegate to Service Orchestrator (Automatic downcasting via Universal Error Sentinel)
+    // 3. Extract client metadata for audit & session fingerprinting
+    let user_agent = headers
+        .get("user-agent")
+        .and_then(|v| v.to_str().ok());
+
+    let ip_address = headers
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| s.split(',').next())
+        .map(|s| s.trim())
+        .or_else(|| {
+            headers
+                .get("x-real-ip")
+                .and_then(|v| v.to_str().ok())
+        });
+
+    // 4. Delegate to Service Orchestrator (Automatic downcasting via Universal Error Sentinel)
     let response = crate::service::auth_service::authenticate_user(
         &state.pool,
         &state.jwt_secret,
         &payload,
+        user_agent,
+        ip_address,
     )
     .await?;
 
