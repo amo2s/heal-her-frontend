@@ -13,8 +13,12 @@ pub struct Config {
 
 impl Config {
     pub fn from_env() -> Self {
-        // Silently attempt to load environment variables from .env if present
-        dotenvy::dotenv().ok();
+        // Silently attempt to load environment variables from .env if present.
+        // Fall back to parent directories if launched from subdirectories or workspace root.
+        let _ = dotenvy::dotenv()
+            .or_else(|_| dotenvy::from_filename(".env"))
+            .or_else(|_| dotenvy::from_filename("../.env"))
+            .or_else(|_| dotenvy::from_filename("../../.env"));
 
         let database_url_raw = env::var("DATABASE_URL")
             .expect("FATAL: DATABASE_URL environment variable must be set");
@@ -62,5 +66,17 @@ impl Config {
             acquire_timeout_secs,
             idle_timeout_secs,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_config_from_env() {
+        let config = Config::from_env();
+        assert!(!config.jwt_secret_key.is_empty());
+        assert!(!config.database_url.is_empty());
     }
 }
