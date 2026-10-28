@@ -3,7 +3,10 @@ use crate::{
     state::AppState,
 };
 use axum::{
-    http::StatusCode,
+    http::{
+        header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
+        Method, StatusCode,
+    },
     response::IntoResponse,
     routing::{get, post},
     Json, Router,
@@ -11,7 +14,7 @@ use axum::{
 use serde_json::json;
 use std::time::Duration;
 use tower_http::{
-    cors::CorsLayer,
+    cors::{Any, CorsLayer},
     limit::RequestBodyLimitLayer,
     timeout::TimeoutLayer,
     trace::TraceLayer,
@@ -29,6 +32,21 @@ async fn health_check() -> impl IntoResponse {
 }
 
 pub fn create_router(state: AppState) -> Router {
+    // Explicit CORS configuration for seamless local development and Next.js preflight resolution
+    let cors = CorsLayer::new()
+        // Allow any origin during local development (can be locked down in prod)
+        .allow_origin(Any)
+        // Explicitly allow the methods the frontend uses, including OPTIONS for preflight
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::DELETE,
+            Method::OPTIONS,
+        ])
+        // Explicitly allow the headers the frontend sends
+        .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE]);
+
     Router::new()
         // API routes for internal microservice communication and gateway forwarding
         .route("/api/v1/auth/login", post(login_handler))
@@ -39,8 +57,8 @@ pub fn create_router(state: AppState) -> Router {
         .route("/signup", post(handle_signup))
         .route("/health", get(health_check))
         // Layer order: executed outside-in on request, inside-out on response
-        // 1. CORS header injection
-        .layer(CorsLayer::permissive())
+        // 1. Explicit CORS header and preflight handler
+        .layer(cors)
         // 2. Timeout enforcement to terminate hanging connections after 10s
         .layer(TimeoutLayer::with_status_code(
             StatusCode::REQUEST_TIMEOUT,
