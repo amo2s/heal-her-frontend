@@ -191,6 +191,12 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
       })
 
       const data = await response.json()
+      if (data.accessToken) {
+        sessionStorage.setItem("accessToken", data.accessToken);
+        if (data.refreshToken) {
+          sessionStorage.setItem("refreshToken", data.refreshToken);
+        }
+      }
       if (!response.ok) throw new Error(data.message || data.detail || "Something went wrong creating your account.")
 
       // Trigger the beautiful success view
@@ -202,6 +208,7 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
       }, 2800)
 
     } catch (error: any) {
+      console.error("[AUTH ERROR]:", error);
       triggerError(error.message || "Hmm, something didn't quite work. Let's try that again.")
     } finally {
       if (!isSignedUp) setIsLoading(false)

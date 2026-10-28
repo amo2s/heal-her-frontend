@@ -141,6 +141,11 @@ export default function Login({ onSwitchToForgot }: LoginProps) {
 
       const data = await response.json()
 
+      if (data.accessToken) {
+        sessionStorage.setItem("accessToken", data.accessToken);
+        sessionStorage.setItem("refreshToken", data.refreshToken);
+      }
+
       if (!response.ok) throw new Error(data.message || data.detail || "Hmm, those details didn't quite match.")
 
       sessionStorage.setItem("user-data", JSON.stringify(data.user))
@@ -155,6 +160,7 @@ export default function Login({ onSwitchToForgot }: LoginProps) {
       setIsAuthorized(true)
 
     } catch (error: any) {
+      console.error("[AUTH ERROR]:", error);
       triggerError(error.message || "Hmm, those details didn't quite match. Let's try again.")
     } finally {
       if (!isAuthorized) setIsLoading(false)
