@@ -84,7 +84,7 @@ pub async fn handle_signup(
             "User already exists; executing dummy Argon2id hash to equalize CPU latency"
         );
         // Equalize latency to prevent email enumeration via timing side-channels
-        execute_dummy_hash()?;
+        execute_dummy_hash().await?;
         let _ = tx.rollback().await;
         return Err(ApiError::Conflict(
             "A user with this email address already exists".to_string(),
@@ -94,8 +94,8 @@ pub async fn handle_signup(
     // 6. Algorithmic Demographic Routing
     let role = UserRole::from_age(payload.age);
 
-    // 7. Cryptographic Hashing (Argon2id)
-    let password_hash = hash_password(&payload.password)?;
+    // 7. Cryptographic Hashing (Argon2id via Tokio Blocking Pool)
+    let password_hash = hash_password(payload.password).await?;
 
     // 8. Primary Key Generation (UUIDv7 for time-ordered B-Tree optimization)
     let user_id = Uuid::now_v7();

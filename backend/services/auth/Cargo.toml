@@ -9,7 +9,7 @@ tokio = { version = "1", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "macros"] }
-uuid = { version = "1", features = ["v7", "fast-rng", "serde"] }
+uuid = { version = "1", features = ["v4", "v7", "fast-rng", "serde"] }
 argon2 = "0.5"
 validator = { version = "0.20", features = ["derive"] }
 tower = "0.5"
@@ -19,3 +19,4 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 thiserror = "2.0"
 dotenvy = "0.15"
 chrono = { version = "0.4", features = ["serde"] }
+jsonwebtoken = { version = "11.1.0", features = ["rust_crypto"] }
