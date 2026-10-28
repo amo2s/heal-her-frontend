@@ -179,7 +179,7 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
     setErrorMsg(null)
 
     try {
-      const response = await fetch("http://127.0.0.1:8080/api/v1/auth/signup", {
+      const response = await fetch("/api/v1/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

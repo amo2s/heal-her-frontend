@@ -8,6 +8,14 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  async rewrites() {
+    return [
+      {
+        source: "/api/v1/auth/:path*",
+        destination: "http://127.0.0.1:8080/api/v1/auth/:path*",
+      },
+    ];
+  },
   async headers() {
     return [
       {
