@@ -1,7 +1,8 @@
 use crate::{
     domain::user::{SignupRequest, UserRole},
-    error::AppError,
+    error::ApiError,
     infrastructure::crypto::{execute_dummy_hash, hash_password},
+    state::AppState,
 };
 use axum::{
     extract::State,
@@ -10,7 +11,6 @@ use axum::{
     Json,
 };
 use serde_json::json;
-use sqlx::PgPool;
 use uuid::Uuid;
 use validator::Validate;
 
@@ -18,9 +18,9 @@ use validator::Validate;
 /// Implements zero-trust validation, bot honeypot filtering, transactional integrity,
 /// timing-attack equalization, dynamic demographic role routing, and v7 UUID indexing.
 pub async fn handle_signup(
-    State(pool): State<PgPool>,
+    State(state): State<AppState>,
     Json(payload): Json<SignupRequest>,
-) -> Result<Response, AppError> {
+) -> Result<Response, ApiError> {
     // 1. Validation Enforcement
     if let Err(validation_errors) = payload.validate() {
         let mut field_messages = Vec::new();
@@ -41,7 +41,7 @@ pub async fn handle_signup(
             field_messages.join("; ")
         };
 
-        return Err(AppError::ValidationError(combined_msg));
+        return Err(ApiError::BadRequest(combined_msg));
     }
 
     // 2. Honeypot Trigger (Bot Defense)
@@ -68,7 +68,7 @@ pub async fn handle_signup(
     let normalized_email = payload.email.trim().to_lowercase();
 
     // 4. Database Transaction
-    let mut tx = pool.begin().await.map_err(AppError::DatabaseError)?;
+    let mut tx = state.pool.begin().await?;
 
     // 5. Existence Check & CPU Equalization (Timing-Attack Immunity)
     let existing_count: i64 = sqlx::query_scalar(
@@ -76,8 +76,7 @@ pub async fn handle_signup(
     )
     .bind(&normalized_email)
     .fetch_one(&mut *tx)
-    .await
-    .map_err(AppError::DatabaseError)?;
+    .await?;
 
     if existing_count > 0 {
         tracing::info!(
@@ -87,7 +86,7 @@ pub async fn handle_signup(
         // Equalize latency to prevent email enumeration via timing side-channels
         execute_dummy_hash()?;
         let _ = tx.rollback().await;
-        return Err(AppError::Conflict(
+        return Err(ApiError::Conflict(
             "A user with this email address already exists".to_string(),
         ));
     }
@@ -119,11 +118,10 @@ pub async fn handle_signup(
     .bind(true)
     .bind(false)
     .execute(&mut *tx)
-    .await
-    .map_err(AppError::DatabaseError)?;
+    .await?;
 
     // 10. Commit & Respond
-    tx.commit().await.map_err(AppError::DatabaseError)?;
+    tx.commit().await?;
 
     tracing::info!(
         target: "auth::signup",

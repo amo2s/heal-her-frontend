@@ -1,4 +1,4 @@
-use crate::api::handlers::signup::handle_signup;
+use crate::{api::handlers::signup::handle_signup, state::AppState};
 use axum::{
     http::StatusCode,
     response::IntoResponse,
@@ -6,7 +6,6 @@ use axum::{
     Json, Router,
 };
 use serde_json::json;
-use sqlx::PgPool;
 use std::time::Duration;
 use tower_http::{
     cors::CorsLayer,
@@ -26,7 +25,7 @@ async fn health_check() -> impl IntoResponse {
     )
 }
 
-pub fn create_router(pool: PgPool) -> Router {
+pub fn create_router(state: AppState) -> Router {
     Router::new()
         // API routes for internal microservice communication and gateway forwarding
         .route("/api/auth/signup", post(handle_signup))
@@ -44,6 +43,6 @@ pub fn create_router(pool: PgPool) -> Router {
         .layer(RequestBodyLimitLayer::new(2048))
         // 4. Request lifecycle telemetry & tracing
         .layer(TraceLayer::new_for_http())
-        // Inject shared database connection pool state
-        .with_state(pool)
+        // Inject shared application state
+        .with_state(state)
 }
