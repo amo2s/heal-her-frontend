@@ -179,7 +179,7 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
     setErrorMsg(null)
 
     try {
-      const response = await fetch("/api/auth/signup", {
+      const response = await fetch("http://localhost:8080/api/v1/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -191,7 +191,7 @@ export default function SignUp({ onSwitchToLogin }: SignUpProps) {
       })
 
       const data = await response.json()
-      if (!response.ok) throw new Error(data.detail || "Something went wrong creating your account.")
+      if (!response.ok) throw new Error(data.message || data.detail || "Something went wrong creating your account.")
 
       // Trigger the beautiful success view
       setIsSignedUp(true)

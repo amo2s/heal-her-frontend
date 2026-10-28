@@ -34,6 +34,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/v1/auth/login", post(login_handler))
         .route("/api/auth/login", post(login_handler))
         .route("/login", post(login_handler))
+        .route("/api/v1/auth/signup", post(handle_signup))
         .route("/api/auth/signup", post(handle_signup))
         .route("/signup", post(handle_signup))
         .route("/health", get(health_check))

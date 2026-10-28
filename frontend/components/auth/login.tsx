@@ -133,7 +133,7 @@ export default function Login({ onSwitchToForgot }: LoginProps) {
     setErrorMsg(null)
 
     try {
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch("http://localhost:8080/api/v1/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -141,7 +141,7 @@ export default function Login({ onSwitchToForgot }: LoginProps) {
 
       const data = await response.json()
 
-      if (!response.ok) throw new Error(data.detail || "Hmm, those details didn't quite match.")
+      if (!response.ok) throw new Error(data.message || data.detail || "Hmm, those details didn't quite match.")
 
       sessionStorage.setItem("user-data", JSON.stringify(data.user))
 
