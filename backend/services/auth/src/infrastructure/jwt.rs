@@ -1,6 +1,6 @@
 use crate::error::InternalAuthError;
 use chrono::{DateTime, Utc};
-use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
+use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -107,6 +107,18 @@ pub fn generate_token_pair(
     })
 }
 
+/// Cryptographically decodes and verifies a JWT token's signature and expiration.
+pub fn verify_token(token: &str, secret: &str) -> Result<Claims, InternalAuthError> {
+    let decoding_key = DecodingKey::from_secret(secret.as_ref());
+    let mut validation = Validation::new(Algorithm::HS256);
+    validation.validate_aud = false;
+
+    let token_data = decode::<Claims>(token, &decoding_key, &validation)
+        .map_err(|e| InternalAuthError::InvalidToken(e.to_string()))?;
+
+    Ok(token_data.claims)
+}
+
 /// Backward compatibility helper for legacy call sites.
 #[allow(dead_code)]
 pub fn forge_token_pair(
@@ -190,5 +202,13 @@ mod tests {
 
         // JTIs must be distinct
         assert_ne!(decoded_access.claims.jti, decoded_refresh.claims.jti);
+
+        // Test verify_token helper
+        let verified = verify_token(&pair.access_token, secret).expect("verify_token must succeed");
+        assert_eq!(verified.sub, user_id);
+        assert_eq!(verified.token_type, "access");
+
+        // Invalid secret must fail
+        assert!(verify_token(&pair.access_token, "wrong_secret").is_err());
     }
 }

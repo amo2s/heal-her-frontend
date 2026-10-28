@@ -8,7 +8,6 @@ use serde_json::json;
 /// InternalAuthError represents the internal, raw truth of system failures.
 /// Intended strictly for internal telemetry, diagnostics, and secure logging.
 /// This error must NEVER be leaked directly to the client/attacker.
-#[allow(dead_code)]
 #[derive(thiserror::Error, Debug)]
 pub enum InternalAuthError {
     #[error("Database error: {0}")]
@@ -28,6 +27,21 @@ pub enum InternalAuthError {
 
     #[error("JWT signing error: {0}")]
     JwtSigningError(String),
+
+    #[error("Token has been revoked")]
+    TokenRevoked,
+
+    #[error("Token replay/theft detected")]
+    TokenReuseDetected,
+
+    #[error("Invalid token type")]
+    InvalidTokenType,
+
+    #[error("Session has expired")]
+    SessionExpired,
+
+    #[error("Invalid or expired token: {0}")]
+    InvalidToken(String),
 }
 
 /// ApiError represents the sanitized HTTP response.
@@ -83,6 +97,21 @@ impl From<InternalAuthError> for ApiError {
             }
             InternalAuthError::AccountSuspended => {
                 ApiError::Forbidden("This account has been suspended.".to_string())
+            }
+            InternalAuthError::TokenRevoked => {
+                ApiError::Unauthorized("Token has been revoked".to_string())
+            }
+            InternalAuthError::TokenReuseDetected => {
+                ApiError::Unauthorized("Invalid or expired session".to_string())
+            }
+            InternalAuthError::InvalidTokenType => {
+                ApiError::Unauthorized("Invalid token type".to_string())
+            }
+            InternalAuthError::SessionExpired => {
+                ApiError::Unauthorized("Session has expired".to_string())
+            }
+            InternalAuthError::InvalidToken(msg) => {
+                ApiError::Unauthorized(format!("Invalid or expired token: {msg}"))
             }
         }
     }
@@ -145,5 +174,13 @@ mod tests {
         let jwt_err = InternalAuthError::JwtSigningError("Invalid private key".to_string());
         let api_err: ApiError = jwt_err.into();
         assert_eq!(api_err, ApiError::InternalServerError("An unexpected system error occurred.".to_string()));
+
+        let revoked = InternalAuthError::TokenRevoked;
+        let api_err: ApiError = revoked.into();
+        assert_eq!(api_err, ApiError::Unauthorized("Token has been revoked".to_string()));
+
+        let reuse = InternalAuthError::TokenReuseDetected;
+        let api_err: ApiError = reuse.into();
+        assert_eq!(api_err, ApiError::Unauthorized("Invalid or expired session".to_string()));
     }
 }

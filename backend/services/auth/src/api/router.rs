@@ -1,5 +1,10 @@
 use crate::{
-    api::handlers::{login::login_handler, signup::handle_signup},
+    api::handlers::{
+        login::login_handler,
+        logout::logout_handler,
+        refresh::refresh_handler,
+        signup::handle_signup,
+    },
     state::AppState,
 };
 use axum::{
@@ -30,13 +35,23 @@ async fn health_check() -> impl IntoResponse {
 
 pub fn create_router(state: AppState) -> Router {
     Router::new()
-        // API routes for internal microservice communication and gateway forwarding
+        // Authentication routes: Login
         .route("/api/v1/auth/login", post(login_handler))
         .route("/api/auth/login", post(login_handler))
         .route("/login", post(login_handler))
+        // Authentication routes: Registration
         .route("/api/v1/auth/signup", post(handle_signup))
         .route("/api/auth/signup", post(handle_signup))
         .route("/signup", post(handle_signup))
+        // Authentication routes: Stateful Refresh Token Rotation (RTR)
+        .route("/api/v1/auth/refresh", post(refresh_handler))
+        .route("/api/auth/refresh", post(refresh_handler))
+        .route("/refresh", post(refresh_handler))
+        // Authentication routes: Dual-Mode Session Termination (Logout)
+        .route("/api/v1/auth/logout", post(logout_handler))
+        .route("/api/auth/logout", post(logout_handler))
+        .route("/logout", post(logout_handler))
+        // Health check endpoint
         .route("/health", get(health_check))
         // Layer order: executed outside-in on request, inside-out on response
         // 1. Permissive CORS layer neutralizing browser preflight restrictions for local development

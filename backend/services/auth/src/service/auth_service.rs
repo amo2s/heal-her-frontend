@@ -1,10 +1,14 @@
 use crate::{
-    domain::auth::{LoginRequest, LoginResponse, UserType},
+    domain::auth::{LoginRequest, LoginResponse, LogoutResponse, UserType},
     error::InternalAuthError,
     infrastructure::{
+        cache::RevocationCache,
         crypto::{execute_dummy_hash, verify_password},
-        jwt::generate_token_pair,
-        session_repo::create_session,
+        jwt::{generate_token_pair, hash_refresh_token, verify_token, Claims},
+        session_repo::{
+            create_session, delete_all_user_sessions, delete_session_by_hash,
+            delete_session_family, rotate_session_atomic, NewSessionParams, RotationOutcome,
+        },
     },
 };
 use sqlx::PgPool;
@@ -13,6 +17,7 @@ use uuid::Uuid;
 #[derive(sqlx::FromRow)]
 struct UserAuthRecord {
     id: Uuid,
+    email: String,
     full_name: String,
     password_hash: String,
     role: String,
@@ -35,7 +40,7 @@ pub async fn authenticate_user(
     // 2. Query user credentials and state from PostgreSQL
     let user_opt: Option<UserAuthRecord> = sqlx::query_as(
         r#"
-        SELECT id, full_name, password_hash, role, is_active
+        SELECT id, email, full_name, password_hash, role, is_active
         FROM users
         WHERE email = $1
         "#,
@@ -126,10 +131,231 @@ pub async fn authenticate_user(
         refresh_token: token_pair.refresh_token,
         user: UserType {
             id: record.id.to_string(),
-            email: normalized_email,
+            email: record.email,
             full_name: record.full_name,
             is_active: record.is_active,
             dashboard,
         },
     })
+}
+
+/// Executes Refresh Token Rotation (RTR) with atomic transaction locking,
+/// race-condition mitigation, and automatic replay/theft detection.
+pub async fn refresh_user_session(
+    pool: &PgPool,
+    secret: &str,
+    cache: &RevocationCache,
+    raw_refresh_token: &str,
+    user_agent: Option<&str>,
+    ip_address: Option<&str>,
+) -> Result<LoginResponse, InternalAuthError> {
+    // 1. Cryptographically decode and verify refresh token signature & expiration
+    let claims = verify_token(raw_refresh_token, secret)?;
+
+    // 2. Strict token type separation: ONLY "refresh" tokens permitted for rotation
+    if claims.token_type != "refresh" {
+        tracing::warn!(
+            target: "auth::service",
+            user_id = %claims.sub,
+            token_type = %claims.token_type,
+            "Rejected rotation attempt: token is not of type 'refresh'"
+        );
+        return Err(InternalAuthError::InvalidTokenType);
+    }
+
+    // 3. Nanosecond L1 Cache Revocation Check: Check if user or JTI was revoked
+    if cache.is_token_revoked(&claims.jti, &claims.sub, claims.iat) {
+        tracing::warn!(
+            target: "auth::service",
+            user_id = %claims.sub,
+            jti = %claims.jti,
+            "Rejected rotation attempt: token JTI or user sessions are revoked"
+        );
+        return Err(InternalAuthError::TokenRevoked);
+    }
+
+    // 4. Query user record from PostgreSQL to ensure account active
+    let user_opt: Option<UserAuthRecord> = sqlx::query_as(
+        r#"
+        SELECT id, email, full_name, password_hash, role, is_active
+        FROM users
+        WHERE id = $1
+        "#,
+    )
+    .bind(claims.sub)
+    .fetch_optional(pool)
+    .await?;
+
+    let user = match user_opt {
+        Some(u) => u,
+        None => return Err(InternalAuthError::UserNotFoundInPostgres),
+    };
+
+    if !user.is_active {
+        tracing::warn!(
+            target: "auth::service",
+            user_id = %user.id,
+            "Rejected rotation attempt: account suspended"
+        );
+        return Err(InternalAuthError::AccountSuspended);
+    }
+
+    // 5. Algorithmic Demographic Dashboard Routing
+    let dashboard = match user.role.as_str() {
+        "kid" => "kids",
+        "teen" => "teens",
+        "young-adult" => "young-adults",
+        other => other,
+    }
+    .to_string();
+
+    // 6. Compute BLAKE3 hex hash of the presented refresh token
+    let presented_hash = hash_refresh_token(raw_refresh_token);
+
+    // 7. Generate a fresh new session ID while strictly preserving the family ID
+    let new_session_id = Uuid::new_v4();
+
+    // 8. Forge new candidate access (10 min) & refresh (7 day) token pair
+    let new_token_pair = generate_token_pair(
+        user.id,
+        &user.role,
+        Some(&dashboard),
+        new_session_id,
+        claims.fid,
+        secret,
+    )?;
+
+    // 9. Execute atomic database transaction with row-level lock and theft detection
+    let rotation_params = NewSessionParams {
+        new_session_id,
+        user_id: user.id,
+        family_id: claims.fid,
+        new_refresh_token_hash: &new_token_pair.refresh_token_hash,
+        user_agent,
+        ip_address,
+        new_expires_at: new_token_pair.refresh_expires_at,
+    };
+
+    let outcome = rotate_session_atomic(
+        pool,
+        claims.sid,
+        claims.fid,
+        user.id,
+        &presented_hash,
+        &rotation_params,
+    )
+    .await?;
+
+    match outcome {
+        RotationOutcome::Success => {
+            tracing::info!(
+                target: "auth::service",
+                user_id = %user.id,
+                family_id = %claims.fid,
+                old_session_id = %claims.sid,
+                new_session_id = %new_session_id,
+                "Refresh token rotated successfully under Stateful RTR"
+            );
+
+            Ok(LoginResponse {
+                status: "success".to_string(),
+                message: "Token refreshed successfully".to_string(),
+                access_token: new_token_pair.access_token,
+                refresh_token: new_token_pair.refresh_token,
+                user: UserType {
+                    id: user.id.to_string(),
+                    email: user.email,
+                    full_name: user.full_name,
+                    is_active: user.is_active,
+                    dashboard,
+                },
+            })
+        }
+        RotationOutcome::Compromised { family_id } => {
+            // Replay/Theft Attack Confirmed:
+            // An already revoked refresh token was replayed, or hash mismatch on an existing session.
+            let now_ts = chrono::Utc::now().timestamp();
+            cache.revoke_all_user_sessions(user.id, now_ts).await;
+
+            tracing::warn!(
+                target: "auth::security::theft_detected",
+                user_id = %user.id,
+                family_id = %family_id,
+                session_id = %claims.sid,
+                "HIGH SEVERITY ALERT: Refresh token theft / replay attack detected! Entire session family deleted and global L1 user kill-switch engaged"
+            );
+
+            Err(InternalAuthError::TokenReuseDetected)
+        }
+        RotationOutcome::InvalidOrExpired => {
+            tracing::warn!(
+                target: "auth::service",
+                user_id = %user.id,
+                session_id = %claims.sid,
+                "Refresh token rotation rejected: session not found or expired"
+            );
+
+            Err(InternalAuthError::SessionExpired)
+        }
+    }
+}
+
+/// Dual-Mode Logout Execution:
+/// Supports single-device session family invalidation or multi-device global kill-switch.
+pub async fn logout_user_session(
+    pool: &PgPool,
+    cache: &RevocationCache,
+    claims: &Claims,
+    all_devices: bool,
+    optional_refresh_token: Option<&str>,
+) -> Result<LogoutResponse, InternalAuthError> {
+    if all_devices {
+        // Mode 2 — Global Multi-Device Logout
+        let now_ts = chrono::Utc::now().timestamp();
+        // 1. Immediately blacklist current Access Token JTI
+        cache.revoke_jti(claims.jti).await;
+        // 2. Stamp user ID into Tier-2 Global User Kill-Switch with 10-minute TTL
+        cache.revoke_all_user_sessions(claims.sub, now_ts).await;
+        // 3. Batch delete all sessions in PostgreSQL across all devices
+        let deleted_count = delete_all_user_sessions(pool, claims.sub).await?;
+
+        tracing::info!(
+            target: "auth::service",
+            user_id = %claims.sub,
+            purged_sessions = deleted_count,
+            "Global multi-device logout completed; L1 kill-switch active"
+        );
+
+        Ok(LogoutResponse {
+            status: "success".to_string(),
+            message: "Session terminated securely".to_string(),
+            mode: "all_devices".to_string(),
+        })
+    } else {
+        // Mode 1 — Single-Device Logout
+        // 1. Immediately blacklist current Access Token JTI in L1 RAM
+        cache.revoke_jti(claims.jti).await;
+        // 2. Delete the session family from PostgreSQL
+        let deleted_count = delete_session_family(pool, claims.fid, claims.sub).await?;
+        // 3. If a refresh token was explicitly provided, also purge by its BLAKE3 hash
+        if let Some(raw_rt) = optional_refresh_token {
+            let hash = hash_refresh_token(raw_rt);
+            let _ = delete_session_by_hash(pool, &hash).await;
+        }
+
+        tracing::info!(
+            target: "auth::service",
+            user_id = %claims.sub,
+            family_id = %claims.fid,
+            session_id = %claims.sid,
+            purged_sessions = deleted_count,
+            "Single-device logout completed"
+        );
+
+        Ok(LogoutResponse {
+            status: "success".to_string(),
+            message: "Session terminated securely".to_string(),
+            mode: "single_device".to_string(),
+        })
+    }
 }
