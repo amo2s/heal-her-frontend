@@ -94,7 +94,7 @@ async fn main() -> Result<(), ApiError> {
         }
     };
 
-    tracing::info!("🚀 Auth microservice bound to http://{}", addr);
+    tracing::info!(" Auth microservice bound to http://{}", addr);
 
     // 7. Launch Tokio async server with graceful shutdown lifecycle
     if let Err(err) = axum::serve(listener, app)
