@@ -1,4 +1,7 @@
-use crate::{api::handlers::signup::handle_signup, state::AppState};
+use crate::{
+    api::handlers::{login::login_handler, signup::handle_signup},
+    state::AppState,
+};
 use axum::{
     http::StatusCode,
     response::IntoResponse,
@@ -28,6 +31,9 @@ async fn health_check() -> impl IntoResponse {
 pub fn create_router(state: AppState) -> Router {
     Router::new()
         // API routes for internal microservice communication and gateway forwarding
+        .route("/api/v1/auth/login", post(login_handler))
+        .route("/api/auth/login", post(login_handler))
+        .route("/login", post(login_handler))
         .route("/api/auth/signup", post(handle_signup))
         .route("/signup", post(handle_signup))
         .route("/health", get(health_check))

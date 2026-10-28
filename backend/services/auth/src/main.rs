@@ -3,6 +3,7 @@ mod config;
 mod domain;
 mod error;
 mod infrastructure;
+mod service;
 mod state;
 
 use crate::{
