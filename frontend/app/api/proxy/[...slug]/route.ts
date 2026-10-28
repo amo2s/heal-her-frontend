@@ -90,10 +90,10 @@ async function proxyRequest(request: NextRequest, { params }: { params: Promise<
     });
 
   } catch (error) {
-    console.error("[UNIVERSAL PROXY ERROR]:", error);
+    console.warn("[PROXY SILENCED]: Backend unreachable", error);
     return NextResponse.json(
-      { detail: "Heal Her Firewall: Proxy connection failed." },
-      { status: 500 }
+      { data: null, message: "Backend temporarily offline" }, 
+      { status: 200 } // Return 200 to prevent Next.js client-side crashes
     );
   }
 }
