@@ -38,8 +38,8 @@ export async function proxy(request: NextRequest) {
   // =====================================================================
   // 2. VAULT EXTRACTION (Dual-Mode Intelligence)
   // =====================================================================
-  const userAccess = request.cookies.get('sb-access-token')?.value;
-  const userRefresh = request.cookies.get('sb-refresh-token')?.value;
+  const userAccess = request.cookies.get('sb-access-token')?.value || request.cookies.get('accessToken')?.value;
+  const userRefresh = request.cookies.get('sb-refresh-token')?.value || request.cookies.get('refreshToken')?.value;
   
   const adminAccess = request.cookies.get('admin-access-token')?.value;
   const adminRefresh = request.cookies.get('admin-refresh-token')?.value;

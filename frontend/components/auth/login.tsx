@@ -145,6 +145,18 @@ export default function Login({ onSwitchToForgot }: LoginProps) {
       if (data.accessToken) {
         sessionStorage.setItem("accessToken", data.accessToken);
         sessionStorage.setItem("refreshToken", data.refreshToken);
+        sessionStorage.setItem("sb-access-token", data.accessToken);
+        if (data.refreshToken) {
+          sessionStorage.setItem("sb-refresh-token", data.refreshToken);
+        }
+
+        // Set cookies for Next.js middleware (proxy.ts) authentication
+        document.cookie = `sb-access-token=${data.accessToken}; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `accessToken=${data.accessToken}; path=/; max-age=86400; SameSite=Lax`;
+        if (data.refreshToken) {
+          document.cookie = `sb-refresh-token=${data.refreshToken}; path=/; max-age=604800; SameSite=Lax`;
+          document.cookie = `refreshToken=${data.refreshToken}; path=/; max-age=604800; SameSite=Lax`;
+        }
       }
 
       if (!response.ok) throw new Error(data.message || data.detail || "Hmm, those details didn't quite match.")
@@ -307,14 +319,24 @@ export default function Login({ onSwitchToForgot }: LoginProps) {
               </motion.p>
 
               {countdown !== null && (
-                <div className="mt-8 flex flex-col items-center justify-center space-y-4">
-                  <div className="relative flex items-center justify-center w-12 h-12">
-                    <div className="absolute w-full h-full border-2 border-white/10 rounded-full"></div>
-                    <div className="absolute w-full h-full border-2 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
-                    <span className="text-sm font-bold text-white">{countdown}</span>
+                <div className="mt-8 flex flex-col items-center justify-center p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl transition-all duration-700">
+                  <div className="relative flex items-center justify-center w-16 h-16 mb-4">
+                    {/* Premium blurred glow behind the spinner */}
+                    <div className="absolute w-full h-full bg-pink-500/20 blur-xl rounded-full animate-pulse"></div>
+                    {/* Sleek track */}
+                    <div className="absolute w-full h-full border-[1.5px] border-white/10 rounded-full"></div>
+                    {/* Rotating neon accent */}
+                    <div className="absolute w-full h-full border-[1.5px] border-pink-500 border-t-transparent rounded-full animate-spin"></div>
+                    {/* Crisp number */}
+                    <span className="text-xl font-light text-white tracking-widest">{countdown}</span>
                   </div>
-                  <p className="text-sm font-medium text-gray-400 animate-pulse tracking-wide">
-                    Securing connection... redirecting to your space.
+
+                  {/* Simple, elegant English text */}
+                  <h3 className="text-lg font-semibold text-white tracking-wide mb-1">
+                    Login Successful
+                  </h3>
+                  <p className="text-sm font-medium text-gray-400">
+                    Redirecting to your dashboard in a moment...
                   </p>
                 </div>
               )}
