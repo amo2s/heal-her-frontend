@@ -50,7 +50,7 @@ impl Config {
         let acquire_timeout_secs = env::var("DB_ACQUIRE_TIMEOUT_SECS")
             .ok()
             .and_then(|t| t.parse::<u64>().ok())
-            .unwrap_or(3);
+            .unwrap_or(15);
 
         let idle_timeout_secs = env::var("DB_IDLE_TIMEOUT_SECS")
             .ok()
