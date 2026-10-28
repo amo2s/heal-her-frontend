@@ -91,6 +91,7 @@ export default function Login({ onSwitchToForgot }: LoginProps) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [shake, setShake] = useState(false) 
   const [dashboardRoute, setDashboardRoute] = useState("young-adults")
+  const [countdown, setCountdown] = useState<number | null>(null);
   
   const [loadingTextIndex, setLoadingTextIndex] = useState(0)
   const loadingPhrases = useMemo(() => [
@@ -158,6 +159,7 @@ export default function Login({ onSwitchToForgot }: LoginProps) {
 
       setDashboardRoute(targetRoute)
       setIsAuthorized(true)
+      setCountdown(5);
 
     } catch (error: any) {
       console.error("[AUTH ERROR]:", error);
@@ -174,6 +176,16 @@ export default function Login({ onSwitchToForgot }: LoginProps) {
     setShake(true)
     setTimeout(() => setShake(false), 500)
   }
+
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown === 0) {
+      router.push(`/dashboard/${dashboardRoute}`);
+      return;
+    }
+    const timer = setTimeout(() => setCountdown(c => (c !== null ? c - 1 : null)), 1000);
+    return () => clearTimeout(timer);
+  }, [countdown, dashboardRoute, router]);
 
   return (
     <div className="relative w-full">
@@ -294,26 +306,18 @@ export default function Login({ onSwitchToForgot }: LoginProps) {
                 Please note: This application is currently in active production. While some features are still under development, we are working diligently to ensure core functionalities, such as the simulations and AI Buddy, perform perfectly.
               </motion.p>
 
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.8 }}
-                className="pt-6"
-              >
-                {/* Liquid Glass Button Implementation */}
-                <Button 
-                  onClick={() => router.push(`/dashboard/${dashboardRoute}`)}
-                  type="button"
-                  className="relative overflow-hidden bg-gradient-to-b from-[#DA8CA0]/40 to-[#DA8CA0]/10 border border-white/30 text-white rounded-2xl px-8 h-12 text-sm font-bold tracking-wide transition-all duration-300 shadow-[inset_0_2px_4px_rgba(255,255,255,0.7),inset_0_-4px_8px_rgba(28,18,70,0.5),0_8px_20px_rgba(218,140,160,0.3)] hover:scale-[1.03] active:scale-[0.97] hover:shadow-[inset_0_2px_6px_rgba(255,255,255,0.9),inset_0_-4px_8px_rgba(28,18,70,0.5),0_10px_25px_rgba(218,140,160,0.4)]"
-                >
-                  {/* Glossy Specular Highlight (The curved "light reflection" at the top) */}
-                  <div className="absolute top-0 left-[5%] right-[5%] h-[45%] bg-gradient-to-b from-white/70 to-transparent rounded-b-full pointer-events-none mix-blend-overlay" />
-                  
-                  <span className="relative z-10 flex items-center drop-shadow-[0_2px_2px_rgba(0,0,0,0.3)]">
-                    Proceed Now <ArrowRight className="ml-2 h-4 w-4" />
-                  </span>
-                </Button>
-              </motion.div>
+              {countdown !== null && (
+                <div className="mt-8 flex flex-col items-center justify-center space-y-4">
+                  <div className="relative flex items-center justify-center w-12 h-12">
+                    <div className="absolute w-full h-full border-2 border-white/10 rounded-full"></div>
+                    <div className="absolute w-full h-full border-2 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-sm font-bold text-white">{countdown}</span>
+                  </div>
+                  <p className="text-sm font-medium text-gray-400 animate-pulse tracking-wide">
+                    Securing connection... redirecting to your space.
+                  </p>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
