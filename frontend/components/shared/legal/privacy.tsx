@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useState, useRef } from "react"
+import React, { useState, useRef, useEffect } from "react"
+import Link from "next/link"
 import { motion, useScroll, useTransform, useMotionTemplate, useMotionValue, Variants } from "framer-motion"
 import { 
   ShieldAlert, 
@@ -152,6 +153,21 @@ export default function PrivacyPolicyDocument({ onExecuteSignature, isProcessing
   const { scrollYProgress } = useScroll()
   const headerOpacity = useTransform(scrollYProgress, [0, 0.05], [1, 0.9])
 
+  // --- VOLATILE STATE DESTRUCTION (Zero-Leak Memory) ---
+  const nukeVolatileState = () => {
+    setClientName("")
+    setClientEmail("")
+    setIsParentalConsent(false)
+    setMinorName("")
+    setMinorAge("")
+  }
+
+  useEffect(() => {
+    return () => {
+      nukeVolatileState()
+    }
+  }, [])
+
   const handleValidationAndSubmit = () => {
     const isBaseInvalid = !clientName.trim() || !clientEmail.trim()
     const parsedAge = parseInt(minorAge)
@@ -171,6 +187,10 @@ export default function PrivacyPolicyDocument({ onExecuteSignature, isProcessing
         isParentalConsent,
         minorName: isParentalConsent ? minorName : undefined,
         minorAge: isParentalConsent ? parsedAge : undefined
+      }).then(() => {
+        nukeVolatileState()
+      }).catch(() => {
+        // Keep inputs on failure for retry
       })
     }
   }
@@ -465,9 +485,17 @@ export default function PrivacyPolicyDocument({ onExecuteSignature, isProcessing
 
                   {/* Client Signature & Email Form (Col 2) */}
                   <div className="space-y-6 relative" ref={signatureAnchorRef}>
-                    <p className="text-[10px] text-[#DA8CA0] uppercase tracking-[0.2em] font-bold">
-                      {isParentalConsent ? "Consent Granted By Parent:" : "Consent Granted By User:"}
-                    </p>
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-[#DA8CA0] uppercase tracking-[0.2em] font-bold">
+                        {isParentalConsent ? "Consent Granted By Parent:" : "Consent Granted By User:"}
+                      </p>
+                      <p className="text-xs text-[#CCCCD9] leading-relaxed">
+                        I agree to the Privacy Policy above, and the{" "}
+                        <Link href="/terms" className="text-[#DA8CA0] underline underline-offset-2 hover:text-white transition-colors">
+                          Terms of Service
+                        </Link>.
+                      </p>
+                    </div>
                     <div className="space-y-4">
                       <div>
                         <input 
@@ -549,14 +577,14 @@ export default function PrivacyPolicyDocument({ onExecuteSignature, isProcessing
                             {isProcessing ? (
                               <><Database className="h-4 w-4 animate-pulse text-white" /> Establishing Cipher...</>
                             ) : (
-                              <><Lock className="h-4 w-4 text-white group-hover/btn:scale-110 transition-transform" /> Grant Processing Consent</>
+                              <><Lock className="h-4 w-4 text-white group-hover/btn:scale-110 transition-transform" /> Sign Terms of Service & Privacy Policy</>
                             )}
                           </button>
                       )}
 
                       <div className="text-[10px] text-[#CCCCD9]/50 font-mono leading-relaxed mt-4 bg-white/[0.02] p-4 rounded-xl border border-white/5">
                         <FileCheck className="h-3.5 w-3.5 inline mr-2 text-[#DA8CA0]" />
-                        By entering your credentials, you generate a cryptographically secure PKCS#7 audit trail establishing formal legal consent to process your data under the conditions strictly outlined above.
+                        By entering your credentials, you generate a cryptographically secure audit trail establishing formal legal consent to both the Terms of Service and Privacy Policy under the conditions strictly outlined above.
                       </div>
                     </div>
                   </div>

@@ -7,7 +7,7 @@ import LegalTermsDocument, { SignaturePayload } from "@/components/shared/legal/
 import { Loader2, ShieldCheck, X, MailCheck } from "lucide-react"
 
 const GRAPHQL_ENDPOINT = "api/proxy/graphql"
-const GO_GATEWAY_ENDPOINT = "/api/proxy/api/v1/tos/execute"
+const TOS_EXECUTION_ENDPOINT = "/api/proxy/api/v1/tos/execute"
 
 // Masks an email for display so the modal never echoes the full address back on-screen.
 function maskEmail(email: string): string {
@@ -199,31 +199,30 @@ export default function TermsPage() {
         requestBody.minor_age = Number(pendingPayload.minorAge)
       }
 
-      // Direct integration with the new Go Orchestrator Gateway
-      const response = await fetch(GO_GATEWAY_ENDPOINT, {
+      // Direct integration with the 2-in-1 Python Legal Consent Microservice
+      const response = await fetch(TOS_EXECUTION_ENDPOINT, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // Injecting mock auth context for the Go middleware
           "X-User-Email": pendingPayload.clientEmail, 
         },
         body: JSON.stringify(requestBody)
       })
 
-      const result = await response.json().catch(() => null) // Graceful fallback if empty body
+      const result = await response.json().catch(() => null)
 
       if (!response.ok) {
-        // Forward the specific schema/validation error from Go if present
-        throw new Error(result?.error || result?.detail || "Execution failed. Invalid payload or server error.")
+        throw new Error(result?.detail || result?.error || "Execution failed. Invalid payload or server error.")
       }
 
-      // Go Gateway returns 201 Created on success
+      // Zero-Leak Memory Destruction
       setShowOtpModal(false)
       resetOtpDigits()
       setPendingPayload(null)
       setResendCooldown(0)
+      setOtpError("")
 
-      alert("Success! Your document has been securely generated and encrypted. Check your email for the secure access link.")
+      alert("Success! Your Unified Legal Consent Agreement (Terms of Service & Privacy Policy) has been cryptographically executed, sealed, and vaulted.")
       
     } catch (error: any) {
       console.error("Step 2 Execution Error:", error)

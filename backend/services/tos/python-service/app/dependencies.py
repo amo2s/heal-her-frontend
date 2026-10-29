@@ -150,3 +150,4 @@ async def get_current_user(
         ip_address=ip_address,
         role=role
     )
+

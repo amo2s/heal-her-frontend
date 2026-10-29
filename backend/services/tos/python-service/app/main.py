@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
@@ -20,6 +21,7 @@ from app.models.schemas import (
     EnrichedSignaturePayload,
     SignatureRequest,
     TOSExecutionResponse,
+    TOSStatusResponse,
 )
 from app.services.mailer import dispatch_tos_confirmation_email_async
 from app.services.renderer import DocumentRenderingError, render_tos_pdf
@@ -81,6 +83,38 @@ async def health_check():
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "version": "0.2.0",
     }
+
+
+@app.get(
+    "/api/v1/tos/status",
+    response_model=TOSStatusResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Legal Consent"],
+    summary="Check whether the authenticated user has executed the unified TOS & Privacy agreement"
+)
+@app.get(
+    "/status",
+    response_model=TOSStatusResponse,
+    status_code=status.HTTP_200_OK,
+    include_in_schema=False
+)
+async def get_tos_consent_status(
+    user: AuthenticatedUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Sub-10ms Status Interrogation:
+    Checks if client_email exists in tos_audit_ledger.
+    Protected by Zero-Trust JWT dependency.
+    """
+    try:
+        query = text("SELECT 1 FROM tos_audit_ledger WHERE client_email = :email LIMIT 1")
+        result = await db.execute(query, {"email": user.email})
+        has_signed = result.scalar() is not None
+        return TOSStatusResponse(has_signed=has_signed)
+    except Exception as exc:
+        logger.error(f"Error querying TOS consent status for user {user.email}: {exc}")
+        return TOSStatusResponse(has_signed=False)
 
 
 @app.post(

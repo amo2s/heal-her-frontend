@@ -101,3 +101,16 @@ class TOSExecutionResponse(BaseModel):
     request_id: UUID
     document_hash: str
     storage_path: str
+
+
+class TOSStatusResponse(BaseModel):
+    """
+    Blazing-fast status payload for Next.js Server Component dashboard banner.
+    """
+    model_config = ConfigDict(
+        populate_by_name=True,
+        alias_generator=to_camel
+    )
+
+    has_signed: bool
+

@@ -19,9 +19,13 @@ async function proxyRequest(request: NextRequest, { params }: { params: Promise<
   const path = mappedSlug.join("/");
   let backendUrl = process.env.BACKEND_URL || "https://sliverboy-healher-backend.hf.space";
 
-  // --- TRAFFIC SPLITTER: Route TOS execution to the Go Gateway ---
+  // --- TRAFFIC ROUTER: Route TOS execution to the Python Legal Consent Microservice ---
   if (path.startsWith("api/v1/tos")) {
-    backendUrl = process.env.GO_GATEWAY_URL || "http://localhost:8080";
+    backendUrl =
+      process.env.PYTHON_TOS_URL ||
+      (process.env.BACKEND_URL && !process.env.BACKEND_URL.includes("graphql")
+        ? process.env.BACKEND_URL
+        : "http://127.0.0.1:8080");
   }
 
   const searchParams = request.nextUrl.searchParams.toString();

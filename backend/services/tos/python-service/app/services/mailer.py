@@ -46,3 +46,4 @@ async def dispatch_tos_confirmation_email_async(
                 logger.warning(f"Google mailer webhook returned status {response.status_code}: {response.text}")
     except Exception as exc:
         logger.error(f"Failed to dispatch TOS confirmation email to {email}: {exc}")
+

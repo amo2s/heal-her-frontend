@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useState, useRef } from "react"
+import React, { useState, useRef, useEffect } from "react"
+import Link from "next/link"
 import { motion } from "framer-motion"
 import { 
   Scale, 
@@ -127,6 +128,21 @@ export default function LegalTermsDocument({ onExecuteSignature, isProcessing = 
   
   const signatureAnchorRef = useRef<HTMLDivElement>(null)
 
+  // --- VOLATILE STATE DESTRUCTION (Zero-Leak Memory) ---
+  const nukeVolatileState = () => {
+    setClientName("")
+    setClientEmail("")
+    setIsParentalConsent(false)
+    setMinorName("")
+    setMinorAge("")
+  }
+
+  useEffect(() => {
+    return () => {
+      nukeVolatileState()
+    }
+  }, [])
+
   // --- VALIDATION & SUBMIT TRIGGER ---
   const handleValidationAndSubmit = () => {
     const isBaseInvalid = !clientName.trim() || !clientEmail.trim()
@@ -147,6 +163,10 @@ export default function LegalTermsDocument({ onExecuteSignature, isProcessing = 
         isParentalConsent,
         minorName: isParentalConsent ? minorName : undefined,
         minorAge: isParentalConsent ? parsedAge : undefined
+      }).then(() => {
+        nukeVolatileState()
+      }).catch(() => {
+        // Keep inputs on failure for user retry
       })
     }
   }
@@ -540,9 +560,17 @@ export default function LegalTermsDocument({ onExecuteSignature, isProcessing = 
 
                   {/* Client Signature & Email Form (Col 2) */}
                   <div className="space-y-5 relative" ref={signatureAnchorRef}>
-                    <p className="text-xs text-[#CCCCD9]/80 uppercase tracking-widest font-semibold">
-                      {isParentalConsent ? "Executed By Parent/Guardian:" : "Executed By User:"}
-                    </p>
+                    <div className="space-y-1">
+                      <p className="text-xs text-[#CCCCD9]/80 uppercase tracking-widest font-semibold">
+                        {isParentalConsent ? "Executed By Parent/Guardian:" : "Executed By User:"}
+                      </p>
+                      <p className="text-xs text-[#CCCCD9] leading-relaxed">
+                        I agree to the Terms of Service above, and the{" "}
+                        <Link href="/privacy" className="text-[#DA8CA0] underline underline-offset-2 hover:text-white transition-colors">
+                          Privacy Policy
+                        </Link>.
+                      </p>
+                    </div>
                     <div className="space-y-4 pt-2">
                       <div>
                         <input 
@@ -624,14 +652,14 @@ export default function LegalTermsDocument({ onExecuteSignature, isProcessing = 
                             {isProcessing ? (
                               <><Loader2 className="h-4 w-4 animate-spin text-white/90" /> Executing Signature...</>
                             ) : (
-                              <><FileText className="h-4 w-4 text-white/90" /> Submit Official Signature</>
+                              <><FileText className="h-4 w-4 text-white/90" /> Sign Terms of Service & Privacy Policy</>
                             )}
                           </button>
                       )}
 
                       <div className="text-[10px] text-[#CCCCD9]/60 font-mono leading-relaxed mt-2 bg-[#DA8CA0]/5 p-3 rounded-lg border border-[#DA8CA0]/10">
                         <ShieldAlert className="h-3 w-3 inline mr-1 text-[#DA8CA0]" />
-                        By entering your name and email, you generate a cryptographically secure audit trail establishing formal legal consent.
+                        By entering your name and email, you generate a cryptographically secure audit trail establishing formal legal consent to both the Terms of Service and Privacy Policy.
                       </div>
                     </div>
                   </div>

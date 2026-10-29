@@ -1,8 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Heal Her — Terms of Service & Legal Consent{% endblock %}
+{% block title %}Heal Her — Unified Legal Instrument (Terms of Service & Privacy Policy){% endblock %}
 
 {% block content %}
+<!-- ==========================================================================
+     PART 1: TERMS OF SERVICE
+     ========================================================================== -->
+
 <!-- FIRST PAGE HEADER -->
 <div class="first-page-header">
     <div class="header-logo-cell">
@@ -17,17 +21,18 @@
     </div>
 </div>
 
-<!-- DOCUMENT METADATA BLOCK -->
+<!-- PART 1 TITLE & PREAMBLE -->
 <div class="document-title-block">
-    <h2>Terms of Service & User Agreement</h2>
+    <h2>Part I: Terms of Service & User Agreement</h2>
     <div class="status-badge-panel">
         <strong>Document Status:</strong> ACTIVE & BINDING<br>
+        <strong>Instrument Type:</strong> 2-in-1 Unified Legal Consent (TOS + Privacy Policy)<br>
         <strong>Revised Effective Date:</strong> July 17, 2026<br>
         <strong>Jurisdiction:</strong> Federal Republic of Nigeria (Global Applicability)<br>
         <strong>Digital Audit ID:</strong> SECURE-TLS-{{ request_id }}
     </div>
     <p class="intro-lead">
-        This document represents an enforceable, legally binding instrument between you and Heal Her. It defines your user entitlements, code of conduct obligations, data protections, and the absolute boundaries of our liability as an independent technology platform. Please review every provision with care.
+        This instrument represents an enforceable, legally binding covenant between you and Heal Her. It governs your user entitlements, obligations, acceptable conduct standards, and the absolute boundaries of our liability as an independent technology platform. Part I outlines platform terms; Part II establishes data protection covenants.
     </p>
 </div>
 
@@ -159,8 +164,139 @@
     <p class="clause-body">Formal legal communications, subpoena filings, or verification inquiries must be remitted to the Heal Her Legal Directorate, Jos, Plateau State, Nigeria.</p>
 </div>
 
-<!-- FORMAL LEGAL EXECUTION SIGNATURE GRID -->
+<!-- ==========================================================================
+     STRICT CSS PAGE BREAK BETWEEN TERMS OF SERVICE AND PRIVACY POLICY
+     ========================================================================== -->
+<div style="page-break-before: always; break-before: page; margin-top: 20px;"></div>
+
+<!-- ==========================================================================
+     PART 2: PRIVACY POLICY
+     ========================================================================== -->
+<div class="document-title-block" style="padding-top: 10px;">
+    <h2>Part II: Privacy Policy & Data Protection Covenant</h2>
+    <div class="status-badge-panel">
+        <strong>Compliance Framework:</strong> Nigeria Data Protection Regulation (NDPR) / Global Standard<br>
+        <strong>Data Retention Protocol:</strong> Zero PII Storage in Model Training Queues<br>
+        <strong>Cryptographic Protocol:</strong> At-Rest AES-256 Storage & In-Transit TLS 1.3
+    </div>
+    <p class="intro-lead">
+        Privacy is a non-negotiable human right. Part II explains the precise categories of data processed, our strict architectural decoupling of identity from health disclosures, and your statutory rights to absolute data erasure.
+    </p>
+</div>
+
+<!-- PRIVACY CLAUSE 1 -->
+<div class="clause-container">
+    <div class="clause-title"><span class="clause-number">01</span> Anonymous by Design</div>
+    <p class="clause-body"><strong>1.1. No Real Names Required.</strong> The platform does not mandate or track real legal names for interactive modules. Accounts utilize autonomous demographic nicknames. Your health queries cannot be cross-referenced with your offline identity.</p>
+    <p class="clause-body"><strong>1.2. Architectural Iron Wall.</strong> Identity credentials and sensitive health discussions reside in isolated cryptographic silos. A vulnerability in one database cluster yields no mathematical link to user identities.</p>
+</div>
+
+<!-- PRIVACY CLAUSE 2 -->
+<div class="clause-container">
+    <div class="clause-title"><span class="clause-number">02</span> Data Categories Collected</div>
+    <p class="clause-body">We maintain a minimal data ingestion profile. We store solely:</p>
+    <p class="clause-body"><strong>• User Email Address:</strong> Retained for authentication and cryptographic password reset operations.</p>
+    <p class="clause-body"><strong>• Encrypted Conversation Logs:</strong> Preserved to allow session continuity and tailored wellness support.</p>
+    <p class="clause-body"><strong>• Generalized Region:</strong> Captured exclusively to surface valid emergency local helpline phone numbers.</p>
+</div>
+
+<!-- PRIVACY CLAUSE 3 -->
+<div class="critical-clause">
+    <div class="clause-title"><span class="clause-number">03</span> AI Model Training & Automated Scrubbing</div>
+    <p class="clause-body"><strong>3.1. Training Purpose.</strong> Anonymous interaction logs may be utilized to refine model empathy, improve clinical guardrails, and enhance distress detection accuracy.</p>
+    <p class="clause-body"><strong>3.2. PII Sanitization.</strong> All conversational telemetry is stripped of phone numbers, names, locations, and personal identifiers via multi-pass algorithmic scrubbers prior to internal evaluation.</p>
+    <p class="clause-body"><strong>3.3. Responsible Disclosure.</strong> Users are cautioned against injecting banking PINs, physical home addresses, or financial data into conversational prompts.</p>
+</div>
+
+<!-- PRIVACY CLAUSE 4 -->
+<div class="clause-container">
+    <div class="clause-title"><span class="clause-number">04</span> Data Portability & The No-Export Rule</div>
+    <p class="clause-body"><strong>4.1. Security Priority.</strong> To protect users from domestic surveillance or coerced device discovery, bulk conversational PDF export is disabled by default. Sensitive logs are never exposed in unencrypted client downloads.</p>
+</div>
+
+<!-- PRIVACY CLAUSE 5 -->
+<div class="clause-container">
+    <div class="clause-title"><span class="clause-number">05</span> Red Flag Threat Detector Telemetry</div>
+    <p class="clause-body">Text or transcripts pasted into the Red Flag Detector are analyzed in volatile memory to identify manipulative or predatory patterns. External chat content is purged immediately upon analysis completion and never permanently archived.</p>
+</div>
+
+<!-- PRIVACY CLAUSE 6 -->
+<div class="clause-container">
+    <div class="clause-title"><span class="clause-number">06</span> Minor Protections & AI Buddy Safe Harbor</div>
+    <p class="clause-body">Interactions in the child-focused AI Buddy operate under strict COPPA and NDPR constraints. Behavioral profiling or commercial ad targeting of minors is completely barred. Verification requires parental or legal guardian consent logged in the audit ledger.</p>
+</div>
+
+<!-- PRIVACY CLAUSE 7 -->
+<div class="clause-container">
+    <div class="clause-title"><span class="clause-number">07</span> Young Adult Boundary Guidance</div>
+    <p class="clause-body">Boundary negotiation modules are assigned elevated anonymity parameters. Queries are decoupled from persistent user profiles to allow unfettered legal and personal safety education.</p>
+</div>
+
+<!-- PRIVACY CLAUSE 8 -->
+<div class="clause-container">
+    <div class="clause-title"><span class="clause-number">08</span> Reproductive & Cycle Tracking Privacy</div>
+    <p class="clause-body">Menstrual and reproductive health entries are treated as hyper-sensitive biometric data, encrypted under dedicated AES-256 keys, and shielded from secondary analytical pipelines.</p>
+</div>
+
+<!-- PRIVACY CLAUSE 9 -->
+<div class="clause-container">
+    <div class="clause-title"><span class="clause-number">09</span> The Absolute No-Sale Guarantee</div>
+    <p class="clause-body">Heal Her will never sell, lease, monetize, or barter user information, health queries, or demographic details to third-party data brokers, insurers, or advertising networks.</p>
+</div>
+
+<!-- PRIVACY CLAUSE 10 -->
+<div class="clause-container">
+    <div class="clause-title"><span class="clause-number">10</span> Security Architecture & Key Management</div>
+    <p class="clause-body">In-transit payloads traverse TLS 1.3 cryptographic tunnels. At-rest volumes utilize hardware-accelerated AES-256 block ciphers. Cryptographic secrets and rotation states are isolated from production database storage.</p>
+</div>
+
+<!-- PRIVACY CLAUSE 11 -->
+<div class="clause-container">
+    <div class="clause-title"><span class="clause-number">11</span> Third-Party Cloud Infrastructure</div>
+    <p class="clause-body">Audited infrastructure providers supply compute and managed database resources under binding Data Processing Agreements (DPAs) enforcing zero-knowledge processing covenants.</p>
+</div>
+
+<!-- PRIVACY CLAUSE 12 -->
+<div class="clause-container">
+    <div class="clause-title"><span class="clause-number">12</span> Law Enforcement & Compelled Disclosure</div>
+    <p class="clause-body">Heal Her complies strictly with valid court subpoenas issued under Nigerian jurisprudence. Due to our architectural separation of identity, disclosures are limited to decoupled mathematical records without user identification linkages.</p>
+</div>
+
+<!-- PRIVACY CLAUSE 13 -->
+<div class="clause-container">
+    <div class="clause-title"><span class="clause-number">13</span> Constitutional AI & Bias Mitigation</div>
+    <p class="clause-body">Algorithmic safety filters actively intercept harmful prompts. Models are regularly reviewed to eliminate racial, geographical, and demographic healthcare biases.</p>
+</div>
+
+<!-- PRIVACY CLAUSE 14 -->
+<div class="clause-container">
+    <div class="clause-title"><span class="clause-number">14</span> Statutory Right to Total Erasure</div>
+    <p class="clause-body">Users maintain the unmitigated right to permanent account erasure. Triggering account destruction executes a cryptographic purge across primary and replica databases, rendering prior data unrecoverable.</p>
+</div>
+
+<!-- PRIVACY CLAUSE 15 -->
+<div class="clause-container">
+    <div class="clause-title"><span class="clause-number">15</span> Cookies & Telemetry Footprint</div>
+    <p class="clause-body">We employ strictly essential session cookies (`sb-access-token`, `sb-refresh-token`) configured with `HttpOnly`, `SameSite=Strict`, and `Secure` attributes. Third-party trackers and marketing cookies are strictly banned.</p>
+</div>
+
+<!-- PRIVACY CLAUSE 16 -->
+<div class="clause-container">
+    <div class="clause-title"><span class="clause-number">16</span> Regulatory Oversight & Data Protection Officer</div>
+    <p class="clause-body">Inquiries regarding data compliance under the Nigeria Data Protection Act may be addressed directly to the designated Data Protection Officer, Jos, Plateau State, Nigeria.</p>
+</div>
+
+<!-- ==========================================================================
+     MASTER SIGNATURE BLOCK (COVERS BOTH TERMS AND PRIVACY)
+     ========================================================================== -->
 <div class="signature-section">
+    <!-- MANDATORY LEGAL DECLARATION -->
+    <div style="background-color: var(--bg-callout); border: 1px solid var(--border-light); border-left: 4px solid var(--brand-secondary); padding: 10px 14px; border-radius: 4px; margin-bottom: 16px;">
+        <p style="font-size: 8.5pt; font-weight: 700; color: var(--brand-primary); margin: 0; line-height: 1.5; text-align: justify;">
+            By signing below, I acknowledge that I have read, understood, and agree to be legally bound by both the Terms of Service and the Privacy Policy of Heal Her, inclusive of all data processing, medical disclaimers, and parental consent stipulations where applicable.
+        </p>
+    </div>
+
     <div class="signature-table">
         <!-- Col 1: Executive Authority -->
         <div class="signature-col signature-col-left">
@@ -181,7 +317,7 @@
                     Executed By Signatory:
                 {% endif %}
             </p>
-            <div style="margin: 12px 0 16px 0;">
+            <div style="margin: 10px 0 14px 0;">
                 <p class="sig-name" style="font-family: 'Courier New', Courier, monospace; letter-spacing: 0.04em;">
                     {{ payload.clientName }}
                 </p>

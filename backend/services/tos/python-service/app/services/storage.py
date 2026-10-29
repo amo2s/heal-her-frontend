@@ -47,3 +47,4 @@ async def upload_document_to_vault(pdf_bytes: bytes, storage_path: str) -> str:
     except httpx.RequestError as exc:
         logger.error(f"Network transport error uploading document to Supabase: {exc}")
         raise StorageUploadError(f"Vault network transport error: {exc}")
+
