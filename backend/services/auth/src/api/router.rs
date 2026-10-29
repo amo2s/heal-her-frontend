@@ -2,7 +2,7 @@ use crate::{
     api::handlers::{
         login::login_handler,
         logout::logout_handler,
-        password_reset::{request_otp_handler, verify_otp_handler},
+        password_reset::{confirm_reset_handler, request_otp_handler, verify_otp_handler},
         refresh::refresh_handler,
         signup::handle_signup,
     },
@@ -59,6 +59,10 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/v1/auth/password-reset/verify", post(verify_otp_handler))
         .route("/api/auth/password-reset/verify", post(verify_otp_handler))
         .route("/password-reset/verify", post(verify_otp_handler))
+        // Password Reset routes: Final Confirmation & Nuclear Kill-Switch
+        .route("/api/v1/auth/password-reset/confirm", post(confirm_reset_handler))
+        .route("/api/auth/password-reset/confirm", post(confirm_reset_handler))
+        .route("/password-reset/confirm", post(confirm_reset_handler))
         // Health check endpoint
         .route("/health", get(health_check))
         // Layer order: executed outside-in on request, inside-out on response

@@ -1,5 +1,7 @@
 use crate::{
-    domain::password_reset::{RequestOtpInput, VerifyOtpInput, VerifyOtpResponse},
+    domain::password_reset::{
+        ConfirmResetInput, ConfirmResetResponse, RequestOtpInput, VerifyOtpInput, VerifyOtpResponse,
+    },
     error::ApiError,
     service::password_reset_service,
     state::AppState,
@@ -38,5 +40,16 @@ pub async fn verify_otp_handler(
     Json(payload): Json<VerifyOtpInput>,
 ) -> Result<Json<VerifyOtpResponse>, ApiError> {
     let response = password_reset_service::verify_reset_otp(&state, &payload).await?;
+    Ok(Json(response))
+}
+
+/// Handles final password reset confirmation.
+/// Enforces password complexity, atomically consumes the reset token,
+/// updates PostgreSQL, and fires the nuclear global session kill-switch.
+pub async fn confirm_reset_handler(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<ConfirmResetInput>,
+) -> Result<Json<ConfirmResetResponse>, ApiError> {
+    let response = password_reset_service::confirm_password_reset(&state, &payload).await?;
     Ok(Json(response))
 }

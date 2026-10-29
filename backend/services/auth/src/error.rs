@@ -46,6 +46,9 @@ pub enum InternalAuthError {
     #[error("Invalid or expired authorization code")]
     InvalidAuthorizationCode,
 
+    #[error("Validation error: {0}")]
+    ValidationError(String),
+
     #[error("Invalid or expired token: {0}")]
     InvalidToken(String),
 }
@@ -124,6 +127,9 @@ impl From<InternalAuthError> for ApiError {
             }
             InternalAuthError::InvalidAuthorizationCode => {
                 ApiError::Unauthorized("Invalid or expired authorization code.".to_string())
+            }
+            InternalAuthError::ValidationError(msg) => {
+                ApiError::BadRequest(msg)
             }
             InternalAuthError::InvalidToken(msg) => {
                 ApiError::Unauthorized(format!("Invalid or expired token: {msg}"))
@@ -211,6 +217,13 @@ mod tests {
         assert_eq!(
             api_err,
             ApiError::Unauthorized("Invalid or expired authorization code.".to_string())
+        );
+
+        let val_err = InternalAuthError::ValidationError("Passwords do not match".to_string());
+        let api_err: ApiError = val_err.into();
+        assert_eq!(
+            api_err,
+            ApiError::BadRequest("Passwords do not match".to_string())
         );
     }
 }
