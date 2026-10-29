@@ -2,6 +2,8 @@ pub mod cache;
 pub mod crypto;
 pub mod db;
 pub mod jwt;
+pub mod mailer;
+pub mod reset_cache;
 pub mod session_repo;
 pub mod sweeper;
 pub mod telemetry;

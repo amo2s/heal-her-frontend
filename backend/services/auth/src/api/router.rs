@@ -2,6 +2,7 @@ use crate::{
     api::handlers::{
         login::login_handler,
         logout::logout_handler,
+        password_reset::request_otp_handler,
         refresh::refresh_handler,
         signup::handle_signup,
     },
@@ -51,6 +52,10 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/v1/auth/logout", post(logout_handler))
         .route("/api/auth/logout", post(logout_handler))
         .route("/logout", post(logout_handler))
+        // Password Reset routes: Ghost Protocol OTP Request
+        .route("/api/v1/auth/password-reset/request", post(request_otp_handler))
+        .route("/api/auth/password-reset/request", post(request_otp_handler))
+        .route("/password-reset/request", post(request_otp_handler))
         // Health check endpoint
         .route("/health", get(health_check))
         // Layer order: executed outside-in on request, inside-out on response

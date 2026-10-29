@@ -73,8 +73,9 @@ async fn main() -> Result<(), ApiError> {
     // 3b. Launch background non-blocking database sweeper (purges expired/revoked sessions)
     tokio::spawn(crate::infrastructure::sweeper::start_session_sweeper(pool.clone()));
 
-    // 4. Construct immutable application state
-    let app_state = AppState::new(pool.clone(), config.jwt_secret_key);
+    // 4. Construct immutable application state with dedicated L1 reset cache
+    let reset_cache = std::sync::Arc::new(crate::infrastructure::reset_cache::PasswordResetCache::new());
+    let app_state = AppState::new(pool.clone(), config.jwt_secret_key, reset_cache);
 
     // 5. Compose Axum router with Tower security middleware armor and application state
     let app = create_router(app_state);

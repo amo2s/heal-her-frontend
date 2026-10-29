@@ -90,7 +90,7 @@ mod tests {
     async fn test_extractor_accepts_valid_access_token() {
         let pool = PgPool::connect_lazy("postgres://localhost/dummy").unwrap();
         let secret = "test_super_secret_key_32_bytes_long_ok";
-        let state = AppState::new(pool, secret.to_string());
+        let state = AppState::new(pool, secret.to_string(), std::sync::Arc::new(crate::infrastructure::reset_cache::PasswordResetCache::new()));
 
         let user_id = Uuid::new_v4();
         let session_id = Uuid::new_v4();
@@ -115,7 +115,7 @@ mod tests {
     async fn test_extractor_rejects_refresh_token() {
         let pool = PgPool::connect_lazy("postgres://localhost/dummy").unwrap();
         let secret = "test_super_secret_key_32_bytes_long_ok";
-        let state = AppState::new(pool, secret.to_string());
+        let state = AppState::new(pool, secret.to_string(), std::sync::Arc::new(crate::infrastructure::reset_cache::PasswordResetCache::new()));
 
         let user_id = Uuid::new_v4();
         let session_id = Uuid::new_v4();
@@ -137,7 +137,7 @@ mod tests {
     async fn test_extractor_rejects_revoked_jti() {
         let pool = PgPool::connect_lazy("postgres://localhost/dummy").unwrap();
         let secret = "test_super_secret_key_32_bytes_long_ok";
-        let state = AppState::new(pool, secret.to_string());
+        let state = AppState::new(pool, secret.to_string(), std::sync::Arc::new(crate::infrastructure::reset_cache::PasswordResetCache::new()));
 
         let user_id = Uuid::new_v4();
         let session_id = Uuid::new_v4();
@@ -163,7 +163,7 @@ mod tests {
     async fn test_extractor_rejects_global_user_revocation() {
         let pool = PgPool::connect_lazy("postgres://localhost/dummy").unwrap();
         let secret = "test_super_secret_key_32_bytes_long_ok";
-        let state = AppState::new(pool, secret.to_string());
+        let state = AppState::new(pool, secret.to_string(), std::sync::Arc::new(crate::infrastructure::reset_cache::PasswordResetCache::new()));
 
         let user_id = Uuid::new_v4();
         let session_id = Uuid::new_v4();
@@ -189,7 +189,7 @@ mod tests {
     async fn test_extractor_cookie_fallback() {
         let pool = PgPool::connect_lazy("postgres://localhost/dummy").unwrap();
         let secret = "test_super_secret_key_32_bytes_long_ok";
-        let state = AppState::new(pool, secret.to_string());
+        let state = AppState::new(pool, secret.to_string(), std::sync::Arc::new(crate::infrastructure::reset_cache::PasswordResetCache::new()));
 
         let user_id = Uuid::new_v4();
         let session_id = Uuid::new_v4();
