@@ -1,14 +1,21 @@
 [project]
 name = "tos-service"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.2.0"
+description = "Heal Her Legal Consent and TOS Microservice"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
-    "cryptography>=50.0.1",
-    "fastapi[standard]>=0.141.1",
-    "jinja2>=3.1.6",
-    "pydantic>=2.13.5",
-    "pypdf>=6.19.0",
-    "weasyprint>=70.0",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.5.0",
+    "pyjwt[crypto]>=2.9.0",
+    "cryptography>=43.0.0",
+    "weasyprint>=62.0",
+    "jinja2>=3.1.4",
+    "sqlalchemy[asyncio]>=2.0.35",
+    "asyncpg>=0.29.0",
+    "httpx>=0.27.2",
+    "pypdf>=5.0.0",
+    "python-multipart>=0.0.9",
 ]

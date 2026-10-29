@@ -2,168 +2,328 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}Heal Her Legal Document{% endblock %}</title>
+    <title>{% block title %}Heal Her — Certified Legal Instrument{% endblock %}</title>
     <style>
         /* ==========================================================================
-           CORE VARIABLES & TYPOGRAPHY
+           1. ROOT DESIGN SYSTEM & TYPOGRAPHIC VARIABLES
            ========================================================================== */
         :root {
-            --primary: #1C1246;
-            --secondary: #DA8CA0;
-            --text-dark: #111827;
-            --text-muted: #4B5563;
-            --bg-light: #FAFAFA;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            font-size: 11pt;
-            line-height: 1.6;
-            color: var(--text-dark);
-            background-color: var(--bg-light);
-            margin: 0;
-            padding: 0;
+            --brand-primary: #1C1246;
+            --brand-secondary: #DA8CA0;
+            --brand-accent: #231854;
+            --text-heading: #18181B;
+            --text-body: #27272A;
+            --text-muted: #52525B;
+            --text-subtle: #71717A;
+            --border-light: rgba(218, 140, 160, 0.25);
+            --border-subtle: rgba(28, 18, 70, 0.12);
+            --bg-canvas: #FAFAFA;
+            --bg-surface: #FFFFFF;
+            --bg-callout: rgba(28, 18, 70, 0.04);
+            --danger-tint: rgba(244, 63, 94, 0.06);
+            --danger-border: #F43F5E;
+            --danger-text: #BE123C;
         }
 
         /* ==========================================================================
-           WEASYPRINT PAGED MEDIA METADATA
+           2. WEASYPRINT STRICT PAGED MEDIA RULES (A4, 20mm Margins, Running Headers)
            ========================================================================== */
         @page {
             size: A4 portrait;
-            margin: 25mm 20mm 25mm 20mm;
+            margin: 20mm 20mm 22mm 20mm;
+
+            @top-right {
+                content: "HEAL HER · SECURE AUDIT TRAIL";
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                font-size: 7pt;
+                font-weight: 700;
+                color: #71717A;
+                letter-spacing: 0.12em;
+            }
+
+            @bottom-left {
+                content: "Document Ref: " string(docRef);
+                font-family: "Courier New", Courier, monospace;
+                font-size: 7.5pt;
+                color: #52525B;
+            }
 
             @bottom-right {
                 content: "Page " counter(page) " of " counter(pages);
-                font-size: 9pt;
-                font-family: monospace;
-                color: var(--text-muted);
-            }
-            
-            @bottom-left {
-                content: "Heal Her | Document Ref: HH-TOS-2026-V5";
-                font-size: 9pt;
-                color: var(--text-muted);
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                font-size: 7.5pt;
+                font-weight: 600;
+                color: #52525B;
             }
         }
 
-        /* Remove bottom page numbering on the very first page if desired */
         @page :first {
-            @bottom-right { content: normal; }
-            @bottom-left { content: normal; }
+            @top-right {
+                content: none;
+            }
         }
 
         /* ==========================================================================
-           GLOBAL WATERMARK (Persists across all pages)
+           3. BASE BODY & DOCUMENT CANVAS
            ========================================================================== */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 9.5pt;
+            line-height: 1.5;
+            color: var(--text-body);
+            background-color: var(--bg-canvas);
+            margin: 0;
+            padding: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        /* Watermark */
         .watermark {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 150mm;
-            opacity: 0.04;
+            width: 140mm;
+            opacity: 0.035;
             z-index: -1000;
             pointer-events: none;
         }
 
+        /* Hidden string-set anchor for running footer */
+        .doc-ref-anchor {
+            string-set: docRef "HH-TOS-2026-{{ request_id[:8] if request_id else 'CERTIFIED' }}";
+            display: none;
+        }
+
         /* ==========================================================================
-           FIRST PAGE HEADER COMPONENT
+           4. FIRST PAGE HEADER COMPONENT
            ========================================================================== */
         .first-page-header {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            border-bottom: 2px solid var(--secondary);
-            padding-bottom: 20px;
-            margin-bottom: 30px;
+            display: table;
+            width: 100%;
+            border-bottom: 2px solid var(--brand-secondary);
+            padding-bottom: 14px;
+            margin-bottom: 22px;
         }
 
-        .header-logo {
-            width: 140px;
-            height: auto;
+        .header-logo-cell {
+            display: table-cell;
+            width: 40%;
+            vertical-align: middle;
         }
 
-        .header-meta {
+        .header-meta-cell {
+            display: table-cell;
+            width: 60%;
+            vertical-align: middle;
             text-align: right;
-            font-size: 9pt;
-        }
-
-        .header-meta h1 {
-            color: var(--primary);
-            margin: 0 0 5px 0;
-            font-size: 18pt;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .header-meta p {
-            margin: 2px 0;
+            font-size: 8pt;
+            line-height: 1.45;
             color: var(--text-muted);
         }
 
-        /* ==========================================================================
-           UTILITY TYPOGRAPHY & LAYOUT
-           ========================================================================== */
-        h1, h2, h3, h4 { color: var(--primary); margin-top: 0; }
-        
-        .clause-container {
-            margin-bottom: 20px;
-            break-inside: avoid; /* Prevents clauses from splitting awkwardly across pages */
-        }
-        
-        .clause-title {
-            font-size: 13pt;
-            font-weight: bold;
-            border-bottom: 1px solid rgba(218, 140, 160, 0.3);
-            padding-bottom: 4px;
-            margin-bottom: 8px;
-            color: var(--primary);
-        }
-        
-        .clause-number {
-            color: var(--secondary);
-            font-family: monospace;
-            margin-right: 8px;
+        .header-logo {
+            width: 130px;
+            height: auto;
+            display: block;
         }
 
-        .critical-clause {
-            background-color: rgba(244, 63, 94, 0.05);
-            border-left: 4px solid #F43F5E;
-            padding: 15px;
-            border-radius: 4px;
+        .header-meta-cell h1 {
+            color: var(--brand-primary);
+            margin: 0 0 3px 0;
+            font-size: 16pt;
+            font-weight: 900;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
         }
-        
-        /* Signature Grid Layout */
-        .signature-grid {
-            display: table;
-            width: 100%;
-            margin-top: 40px;
-            border-top: 1px solid var(--secondary);
-            padding-top: 20px;
+
+        /* ==========================================================================
+           5. CLAUSE TYPOGRAPHY & LAYOUT (Page-Break Shield & Justified Text)
+           ========================================================================== */
+        .document-title-block {
+            margin-bottom: 20px;
+        }
+
+        .document-title-block h2 {
+            font-size: 20pt;
+            font-weight: 900;
+            color: var(--brand-primary);
+            margin: 0 0 8px 0;
+            letter-spacing: -0.02em;
+        }
+
+        .status-badge-panel {
+            background-color: var(--bg-callout);
+            border: 1px solid var(--border-subtle);
+            border-left: 3px solid var(--brand-secondary);
+            padding: 10px 14px;
+            border-radius: 4px;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 8.5pt;
+            line-height: 1.5;
+            color: var(--brand-primary);
+            margin-bottom: 14px;
+        }
+
+        .intro-lead {
+            font-size: 9.5pt;
+            line-height: 1.55;
+            text-align: justify;
+            color: var(--text-body);
+            margin: 0 0 18px 0;
+        }
+
+        .clause-container {
+            margin-bottom: 16px;
+            page-break-inside: avoid;
             break-inside: avoid;
         }
-        
+
+        .clause-title {
+            font-size: 10.5pt;
+            font-weight: 800;
+            color: var(--brand-primary);
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 3px;
+            margin-bottom: 6px;
+            letter-spacing: -0.01em;
+            text-transform: uppercase;
+        }
+
+        .clause-number {
+            color: var(--brand-secondary);
+            font-family: "Courier New", Courier, monospace;
+            font-weight: 700;
+            margin-right: 6px;
+        }
+
+        .clause-body {
+            font-size: 9pt;
+            line-height: 1.5;
+            text-align: justify;
+            color: var(--text-body);
+            margin: 0 0 6px 0;
+        }
+
+        .clause-body strong {
+            color: var(--brand-primary);
+            font-weight: 700;
+        }
+
+        /* Critical Disclaimer Clause */
+        .critical-clause {
+            background-color: var(--danger-tint);
+            border: 1px solid rgba(244, 63, 94, 0.3);
+            border-left: 4px solid var(--danger-border);
+            padding: 12px 14px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        .critical-clause .clause-title {
+            color: var(--danger-text);
+            border-bottom-color: rgba(244, 63, 94, 0.3);
+        }
+
+        .critical-clause .clause-number {
+            color: var(--danger-border);
+        }
+
+        /* ==========================================================================
+           6. FORMAL LEGAL EXECUTION SIGNATURE GRID
+           ========================================================================== */
+        .signature-section {
+            margin-top: 28px;
+            padding-top: 18px;
+            border-top: 2px solid var(--brand-secondary);
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        .signature-table {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
         .signature-col {
             display: table-cell;
             width: 50%;
             vertical-align: top;
         }
 
+        .signature-col-left {
+            padding-right: 18px;
+        }
+
+        .signature-col-right {
+            padding-left: 18px;
+            border-left: 1px dashed rgba(28, 18, 70, 0.2);
+        }
+
+        .sig-section-title {
+            font-family: "Courier New", Courier, monospace;
+            font-size: 8pt;
+            font-weight: 700;
+            color: var(--brand-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin: 0 0 10px 0;
+        }
+
         .signature-img {
-            max-width: 180px;
+            max-width: 160px;
             height: auto;
-            margin: 10px 0;
+            margin: 6px 0;
             display: block;
+        }
+
+        .sig-divider {
+            border-top: 1px solid var(--brand-secondary);
+            margin: 8px 0;
+        }
+
+        .sig-name {
+            font-size: 11pt;
+            font-weight: 800;
+            color: var(--brand-primary);
+            margin: 0 0 2px 0;
+        }
+
+        .sig-meta {
+            font-size: 8pt;
+            color: var(--text-muted);
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .minor-consent-badge {
+            margin-top: 10px;
+            background-color: var(--bg-callout);
+            border: 1px solid var(--border-light);
+            border-left: 3px solid var(--brand-primary);
+            padding: 8px 10px;
+            border-radius: 4px;
+            font-size: 8pt;
+            line-height: 1.4;
+        }
+
+        .minor-consent-badge strong {
+            color: var(--brand-primary);
         }
     </style>
 </head>
 <body>
 
-    <!-- Fixed Watermark applied to Document Body -->
-    <img src="https://qwsgxhtznqnpynsesyyi.supabase.co/storage/v1/object/public/Public%20Assets/heal-logo.png" class="watermark" alt="Watermark Logo" />
+    <!-- Persistent Watermark -->
+    <img src="https://qwsgxhtznqnpynsesyyi.supabase.co/storage/v1/object/public/Public%20Assets/heal-logo.png" class="watermark" alt="Watermark" />
 
-    <!-- Document Content Block -->
+    <!-- Document Reference Anchor for Paged Header/Footer -->
+    <div class="doc-ref-anchor"></div>
+
     <main>
         {% block content %}{% endblock %}
     </main>
