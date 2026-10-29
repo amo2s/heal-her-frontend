@@ -90,6 +90,7 @@ dependencies = [
  "ahash",
  "argon2",
  "axum",
+ "base64 0.22.1",
  "blake3",
  "chrono",
  "dotenvy",

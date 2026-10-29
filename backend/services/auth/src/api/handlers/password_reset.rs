@@ -1,5 +1,6 @@
 use crate::{
-    domain::password_reset::RequestOtpInput,
+    domain::password_reset::{RequestOtpInput, VerifyOtpInput, VerifyOtpResponse},
+    error::ApiError,
     service::password_reset_service,
     state::AppState,
 };
@@ -29,3 +30,13 @@ pub async fn request_otp_handler(
     )
 }
 
+/// Handles password reset OTP verification.
+/// Verifies OTP with constant-time equality, enforces 3-strike lockout,
+/// and atomically mints a high-entropy 32-byte reset token.
+pub async fn verify_otp_handler(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<VerifyOtpInput>,
+) -> Result<Json<VerifyOtpResponse>, ApiError> {
+    let response = password_reset_service::verify_reset_otp(&state, &payload).await?;
+    Ok(Json(response))
+}

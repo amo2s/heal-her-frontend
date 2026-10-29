@@ -43,6 +43,9 @@ pub enum InternalAuthError {
     #[error("Account temporarily locked due to excessive failed attempts")]
     AccountTemporarilyLocked,
 
+    #[error("Invalid or expired authorization code")]
+    InvalidAuthorizationCode,
+
     #[error("Invalid or expired token: {0}")]
     InvalidToken(String),
 }
@@ -118,6 +121,9 @@ impl From<InternalAuthError> for ApiError {
             }
             InternalAuthError::AccountTemporarilyLocked => {
                 ApiError::TooManyRequests("Too many failed attempts. Account locked for 15 minutes.".to_string())
+            }
+            InternalAuthError::InvalidAuthorizationCode => {
+                ApiError::Unauthorized("Invalid or expired authorization code.".to_string())
             }
             InternalAuthError::InvalidToken(msg) => {
                 ApiError::Unauthorized(format!("Invalid or expired token: {msg}"))
@@ -198,6 +204,13 @@ mod tests {
         assert_eq!(
             api_err,
             ApiError::TooManyRequests("Too many failed attempts. Account locked for 15 minutes.".to_string())
+        );
+
+        let invalid_code = InternalAuthError::InvalidAuthorizationCode;
+        let api_err: ApiError = invalid_code.into();
+        assert_eq!(
+            api_err,
+            ApiError::Unauthorized("Invalid or expired authorization code.".to_string())
         );
     }
 }
