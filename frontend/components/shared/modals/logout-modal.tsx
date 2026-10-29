@@ -11,6 +11,7 @@ interface LogoutModalProps {
 
 export default function LogoutModal({ isOpen, onClose }: LogoutModalProps) {
   const [isPending, setIsPending] = useState(false);
+  const [allDevices, setAllDevices] = useState(false);
 
   // 1. Accessibility & Scroll Lock Shield
   useEffect(() => {
@@ -36,23 +37,23 @@ export default function LogoutModal({ isOpen, onClose }: LogoutModalProps) {
     setIsPending(true);
 
     try {
-      // Hit the proxy to destroy httpOnly cookies and signal the Valkey backend
+      // Hit the proxy to destroy httpOnly cookies and signal the Rust backend
       await fetch("/api/auth/logout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ allDevices }),
       });
 
       // Local State Clearance: Wipe any ghost data hanging in the browser
       localStorage.clear();
       sessionStorage.clear();
-
     } catch (error) {
       console.error("[UI SHIELD] Failsafe triggered during logout:", error);
     } finally {
-      // 3. The Hard Eject (Security Feature)
-      // We do NOT use Next.js router.push("/login") here. 
-      // window.location forces a total browser reload, guaranteeing React state and memory caches drop.
-      window.location.href = "/login";
+      // 3. Client-Side History Nuke (Security Imperative)
+      // We explicitly use window.location.replace to purge browser history
+      // and prevent back-button traversal into cached authenticated views.
+      window.location.replace("/login");
     }
   };
 
@@ -99,8 +100,31 @@ export default function LogoutModal({ isOpen, onClose }: LogoutModalProps) {
               </div>
             </div>
 
+            {/* Dual-Mode Session Termination Toggle */}
+            <div className="mt-5 flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-3.5 backdrop-blur-sm transition-colors hover:border-white/20">
+              <div className="flex flex-col text-left pr-2">
+                <label
+                  htmlFor="all-devices-toggle"
+                  className="cursor-pointer text-xs font-semibold text-[#CCCCD9] select-none"
+                >
+                  End sessions on all other devices
+                </label>
+                <span className="text-[11px] text-[#A1A1AA] select-none">
+                  Revoke all active logins across phones and laptops
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                id="all-devices-toggle"
+                checked={allDevices}
+                onChange={(e) => setAllDevices(e.target.checked)}
+                disabled={isPending}
+                className="h-4 w-4 rounded border-white/20 bg-black/40 accent-[#DA8CA0] cursor-pointer focus:ring-1 focus:ring-[#DA8CA0] focus:ring-offset-0 disabled:opacity-50"
+              />
+            </div>
+
             {/* Action Buttons */}
-            <div className="mt-8 flex w-full flex-col-reverse gap-3 sm:flex-row sm:justify-end sm:gap-4">
+            <div className="mt-6 flex w-full flex-col-reverse gap-3 sm:flex-row sm:justify-end sm:gap-4">
               <button
                 type="button"
                 disabled={isPending}
