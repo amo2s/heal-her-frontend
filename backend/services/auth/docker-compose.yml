@@ -1,0 +1,19 @@
+services:
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: healher-auth-microservice
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      GOOGLE_MAILER_WEBHOOK_URL: ${GOOGLE_MAILER_WEBHOOK_URL:-}
+      HOST: "0.0.0.0"
+      PORT: "8080"
+      DB_MAX_CONNECTIONS: ${DB_MAX_CONNECTIONS:-50}
+      DB_ACQUIRE_TIMEOUT_SECS: ${DB_ACQUIRE_TIMEOUT_SECS:-15}
+      DB_IDLE_TIMEOUT_SECS: ${DB_IDLE_TIMEOUT_SECS:-600}
+      RUST_LOG: ${RUST_LOG:-info,auth=debug,tower_http=info,sqlx=warn}

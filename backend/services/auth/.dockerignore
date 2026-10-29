@@ -1,0 +1,7 @@
+target/
+**/*.rs.bk
+.git/
+.env
+.env.*
+Dockerfile
+docker-compose.yml
