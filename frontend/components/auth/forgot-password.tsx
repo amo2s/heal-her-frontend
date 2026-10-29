@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, AlertCircle, KeyRound, CheckCircle2 } from "lucide-react"
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, AlertCircle, KeyRound, CheckCircle2, ShieldAlert } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
@@ -21,10 +21,20 @@ interface InputFieldProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   hasError?: boolean;
   maxLength?: number;
+  disabled?: boolean;
 }
 
 interface ForgotPasswordProps {
   onSuccess: () => void;
+}
+
+type Step = "email" | "otp" | "reset" | "success"
+
+const LOADING_PHRASES: Record<Step, string[]> = {
+  email: ["Locating your account...", "Securing connection...", "Dispatching secure code..."],
+  otp: ["Verifying handshake...", "Checking authorization...", "Decrypting token..."],
+  reset: ["Encrypting new key...", "Locking the ledger...", "Securing your account..."],
+  success: ["Done"]
 }
 
 // --- 2. ERROR MESSAGE COMPONENT ---
@@ -48,7 +58,7 @@ const ErrorMessage: React.FC<ErrorMessageProps> = ({ message, onClose }) => {
 }
 
 // --- 3. PREMIUM INPUT COMPONENT ---
-const InputField: React.FC<InputFieldProps> = ({ label, icon: Icon, type, placeholder, value, onChange, hasError, maxLength }) => {
+const InputField: React.FC<InputFieldProps> = ({ label, icon: Icon, type, placeholder, value, onChange, hasError, maxLength, disabled }) => {
   const [isFocused, setIsFocused] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const inputType = type === "password" ? (showPassword ? "text" : "password") : type
@@ -59,7 +69,8 @@ const InputField: React.FC<InputFieldProps> = ({ label, icon: Icon, type, placeh
       <div className={cn(
         "relative group transition-all duration-500 rounded-xl border bg-[#160d33]/50 backdrop-blur-sm overflow-hidden",
         isFocused ? "border-[#DA8CA0] shadow-[0_0_20px_rgba(218,140,160,0.15)] bg-[#160d33]/80" : "border-white/10 hover:border-white/20 hover:bg-[#160d33]/60",
-        hasError && "border-rose-400/50 bg-rose-500/5 shadow-[0_0_15px_rgba(244,63,94,0.1)]"
+        hasError && "border-rose-400/50 bg-rose-500/5 shadow-[0_0_15px_rgba(244,63,94,0.1)]",
+        disabled && "opacity-50 cursor-not-allowed bg-black/40 border-white/5"
       )}>
         <div className={cn(
           "absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300",
@@ -74,11 +85,15 @@ const InputField: React.FC<InputFieldProps> = ({ label, icon: Icon, type, placeh
           value={value}
           onChange={onChange}
           maxLength={maxLength}
+          disabled={disabled}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          className="w-full bg-transparent text-white placeholder:text-white/20 px-12 py-4 rounded-xl outline-none text-sm font-medium transition-all"
+          className={cn(
+            "w-full bg-transparent text-white placeholder:text-white/20 px-12 py-4 rounded-xl outline-none text-sm font-medium transition-all",
+            disabled && "cursor-not-allowed text-white/40"
+          )}
         />
-        {type === "password" && (
+        {type === "password" && !disabled && (
           <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#CCCCD9]/30 hover:text-white transition-colors">
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
@@ -91,43 +106,51 @@ const InputField: React.FC<InputFieldProps> = ({ label, icon: Icon, type, placeh
 // --- 4. MAIN RECOVERY WIZARD COMPONENT ---
 export default function ForgotPassword({ onSuccess }: ForgotPasswordProps) {
   // --- STATE MATRIX ---
-  type Step = "email" | "otp" | "reset" | "success"
   const [step, setStep] = useState<Step>("email")
   
   const [email, setEmail] = useState("")
   const [otpCode, setOtpCode] = useState("")
   const [resetToken, setResetToken] = useState("") 
-  
   const [passwords, setPasswords] = useState({ new: "", confirm: "" })
   
   const [isLoading, setIsLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [isLockedOut, setIsLockedOut] = useState(false)
   
-  // [SECURITY FIX]: State to capture the Ghost Protocol message from the backend
+  // Ghost Protocol server message display
   const [serverSuccessMsg, setServerSuccessMsg] = useState<string | null>(null)
   const [shake, setShake] = useState(false)
 
   // --- INTELLIGENT LOADING CYCLER ---
   const [loadingTextIndex, setLoadingTextIndex] = useState(0)
-  
-  const loadingPhrases: Record<Step, string[]> = {
-    email: ["Locating your account...", "Securing connection...", "Dispatching secure code..."],
-    otp: ["Verifying handshake...", "Checking authorization...", "Decrypting token..."],
-    reset: ["Encrypting new key...", "Locking the ledger...", "Securing your account..."],
-    success: ["Done"] 
-  }
 
   useEffect(() => {
     let interval: NodeJS.Timeout
     if (isLoading && step !== "success") {
       interval = setInterval(() => {
-        setLoadingTextIndex((prev) => (prev + 1) % loadingPhrases[step].length)
+        setLoadingTextIndex((prev) => (prev + 1) % LOADING_PHRASES[step].length)
       }, 1500)
     } else {
       setLoadingTextIndex(0)
     }
     return () => clearInterval(interval)
-  }, [isLoading, step, loadingPhrases])
+  }, [isLoading, step])
+
+  // --- ZERO-LEAK VOLATILE STATE DESTRUCTION ---
+  const nukeVolatileState = () => {
+    setEmail("")
+    setOtpCode("")
+    setResetToken("")
+    setPasswords({ new: "", confirm: "" })
+    setErrorMsg(null)
+  }
+
+  // Destruction on unmount: wipe sensitive variables from closure/RAM
+  useEffect(() => {
+    return () => {
+      nukeVolatileState()
+    }
+  }, [])
 
   // --- UNIVERSAL ERROR TRIGGER ---
   const triggerError = (message: string) => {
@@ -140,36 +163,7 @@ export default function ForgotPassword({ onSuccess }: ForgotPasswordProps) {
     if (step === "reset") setPasswords({ new: "", confirm: "" })
   }
 
-  // --- SECURE DIRECT GRAPHQL NETWORK WRAPPER ---
-  const executeGraphQL = async (query: string, variables: any, operationName: string) => {
-    const response = await fetch("https://sliverboy-healher-backend.hf.space/graphql", {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "x-healher-handshake": "d98d52b8594728ae2b8ff67351adea5f7c69f52f28b1701d66491a425f70ceec"
-      },
-      body: JSON.stringify({ query, variables })
-    })
-    
-    const json = await response.json()
-    
-    if (!response.ok) {
-      throw new Error(json.detail || "Heal Her Firewall: Security protocol verification failed.")
-    }
-    
-    if (json.errors && json.errors.length > 0) {
-      throw new Error(json.errors[0].message || "A verification exception dropped inside the graph.")
-    }
-    
-    const data = json.data[operationName]
-    if (data?.status === "error") {
-      throw new Error(data.message)
-    }
-    
-    return data
-  }
-
-  // --- PHASE 1: DISPATCH OTP ---
+  // --- PHASE 1: DISPATCH OTP (REST) ---
   const handleEmailSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!email || !email.includes("@")) return triggerError("Please enter a valid email address.")
@@ -177,93 +171,113 @@ export default function ForgotPassword({ onSuccess }: ForgotPasswordProps) {
     setIsLoading(true)
     setErrorMsg(null)
 
-    const query = `
-      mutation RequestReset($input: RequestOTPInput!) {
-        requestPasswordReset(input: $input) {
-          status
-          message
-        }
-      }
-    `
-
     try {
-      const data = await executeGraphQL(query, { input: { email } }, "requestPasswordReset")
-      
-      // [SECURITY FIX]: Capture the zero-information string directly from the backend
-      setServerSuccessMsg(data.message)
-      setStep("otp") 
-    } catch (error: any) {
-      triggerError(error.message)
+      const response = await fetch("/api/v1/auth/password-reset/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        triggerError(data.message || "Failed to request reset code.")
+        return
+      }
+
+      // On success, Rust guarantees a 200 OK with the Ghost Protocol message
+      setServerSuccessMsg(data.message || "If the provided credentials match an active account, a secure authorization code has been dispatched.")
+      setStep("otp")
+    } catch (error) {
+      console.error("[UI SHIELD] Network error during Phase 1:", error)
+      triggerError("Network error. Please check your connection.")
     } finally {
       setIsLoading(false)
     }
   }
 
-  // --- PHASE 2: VERIFY OTP ---
+  // --- PHASE 2: VERIFY OTP (REST) & HTTP 429 LOCKOUT ---
   const handleOtpSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (isLockedOut) {
+      triggerError("Too many failed attempts. You are locked out for 15 minutes.")
+      return
+    }
     if (otpCode.length !== 6) return triggerError("Authorization code must be exactly 6 digits.")
     
     setIsLoading(true)
     setErrorMsg(null)
 
-    const query = `
-      mutation VerifyOtp($input: VerifyOTPInput!) {
-        verifyResetOtp(input: $input) {
-          status
-          message
-          resetToken
-        }
-      }
-    `
-
     try {
-      const data = await executeGraphQL(query, { input: { email, otpCode } }, "verifyResetOtp")
-      setResetToken(data.resetToken) 
+      const response = await fetch("/api/v1/auth/password-reset/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), otpCode }),
+      })
+      const data = await response.json()
+
+      if (response.status === 429) {
+        // The Rust backend 3-strike brute-force defender has triggered
+        setIsLockedOut(true)
+        triggerError("Too many failed attempts. You are locked out for 15 minutes.")
+        return
+      }
+
+      if (!response.ok) {
+        triggerError(data.message || "Invalid or expired authorization code.")
+        return
+      }
+
+      // Atomic transition: capture the 32-byte token and move to Phase 3
+      setResetToken(data.resetToken)
       setStep("reset")
-    } catch (error: any) {
-      triggerError(error.message)
+    } catch (error) {
+      console.error("[UI SHIELD] Network error during Phase 2:", error)
+      triggerError("Network error. Please check your connection.")
     } finally {
       setIsLoading(false)
     }
   }
 
-  // --- PHASE 3: LEDGER UPDATE ---
+  // --- PHASE 3: CONFIRM RESET (REST) ---
   const handleResetSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (passwords.new.length < 8) return triggerError("Password must be at least 8 characters.")
-    if (passwords.new !== passwords.confirm) return triggerError("Your passwords do not match. Please verify.")
+    if (passwords.new !== passwords.confirm) {
+      triggerError("Passwords do not match.")
+      return
+    }
     
     setIsLoading(true)
     setErrorMsg(null)
 
-    const query = `
-      mutation ConfirmReset($input: ResetPasswordInput!) {
-        confirmPasswordReset(input: $input) {
-          status
-          message
-        }
-      }
-    `
-
     try {
-      await executeGraphQL(query, { 
-        input: { 
+      const response = await fetch("/api/v1/auth/password-reset/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
           resetToken, 
           newPassword: passwords.new, 
           confirmPassword: passwords.confirm 
-        } 
-      }, "confirmPasswordReset")
-      
-      setResetToken("")
+        }),
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        triggerError(data.message || "Failed to securely update password.")
+        return
+      }
+
+      // Nuclear Success: Wipe all state and transition to the success animation
+      nukeVolatileState()
       setStep("success")
       
       setTimeout(() => {
         onSuccess()
       }, 2500)
 
-    } catch (error: any) {
-      triggerError(error.message)
+    } catch (error) {
+      console.error("[UI SHIELD] Network error during Phase 3:", error)
+      triggerError("Network error. Please check your connection.")
     } finally {
       setIsLoading(false)
     }
@@ -271,6 +285,7 @@ export default function ForgotPassword({ onSuccess }: ForgotPasswordProps) {
 
   // --- INPUT FORMATTERS ---
   const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isLockedOut) return
     const cleanNumeric = e.target.value.replace(/\D/g, '')
     setOtpCode(cleanNumeric)
     if (errorMsg) setErrorMsg(null)
@@ -308,7 +323,7 @@ export default function ForgotPassword({ onSuccess }: ForgotPasswordProps) {
                 className="w-full h-[52px] bg-gradient-to-r from-[#DA8CA0] to-[#c76b85] hover:from-[#c76b85] hover:to-[#b35a73] text-[#1C1246] font-bold text-sm tracking-wide rounded-xl transition-all shadow-[0_8px_25px_rgba(218,140,160,0.2)] hover:shadow-[0_8px_30px_rgba(218,140,160,0.35)] hover:scale-[1.02]"
               >
                 {isLoading ? (
-                  <div className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /><span>{loadingPhrases.email[loadingTextIndex]}</span></div>
+                  <div className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /><span>{LOADING_PHRASES.email[loadingTextIndex]}</span></div>
                 ) : (
                   <div className="flex items-center gap-2">Send Secure Code <ArrowRight className="h-4 w-4" /></div>
                 )}
@@ -328,12 +343,24 @@ export default function ForgotPassword({ onSuccess }: ForgotPasswordProps) {
           >
             <AnimatePresence>{errorMsg && <ErrorMessage message={errorMsg} onClose={() => setErrorMsg(null)} />}</AnimatePresence>
             
-            {/* [SECURITY FIX]: Render the dynamic backend message instead of exposing the raw email state */}
+            {/* Ghost Protocol / Backend Message */}
             <div className="bg-[#DA8CA0]/10 border border-[#DA8CA0]/20 rounded-xl p-4 mb-6">
               <p className="text-xs text-[#CCCCD9] leading-relaxed text-center">
                 {serverSuccessMsg || "If the provided credentials match an active account, a secure authorization code has been dispatched."}
               </p>
             </div>
+
+            {/* Lockout Notice Banner */}
+            {isLockedOut && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-2.5 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs font-semibold mb-6 shadow-lg"
+              >
+                <ShieldAlert className="h-4 w-4 shrink-0 text-amber-400" />
+                <span>Brute Force Lockout: Maximum attempts exceeded. Verification locked for 15 minutes.</span>
+              </motion.div>
+            )}
 
             <form onSubmit={handleOtpSubmit} className="space-y-6">
               <motion.div animate={shake ? { x: [-8, 8, -6, 6, -3, 3, 0] } : {}} transition={{ duration: 0.4 }}>
@@ -346,15 +373,18 @@ export default function ForgotPassword({ onSuccess }: ForgotPasswordProps) {
                   value={otpCode}
                   onChange={handleOtpChange}
                   hasError={!!errorMsg}
+                  disabled={isLockedOut}
                 />
               </motion.div>
               <Button 
                 type="submit" 
-                disabled={isLoading || otpCode.length !== 6}
+                disabled={isLoading || otpCode.length !== 6 || isLockedOut}
                 className="w-full h-[52px] bg-gradient-to-r from-[#DA8CA0] to-[#c76b85] disabled:opacity-50 text-[#1C1246] font-bold text-sm rounded-xl transition-all shadow-[0_8px_25px_rgba(218,140,160,0.2)]"
               >
                 {isLoading ? (
-                  <div className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /><span>{loadingPhrases.otp[loadingTextIndex]}</span></div>
+                  <div className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /><span>{LOADING_PHRASES.otp[loadingTextIndex]}</span></div>
+                ) : isLockedOut ? (
+                  <div className="flex items-center gap-2">Verification Locked <ShieldAlert className="h-4 w-4" /></div>
                 ) : (
                   <div className="flex items-center gap-2">Verify Authorization <ArrowRight className="h-4 w-4" /></div>
                 )}
@@ -400,7 +430,7 @@ export default function ForgotPassword({ onSuccess }: ForgotPasswordProps) {
                 className="w-full h-[52px] bg-gradient-to-r from-[#DA8CA0] to-[#c76b85] disabled:opacity-50 text-[#1C1246] font-bold text-sm rounded-xl transition-all shadow-[0_8px_25px_rgba(218,140,160,0.2)]"
               >
                 {isLoading ? (
-                  <div className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /><span>{loadingPhrases.reset[loadingTextIndex]}</span></div>
+                  <div className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /><span>{LOADING_PHRASES.reset[loadingTextIndex]}</span></div>
                 ) : (
                   <div className="flex items-center gap-2">Secure My Vault <ArrowRight className="h-4 w-4" /></div>
                 )}
