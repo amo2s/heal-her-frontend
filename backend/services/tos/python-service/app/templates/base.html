@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Heal Her Legal Document{% endblock %}</title>
+    <style>
+        /* ==========================================================================
+           CORE VARIABLES & TYPOGRAPHY
+           ========================================================================== */
+        :root {
+            --primary: #1C1246;
+            --secondary: #DA8CA0;
+            --text-dark: #111827;
+            --text-muted: #4B5563;
+            --bg-light: #FAFAFA;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 11pt;
+            line-height: 1.6;
+            color: var(--text-dark);
+            background-color: var(--bg-light);
+            margin: 0;
+            padding: 0;
+        }
+
+        /* ==========================================================================
+           WEASYPRINT PAGED MEDIA METADATA
+           ========================================================================== */
+        @page {
+            size: A4 portrait;
+            margin: 25mm 20mm 25mm 20mm;
+
+            @bottom-right {
+                content: "Page " counter(page) " of " counter(pages);
+                font-size: 9pt;
+                font-family: monospace;
+                color: var(--text-muted);
+            }
+            
+            @bottom-left {
+                content: "Heal Her | Document Ref: HH-TOS-2026-V5";
+                font-size: 9pt;
+                color: var(--text-muted);
+            }
+        }
+
+        /* Remove bottom page numbering on the very first page if desired */
+        @page :first {
+            @bottom-right { content: normal; }
+            @bottom-left { content: normal; }
+        }
+
+        /* ==========================================================================
+           GLOBAL WATERMARK (Persists across all pages)
+           ========================================================================== */
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 150mm;
+            opacity: 0.04;
+            z-index: -1000;
+            pointer-events: none;
+        }
+
+        /* ==========================================================================
+           FIRST PAGE HEADER COMPONENT
+           ========================================================================== */
+        .first-page-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            border-bottom: 2px solid var(--secondary);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .header-logo {
+            width: 140px;
+            height: auto;
+        }
+
+        .header-meta {
+            text-align: right;
+            font-size: 9pt;
+        }
+
+        .header-meta h1 {
+            color: var(--primary);
+            margin: 0 0 5px 0;
+            font-size: 18pt;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .header-meta p {
+            margin: 2px 0;
+            color: var(--text-muted);
+        }
+
+        /* ==========================================================================
+           UTILITY TYPOGRAPHY & LAYOUT
+           ========================================================================== */
+        h1, h2, h3, h4 { color: var(--primary); margin-top: 0; }
+        
+        .clause-container {
+            margin-bottom: 20px;
+            break-inside: avoid; /* Prevents clauses from splitting awkwardly across pages */
+        }
+        
+        .clause-title {
+            font-size: 13pt;
+            font-weight: bold;
+            border-bottom: 1px solid rgba(218, 140, 160, 0.3);
+            padding-bottom: 4px;
+            margin-bottom: 8px;
+            color: var(--primary);
+        }
+        
+        .clause-number {
+            color: var(--secondary);
+            font-family: monospace;
+            margin-right: 8px;
+        }
+
+        .critical-clause {
+            background-color: rgba(244, 63, 94, 0.05);
+            border-left: 4px solid #F43F5E;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        
+        /* Signature Grid Layout */
+        .signature-grid {
+            display: table;
+            width: 100%;
+            margin-top: 40px;
+            border-top: 1px solid var(--secondary);
+            padding-top: 20px;
+            break-inside: avoid;
+        }
+        
+        .signature-col {
+            display: table-cell;
+            width: 50%;
+            vertical-align: top;
+        }
+
+        .signature-img {
+            max-width: 180px;
+            height: auto;
+            margin: 10px 0;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Fixed Watermark applied to Document Body -->
+    <img src="https://qwsgxhtznqnpynsesyyi.supabase.co/storage/v1/object/public/Public%20Assets/heal-logo.png" class="watermark" alt="Watermark Logo" />
+
+    <!-- Document Content Block -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+</body>
+</html>
