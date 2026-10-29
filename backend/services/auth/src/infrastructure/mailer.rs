@@ -1,4 +1,4 @@
-use serde::Serialize;
+use askama::Template;
 use std::sync::OnceLock;
 use std::time::Duration;
 
@@ -20,11 +20,14 @@ fn get_mailer_client() -> &'static reqwest::Client {
     })
 }
 
-#[derive(Serialize)]
-struct MailerPayload<'a> {
-    recipient: &'a str,
-    subject: &'static str,
-    html_body: String,
+/// Compile-Time Type-Safe Email Template for Password Reset OTP.
+/// Verified during `cargo build` against `templates/reset_otp.html`.
+#[derive(Template)]
+#[template(path = "reset_otp.html")]
+pub struct ResetOtpTemplate<'a> {
+    pub recipient_name: &'a str,
+    pub otp_code: &'a str,
+    pub expiry_minutes: u8,
 }
 
 pub async fn send_reset_otp_email(email: &str, recipient_name: &str, otp_code: &str) {
@@ -40,16 +43,29 @@ pub async fn send_reset_otp_email(email: &str, recipient_name: &str, otp_code: &
         }
     };
 
-    let html_body = format!(
-        "<h1>Heal Her Account Recovery</h1><p>Hello {}, your secure code is: <b>{}</b></p><p>This code expires in 10 minutes.</p>",
-        recipient_name, otp_code
-    );
-
-    let payload = MailerPayload {
-        recipient: email,
-        subject: "Heal Her - Secure Authorization Code",
-        html_body,
+    let template = ResetOtpTemplate {
+        recipient_name,
+        otp_code,
+        expiry_minutes: 10,
     };
+
+    let html_body = match template.render() {
+        Ok(html) => html,
+        Err(e) => {
+            tracing::error!(
+                target: "auth::mailer",
+                error = ?e,
+                "Failed to render Askama email template"
+            );
+            return; // Abort silently so the async task doesn't panic
+        }
+    };
+
+    let payload = serde_json::json!({
+        "recipient": email,
+        "subject": "Heal Her - Secure Authorization Code",
+        "html_body": html_body
+    });
 
     let client = get_mailer_client();
     match client.post(&webhook_url).json(&payload).send().await {
@@ -85,6 +101,22 @@ pub async fn send_reset_otp_email(email: &str, recipient_name: &str, otp_code: &
 mod tests {
     use super::*;
 
+    #[test]
+    fn test_reset_otp_template_rendering() {
+        let template = ResetOtpTemplate {
+            recipient_name: "Jane Doe",
+            otp_code: "987654",
+            expiry_minutes: 10,
+        };
+        let html = template
+            .render()
+            .expect("Askama template should render successfully");
+        assert!(html.contains("Hello Jane Doe,"));
+        assert!(html.contains("987654"));
+        assert!(html.contains("10 minutes"));
+        assert!(html.contains("Heal <span style=\"color: #DA8CA0;\">Her</span>"));
+    }
+
     #[tokio::test]
     async fn test_send_reset_otp_email_missing_env() {
         // Without GOOGLE_MAILER_WEBHOOK_URL set, function returns gracefully without panic
@@ -92,4 +124,3 @@ mod tests {
         send_reset_otp_email("test@example.com", "Test User", "123456").await;
     }
 }
-
