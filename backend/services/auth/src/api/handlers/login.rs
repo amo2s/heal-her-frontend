@@ -71,6 +71,7 @@ pub async fn login_handler(
     let response = crate::service::auth_service::authenticate_user(
         &state.pool,
         &state.jwt_secret,
+        &state.cache,
         &payload,
         user_agent,
         ip_address,

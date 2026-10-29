@@ -30,12 +30,14 @@ struct UserAuthRecord {
 pub async fn authenticate_user(
     pool: &PgPool,
     secret: &str,
+    cache: &RevocationCache,
     req: &LoginRequest,
     user_agent: Option<&str>,
     ip_address: Option<&str>,
 ) -> Result<LoginResponse, InternalAuthError> {
-    // 1. Data Normalization
+    // 1. Data Normalization & Brute Force Defense Check
     let normalized_email = req.email.trim().to_lowercase();
+    cache.check_brute_force(&normalized_email).await?;
 
     // 2. Query user credentials and state from PostgreSQL
     let user_opt: Option<UserAuthRecord> = sqlx::query_as(
@@ -65,7 +67,10 @@ pub async fn authenticate_user(
     };
 
     // 4. Verify password against stored Argon2id hash on Tokio blocking pool
-    verify_password(record.password_hash, req.password.clone()).await?;
+    if let Err(err) = verify_password(record.password_hash, req.password.clone()).await {
+        cache.record_failed_login(&normalized_email).await;
+        return Err(err);
+    }
 
     // 5. Account Suspension Guard
     if !record.is_active {
@@ -77,7 +82,10 @@ pub async fn authenticate_user(
         return Err(InternalAuthError::AccountSuspended);
     }
 
-    // 6. Algorithmic Demographic Dashboard Routing
+    // 6. Password verified and account active: clear login attempts before minting token pair
+    cache.clear_login_attempts(&normalized_email).await;
+
+    // 7. Algorithmic Demographic Dashboard Routing
     let dashboard = match record.role.as_str() {
         "kid" => "kids",
         "teen" => "teens",
@@ -86,11 +94,11 @@ pub async fn authenticate_user(
     }
     .to_string();
 
-    // 7. Initialize Stateful Session Identifiers (UUIDv4)
+    // 8. Initialize Stateful Session Identifiers (UUIDv4)
     let session_id = Uuid::new_v4();
     let family_id = Uuid::new_v4();
 
-    // 8. Forge asymmetric access (10 min) & refresh (7 day) token pair with BLAKE3 hashing
+    // 9. Forge asymmetric access (10 min) & refresh (7 day) token pair with BLAKE3 hashing
     let token_pair = generate_token_pair(
         record.id,
         &record.role,
@@ -100,7 +108,7 @@ pub async fn authenticate_user(
         secret,
     )?;
 
-    // 9. Persist stateful session ledger row in PostgreSQL
+    // 10. Persist stateful session ledger row in PostgreSQL
     create_session(
         pool,
         session_id,
@@ -123,7 +131,7 @@ pub async fn authenticate_user(
         "User authenticated and stateful session created successfully"
     );
 
-    // 10. Construct sanitized response payload (100% backward-compatible with Next.js)
+    // 11. Construct sanitized response payload (100% backward-compatible with Next.js)
     Ok(LoginResponse {
         status: "success".to_string(),
         message: "Login successful".to_string(),

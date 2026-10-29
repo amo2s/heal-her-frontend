@@ -40,6 +40,9 @@ pub enum InternalAuthError {
     #[error("Session has expired")]
     SessionExpired,
 
+    #[error("Account temporarily locked due to excessive failed attempts")]
+    AccountTemporarilyLocked,
+
     #[error("Invalid or expired token: {0}")]
     InvalidToken(String),
 }
@@ -59,6 +62,9 @@ pub enum ApiError {
 
     #[error("Conflict: {0}")]
     Conflict(String),
+
+    #[error("Too many requests: {0}")]
+    TooManyRequests(String),
 
     #[error("Internal server error: {0}")]
     InternalServerError(String),
@@ -110,6 +116,9 @@ impl From<InternalAuthError> for ApiError {
             InternalAuthError::SessionExpired => {
                 ApiError::Unauthorized("Session has expired".to_string())
             }
+            InternalAuthError::AccountTemporarilyLocked => {
+                ApiError::TooManyRequests("Too many failed attempts. Account locked for 15 minutes.".to_string())
+            }
             InternalAuthError::InvalidToken(msg) => {
                 ApiError::Unauthorized(format!("Invalid or expired token: {msg}"))
             }
@@ -135,6 +144,7 @@ impl IntoResponse for ApiError {
             ApiError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg),
             ApiError::Forbidden(msg) => (StatusCode::FORBIDDEN, msg),
             ApiError::Conflict(msg) => (StatusCode::CONFLICT, msg),
+            ApiError::TooManyRequests(msg) => (StatusCode::TOO_MANY_REQUESTS, msg),
             ApiError::InternalServerError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
         };
 
@@ -182,5 +192,12 @@ mod tests {
         let reuse = InternalAuthError::TokenReuseDetected;
         let api_err: ApiError = reuse.into();
         assert_eq!(api_err, ApiError::Unauthorized("Invalid or expired session".to_string()));
+
+        let locked = InternalAuthError::AccountTemporarilyLocked;
+        let api_err: ApiError = locked.into();
+        assert_eq!(
+            api_err,
+            ApiError::TooManyRequests("Too many failed attempts. Account locked for 15 minutes.".to_string())
+        );
     }
 }
