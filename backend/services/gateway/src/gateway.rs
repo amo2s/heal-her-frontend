@@ -6,6 +6,7 @@ use pingora_proxy::{ProxyHttp, Session};
 use std::time::Duration;
 use tracing::{debug, warn};
 
+use crate::rate_limiter::check_rate_limit;
 use crate::upstreams::{AUTH_CLUSTER, DASHBOARD_CLUSTER};
 
 pub struct GatewayProxy;
@@ -49,6 +50,55 @@ impl ProxyHttp for GatewayProxy {
                     }
                 }
             }
+        }
+
+        Ok(false)
+    }
+
+    async fn request_filter(&self, session: &mut Session, _ctx: &mut Self::CTX) -> Result<bool> {
+        // Step A: Rate Limiting Enforcement
+        let client_ip = if let Some(addr) = session.client_addr() {
+            match addr {
+                std::net::SocketAddr::V4(v4) => v4.ip().to_string(),
+                std::net::SocketAddr::V6(v6) => v6.ip().to_string(),
+            }
+        } else {
+            "127.0.0.1".to_string()
+        };
+
+        if !check_rate_limit(&client_ip) {
+            warn!(
+                client_ip = %client_ip,
+                "Perimeter Rate Limit Exceeded: Request throttled (50 req/s threshold breached)"
+            );
+            let mut resp = ResponseHeader::build(429, Some(2))?;
+            resp.insert_header("Content-Type", "application/json")?;
+            resp.insert_header("Connection", "close")?;
+            let body = r#"{"error":"Too Many Requests","message":"Rate limit exceeded. Maximum 50 requests per second permitted."}"#;
+            session.write_response_header(Box::new(resp), false).await?;
+            session.write_response_body(Some(body.into()), true).await?;
+            return Ok(true);
+        }
+
+        // Step B: CORS OPTIONS Short-Circuiting
+        if session.req_header().method == http::Method::OPTIONS {
+            debug!(
+                path = session.req_header().uri.path(),
+                "Edge Guardrail: CORS preflight OPTIONS request short-circuited at edge"
+            );
+            let mut resp = ResponseHeader::build(204, Some(4))?;
+            resp.insert_header("Access-Control-Allow-Origin", "*")?;
+            resp.insert_header(
+                "Access-Control-Allow-Methods",
+                "POST, GET, OPTIONS, PUT, DELETE",
+            )?;
+            resp.insert_header(
+                "Access-Control-Allow-Headers",
+                "Authorization, Content-Type, Accept, X-Requested-With",
+            )?;
+            resp.insert_header("Access-Control-Max-Age", "86400")?;
+            session.write_response_header(Box::new(resp), true).await?;
+            return Ok(true);
         }
 
         Ok(false)
@@ -127,6 +177,24 @@ impl ProxyHttp for GatewayProxy {
             }
         }
 
+        Ok(())
+    }
+
+    async fn response_filter(
+        &self,
+        _session: &mut Session,
+        upstream_response: &mut ResponseHeader,
+        _ctx: &mut Self::CTX,
+    ) -> Result<()> {
+        upstream_response.insert_header("Access-Control-Allow-Origin", "*")?;
+        upstream_response.insert_header(
+            "Access-Control-Allow-Methods",
+            "POST, GET, OPTIONS, PUT, DELETE",
+        )?;
+        upstream_response.insert_header(
+            "Access-Control-Allow-Headers",
+            "Authorization, Content-Type, Accept, X-Requested-With",
+        )?;
         Ok(())
     }
 }

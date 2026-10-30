@@ -21,11 +21,12 @@ pub const DUMMY_HASH: &str =
 #[allow(dead_code)]
 pub async fn verify_password(hash: String, password: String) -> Result<(), InternalAuthError> {
     spawn_blocking(move || {
-        let parsed_hash = PasswordHash::new(&hash)
-            .map_err(|_| InternalAuthError::Argon2HashMismatch)?;
+        let parsed_hash =
+            PasswordHash::new(&hash).map_err(|_| InternalAuthError::Argon2HashMismatch)?;
 
-        let params = Params::new(M_COST, T_COST, P_COST, None)
-            .map_err(|err| InternalAuthError::HashingError(format!("Failed to configure Argon2 params: {err}")))?;
+        let params = Params::new(M_COST, T_COST, P_COST, None).map_err(|err| {
+            InternalAuthError::HashingError(format!("Failed to configure Argon2 params: {err}"))
+        })?;
 
         let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
 
@@ -34,7 +35,9 @@ pub async fn verify_password(hash: String, password: String) -> Result<(), Inter
             .map_err(|_| InternalAuthError::Argon2HashMismatch)
     })
     .await
-    .map_err(|err| InternalAuthError::HashingError(format!("Cryptography blocking task join failed: {err}")))?
+    .map_err(|err| {
+        InternalAuthError::HashingError(format!("Cryptography blocking task join failed: {err}"))
+    })?
 }
 
 /// Timing-Attack Shield:
@@ -55,27 +58,34 @@ pub async fn execute_dummy_hash() -> Result<(), InternalAuthError> {
         Ok::<(), InternalAuthError>(())
     })
     .await
-    .map_err(|err| InternalAuthError::HashingError(format!("Cryptography blocking task join failed: {err}")))?
+    .map_err(|err| {
+        InternalAuthError::HashingError(format!("Cryptography blocking task join failed: {err}"))
+    })?
 }
 
 /// Hashes a plaintext password with Argon2id on a dedicated Tokio blocking thread.
 /// Returns the PHC-formatted password hash string upon success.
 pub async fn hash_password(password: String) -> Result<String, InternalAuthError> {
     spawn_blocking(move || {
-        let params = Params::new(M_COST, T_COST, P_COST, None)
-            .map_err(|err| InternalAuthError::HashingError(format!("Failed to configure Argon2 params: {err}")))?;
+        let params = Params::new(M_COST, T_COST, P_COST, None).map_err(|err| {
+            InternalAuthError::HashingError(format!("Failed to configure Argon2 params: {err}"))
+        })?;
 
         let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
         let salt = SaltString::generate(&mut OsRng);
 
         let password_hash = argon2
             .hash_password(password.as_bytes(), &salt)
-            .map_err(|err| InternalAuthError::HashingError(format!("Argon2id password hashing failed: {err}")))?;
+            .map_err(|err| {
+                InternalAuthError::HashingError(format!("Argon2id password hashing failed: {err}"))
+            })?;
 
         Ok(password_hash.to_string())
     })
     .await
-    .map_err(|err| InternalAuthError::HashingError(format!("Cryptography blocking task join failed: {err}")))?
+    .map_err(|err| {
+        InternalAuthError::HashingError(format!("Cryptography blocking task join failed: {err}"))
+    })?
 }
 
 #[cfg(test)]
@@ -85,7 +95,10 @@ mod tests {
     #[tokio::test]
     async fn test_dummy_hash_execution() {
         let result = execute_dummy_hash().await;
-        assert!(result.is_ok(), "Dummy hash execution must swallow failure and return Ok(())");
+        assert!(
+            result.is_ok(),
+            "Dummy hash execution must swallow failure and return Ok(())"
+        );
     }
 
     #[tokio::test]

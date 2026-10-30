@@ -6,12 +6,7 @@ use crate::{
     service::password_reset_service,
     state::AppState,
 };
-use axum::{
-    extract::State,
-    http::StatusCode,
-    response::IntoResponse,
-    Json,
-};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use serde_json::json;
 use std::sync::Arc;
 

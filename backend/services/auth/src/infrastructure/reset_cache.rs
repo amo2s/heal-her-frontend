@@ -96,13 +96,19 @@ mod tests {
         let cache = PasswordResetCache::new();
 
         // 1. Rate limiter cache
-        cache.rate_limiter_cache.insert("127.0.0.1".to_string(), 1).await;
+        cache
+            .rate_limiter_cache
+            .insert("127.0.0.1".to_string(), 1)
+            .await;
         assert_eq!(cache.rate_limiter_cache.get("127.0.0.1").await, Some(1));
 
         // 2. OTP cache
         let email = "user@healher.internal".to_string();
         let otp_hash = blake3::hash(b"123456").to_hex().to_string();
-        cache.otp_cache.insert(email.clone(), otp_hash.clone()).await;
+        cache
+            .otp_cache
+            .insert(email.clone(), otp_hash.clone())
+            .await;
         assert_eq!(cache.otp_cache.get(&email).await, Some(otp_hash));
 
         // 3. OTP strikes cache
@@ -111,7 +117,10 @@ mod tests {
 
         // 4. Reset token cache
         let token_hash = blake3::hash(b"32-byte-token").to_hex().to_string();
-        cache.reset_token_cache.insert(token_hash.clone(), email.clone()).await;
+        cache
+            .reset_token_cache
+            .insert(token_hash.clone(), email.clone())
+            .await;
         assert_eq!(cache.reset_token_cache.get(&token_hash).await, Some(email));
     }
 
@@ -128,7 +137,11 @@ mod tests {
             .insert(user_id.clone(), (otp_hash.clone(), version.clone(), 0))
             .await;
 
-        let entry = jit_cache.cache.get(&user_id).await.expect("Entry must exist");
+        let entry = jit_cache
+            .cache
+            .get(&user_id)
+            .await
+            .expect("Entry must exist");
         assert_eq!(entry.0, otp_hash);
         assert_eq!(entry.1, version);
         assert_eq!(entry.2, 0);
@@ -138,4 +151,3 @@ mod tests {
         assert!(jit_cache.cache.get(&user_id).await.is_none());
     }
 }
-

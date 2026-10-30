@@ -165,12 +165,14 @@ pub fn mint_jit_consent_receipt(
         iss: "heal-her-rust-auth".to_string(),
     };
 
-    let encoding_key = EncodingKey::from_ed_pem(private_key_pem.as_bytes())
-        .map_err(|e| InternalAuthError::JwtSigningError(format!("Invalid Ed25519 private key: {e}")))?;
+    let encoding_key = EncodingKey::from_ed_pem(private_key_pem.as_bytes()).map_err(|e| {
+        InternalAuthError::JwtSigningError(format!("Invalid Ed25519 private key: {e}"))
+    })?;
 
     let header = Header::new(Algorithm::EdDSA);
-    let token = encode(&header, &claims, &encoding_key)
-        .map_err(|e| InternalAuthError::JwtSigningError(format!("Failed to sign JIT receipt: {e}")))?;
+    let token = encode(&header, &claims, &encoding_key).map_err(|e| {
+        InternalAuthError::JwtSigningError(format!("Failed to sign JIT receipt: {e}"))
+    })?;
 
     Ok(token)
 }
@@ -239,7 +241,10 @@ mod tests {
         assert_eq!(decoded_refresh.claims.role, role);
         assert_eq!(decoded_refresh.claims.dashboard.as_deref(), Some(dashboard));
         assert_eq!(decoded_refresh.claims.token_type, "refresh");
-        assert_eq!(decoded_refresh.claims.exp - decoded_refresh.claims.iat, 604800);
+        assert_eq!(
+            decoded_refresh.claims.exp - decoded_refresh.claims.iat,
+            604800
+        );
 
         // JTIs must be distinct
         assert_ne!(decoded_access.claims.jti, decoded_refresh.claims.jti);

@@ -122,15 +122,13 @@ impl From<InternalAuthError> for ApiError {
             InternalAuthError::SessionExpired => {
                 ApiError::Unauthorized("Session has expired".to_string())
             }
-            InternalAuthError::AccountTemporarilyLocked => {
-                ApiError::TooManyRequests("Too many failed attempts. Account locked for 15 minutes.".to_string())
-            }
+            InternalAuthError::AccountTemporarilyLocked => ApiError::TooManyRequests(
+                "Too many failed attempts. Account locked for 15 minutes.".to_string(),
+            ),
             InternalAuthError::InvalidAuthorizationCode => {
                 ApiError::Unauthorized("Invalid or expired authorization code.".to_string())
             }
-            InternalAuthError::ValidationError(msg) => {
-                ApiError::BadRequest(msg)
-            }
+            InternalAuthError::ValidationError(msg) => ApiError::BadRequest(msg),
             InternalAuthError::InvalidToken(msg) => {
                 ApiError::Unauthorized(format!("Invalid or expired token: {msg}"))
             }
@@ -179,37 +177,60 @@ mod tests {
     fn test_internal_to_api_error_translation_matrix() {
         let user_not_found = InternalAuthError::UserNotFoundInPostgres;
         let api_err: ApiError = user_not_found.into();
-        assert_eq!(api_err, ApiError::Unauthorized("Invalid credentials".to_string()));
+        assert_eq!(
+            api_err,
+            ApiError::Unauthorized("Invalid credentials".to_string())
+        );
 
         let hash_mismatch = InternalAuthError::Argon2HashMismatch;
         let api_err: ApiError = hash_mismatch.into();
-        assert_eq!(api_err, ApiError::Unauthorized("Invalid credentials".to_string()));
+        assert_eq!(
+            api_err,
+            ApiError::Unauthorized("Invalid credentials".to_string())
+        );
 
         let suspended = InternalAuthError::AccountSuspended;
         let api_err: ApiError = suspended.into();
-        assert_eq!(api_err, ApiError::Forbidden("This account has been suspended.".to_string()));
+        assert_eq!(
+            api_err,
+            ApiError::Forbidden("This account has been suspended.".to_string())
+        );
 
         let hashing_err = InternalAuthError::HashingError("CPU cost exceeded".to_string());
         let api_err: ApiError = hashing_err.into();
-        assert_eq!(api_err, ApiError::InternalServerError("An unexpected system error occurred.".to_string()));
+        assert_eq!(
+            api_err,
+            ApiError::InternalServerError("An unexpected system error occurred.".to_string())
+        );
 
         let jwt_err = InternalAuthError::JwtSigningError("Invalid private key".to_string());
         let api_err: ApiError = jwt_err.into();
-        assert_eq!(api_err, ApiError::InternalServerError("An unexpected system error occurred.".to_string()));
+        assert_eq!(
+            api_err,
+            ApiError::InternalServerError("An unexpected system error occurred.".to_string())
+        );
 
         let revoked = InternalAuthError::TokenRevoked;
         let api_err: ApiError = revoked.into();
-        assert_eq!(api_err, ApiError::Unauthorized("Token has been revoked".to_string()));
+        assert_eq!(
+            api_err,
+            ApiError::Unauthorized("Token has been revoked".to_string())
+        );
 
         let reuse = InternalAuthError::TokenReuseDetected;
         let api_err: ApiError = reuse.into();
-        assert_eq!(api_err, ApiError::Unauthorized("Invalid or expired session".to_string()));
+        assert_eq!(
+            api_err,
+            ApiError::Unauthorized("Invalid or expired session".to_string())
+        );
 
         let locked = InternalAuthError::AccountTemporarilyLocked;
         let api_err: ApiError = locked.into();
         assert_eq!(
             api_err,
-            ApiError::TooManyRequests("Too many failed attempts. Account locked for 15 minutes.".to_string())
+            ApiError::TooManyRequests(
+                "Too many failed attempts. Account locked for 15 minutes.".to_string()
+            )
         );
 
         let invalid_code = InternalAuthError::InvalidAuthorizationCode;

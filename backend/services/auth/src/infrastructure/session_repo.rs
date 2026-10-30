@@ -1,8 +1,8 @@
+use crate::error::InternalAuthError;
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 use subtle::ConstantTimeEq;
 use uuid::Uuid;
-use crate::error::InternalAuthError;
 
 /// Database record mapping the `sessions` PostgreSQL table.
 #[derive(Debug, Clone, sqlx::FromRow)]
@@ -117,15 +117,15 @@ pub async fn rotate_session_atomic(
             if let Some(revoked_row) = hash_row {
                 if revoked_row.is_revoked {
                     // Confirmed theft! Delete entire session family
-                    sqlx::query(
-                        r#"DELETE FROM sessions WHERE family_id = $1"#
-                    )
-                    .bind(revoked_row.family_id)
-                    .execute(&mut *tx)
-                    .await?;
+                    sqlx::query(r#"DELETE FROM sessions WHERE family_id = $1"#)
+                        .bind(revoked_row.family_id)
+                        .execute(&mut *tx)
+                        .await?;
 
                     tx.commit().await?;
-                    return Ok(RotationOutcome::Compromised { family_id: revoked_row.family_id });
+                    return Ok(RotationOutcome::Compromised {
+                        family_id: revoked_row.family_id,
+                    });
                 }
             }
 
@@ -135,32 +135,32 @@ pub async fn rotate_session_atomic(
         Some(row) => {
             // Case 2: Row Found
             let hash_match = bool::from(
-                row.refresh_token_hash.as_bytes().ct_eq(presented_token_hash.as_bytes())
+                row.refresh_token_hash
+                    .as_bytes()
+                    .ct_eq(presented_token_hash.as_bytes()),
             );
             let family_match = row.family_id == expected_family_id;
             let user_match = row.user_id == user_id;
 
             if row.is_revoked || !hash_match || !family_match || !user_match {
                 // Theft or replay attempt detected! Purge entire session family
-                sqlx::query(
-                    r#"DELETE FROM sessions WHERE family_id = $1"#
-                )
-                .bind(row.family_id)
-                .execute(&mut *tx)
-                .await?;
+                sqlx::query(r#"DELETE FROM sessions WHERE family_id = $1"#)
+                    .bind(row.family_id)
+                    .execute(&mut *tx)
+                    .await?;
 
                 tx.commit().await?;
-                return Ok(RotationOutcome::Compromised { family_id: row.family_id });
+                return Ok(RotationOutcome::Compromised {
+                    family_id: row.family_id,
+                });
             }
 
             if row.expires_at <= Utc::now() {
                 // Expired session
-                sqlx::query(
-                    r#"DELETE FROM sessions WHERE id = $1"#
-                )
-                .bind(row.id)
-                .execute(&mut *tx)
-                .await?;
+                sqlx::query(r#"DELETE FROM sessions WHERE id = $1"#)
+                    .bind(row.id)
+                    .execute(&mut *tx)
+                    .await?;
 
                 tx.commit().await?;
                 return Ok(RotationOutcome::InvalidOrExpired);
@@ -168,12 +168,10 @@ pub async fn rotate_session_atomic(
 
             // Valid rotation:
             // 1. Mark current session as revoked/rotated
-            sqlx::query(
-                r#"UPDATE sessions SET is_revoked = TRUE WHERE id = $1"#
-            )
-            .bind(row.id)
-            .execute(&mut *tx)
-            .await?;
+            sqlx::query(r#"UPDATE sessions SET is_revoked = TRUE WHERE id = $1"#)
+                .bind(row.id)
+                .execute(&mut *tx)
+                .await?;
 
             // 2. Insert new session row
             sqlx::query(
@@ -201,7 +199,11 @@ pub async fn rotate_session_atomic(
 }
 
 /// Deletes all sessions belonging to a specific family for a given user.
-pub async fn delete_session_family(pool: &PgPool, family_id: Uuid, user_id: Uuid) -> Result<u64, sqlx::Error> {
+pub async fn delete_session_family(
+    pool: &PgPool,
+    family_id: Uuid,
+    user_id: Uuid,
+) -> Result<u64, sqlx::Error> {
     let result = sqlx::query(
         r#"
         DELETE FROM sessions

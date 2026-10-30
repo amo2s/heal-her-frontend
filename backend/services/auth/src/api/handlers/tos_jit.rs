@@ -134,12 +134,15 @@ pub async fn verify_tos_jit_otp_handler(
     if strikes >= 3 {
         state.jit_cache.cache.invalidate(&user_key).await;
         return Err(ApiError::TooManyRequests(
-            "Too many failed verification attempts. Code invalidated. Please request a new code.".into(),
+            "Too many failed verification attempts. Code invalidated. Please request a new code."
+                .into(),
         ));
     }
 
     // 3. Constant-time cryptographic verification
-    let incoming_hash = blake3::hash(req.code.trim().as_bytes()).to_hex().to_string();
+    let incoming_hash = blake3::hash(req.code.trim().as_bytes())
+        .to_hex()
+        .to_string();
     let is_code_valid = bool::from(stored_hash.as_bytes().ct_eq(incoming_hash.as_bytes()));
     let is_version_valid = target_version == req.active_version.trim();
 
@@ -215,4 +218,3 @@ mod tests {
         assert_eq!(vval["expires_in"], 60);
     }
 }
-

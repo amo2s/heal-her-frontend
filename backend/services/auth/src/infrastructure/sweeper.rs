@@ -37,7 +37,10 @@ pub async fn start_session_sweeper(pool: PgPool) {
         match sweep_expired_sessions(&pool).await {
             Ok(count) => {
                 if count > 0 {
-                    tracing::info!(swept_sessions = count, "Session sweeper purged expired/revoked sessions");
+                    tracing::info!(
+                        swept_sessions = count,
+                        "Session sweeper purged expired/revoked sessions"
+                    );
                 } else {
                     tracing::debug!("Session sweeper executed: 0 sessions needed purging");
                 }
@@ -48,4 +51,3 @@ pub async fn start_session_sweeper(pool: PgPool) {
         }
     }
 }
-

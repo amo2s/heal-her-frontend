@@ -55,7 +55,9 @@ impl RevocationCache {
     /// Tier 2: Global User Kill-Switch
     /// Revokes all active sessions for a user issued at or before the given timestamp.
     pub async fn revoke_all_user_sessions(&self, user_id: Uuid, timestamp: i64) {
-        self.global_user_revocations.insert(user_id, timestamp).await;
+        self.global_user_revocations
+            .insert(user_id, timestamp)
+            .await;
     }
 
     /// Tier 3: Brute Force Defender
@@ -88,9 +90,7 @@ impl RevocationCache {
     /// Returns true if either the individual token JTI is blacklisted
     /// or a global revocation event occurred at or after the token's issued-at timestamp.
     pub fn is_token_revoked(&self, jti: &Uuid, user_id: &Uuid, token_iat: i64) -> bool {
-        pollster::block_on(async {
-            self.is_token_revoked_async(jti, user_id, token_iat).await
-        })
+        pollster::block_on(async { self.is_token_revoked_async(jti, user_id, token_iat).await })
     }
 
     /// Asynchronous variant of is_token_revoked for native async execution pipelines.
@@ -160,7 +160,10 @@ mod tests {
         // 5th failed attempt locks the account
         cache.record_failed_login(email).await;
         let result = cache.check_brute_force(email).await;
-        assert!(matches!(result, Err(InternalAuthError::AccountTemporarilyLocked)));
+        assert!(matches!(
+            result,
+            Err(InternalAuthError::AccountTemporarilyLocked)
+        ));
 
         // Clear attempts restores access
         cache.clear_login_attempts(email).await;

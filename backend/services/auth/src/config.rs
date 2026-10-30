@@ -21,8 +21,8 @@ impl Config {
             .or_else(|_| dotenvy::from_filename("../.env"))
             .or_else(|_| dotenvy::from_filename("../../.env"));
 
-        let database_url_raw = env::var("DATABASE_URL")
-            .expect("FATAL: DATABASE_URL environment variable must be set");
+        let database_url_raw =
+            env::var("DATABASE_URL").expect("FATAL: DATABASE_URL environment variable must be set");
 
         // If the URL was configured with Python SQLAlchemy dialect scheme (postgresql+asyncpg://),
         // normalize it to standard postgres:// for SQLx

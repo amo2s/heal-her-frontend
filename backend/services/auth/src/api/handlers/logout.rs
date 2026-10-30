@@ -4,10 +4,7 @@ use crate::{
     error::ApiError,
     state::AppState,
 };
-use axum::{
-    extract::State,
-    Json,
-};
+use axum::{extract::State, Json};
 
 /// Logout Handler: POST /api/v1/auth/logout
 /// Protected by AuthenticatedUser extractor (verifies access token signature and L1 cache).
@@ -30,4 +27,3 @@ pub async fn logout_handler(
 
     Ok(Json(response))
 }
-

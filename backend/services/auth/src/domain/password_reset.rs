@@ -84,4 +84,3 @@ mod tests {
         assert!(json.contains("\"status\":\"success\""));
     }
 }
-

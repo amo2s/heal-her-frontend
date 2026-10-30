@@ -1,4 +1,5 @@
 mod gateway;
+mod rate_limiter;
 mod upstreams;
 
 use gateway::GatewayProxy;

@@ -3,11 +3,7 @@ use crate::{
     error::ApiError,
     state::AppState,
 };
-use axum::{
-    extract::State,
-    http::HeaderMap,
-    Json,
-};
+use axum::{extract::State, http::HeaderMap, Json};
 use validator::Validate;
 
 /// Thin API handler for user authentication.
@@ -52,20 +48,14 @@ pub async fn login_handler(
     }
 
     // 3. Extract client metadata for audit & session fingerprinting
-    let user_agent = headers
-        .get("user-agent")
-        .and_then(|v| v.to_str().ok());
+    let user_agent = headers.get("user-agent").and_then(|v| v.to_str().ok());
 
     let ip_address = headers
         .get("x-forwarded-for")
         .and_then(|v| v.to_str().ok())
         .and_then(|s| s.split(',').next())
         .map(|s| s.trim())
-        .or_else(|| {
-            headers
-                .get("x-real-ip")
-                .and_then(|v| v.to_str().ok())
-        });
+        .or_else(|| headers.get("x-real-ip").and_then(|v| v.to_str().ok()));
 
     // 4. Delegate to Service Orchestrator (Automatic downcasting via Universal Error Sentinel)
     let response = crate::service::auth_service::authenticate_user(

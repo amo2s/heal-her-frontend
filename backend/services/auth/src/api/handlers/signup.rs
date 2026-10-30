@@ -71,12 +71,10 @@ pub async fn handle_signup(
     let mut tx = state.pool.begin().await?;
 
     // 5. Existence Check & CPU Equalization (Timing-Attack Immunity)
-    let existing_count: i64 = sqlx::query_scalar(
-        r#"SELECT COUNT(*) FROM users WHERE email = $1"#
-    )
-    .bind(&normalized_email)
-    .fetch_one(&mut *tx)
-    .await?;
+    let existing_count: i64 = sqlx::query_scalar(r#"SELECT COUNT(*) FROM users WHERE email = $1"#)
+        .bind(&normalized_email)
+        .fetch_one(&mut *tx)
+        .await?;
 
     if existing_count > 0 {
         tracing::info!(

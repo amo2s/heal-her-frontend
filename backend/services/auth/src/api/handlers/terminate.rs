@@ -1,8 +1,6 @@
 use crate::{
-    api::middleware::auth::AuthenticatedUser,
-    error::ApiError,
-    infrastructure::session_repo::delete_all_user_sessions,
-    state::AppState,
+    api::middleware::auth::AuthenticatedUser, error::ApiError,
+    infrastructure::session_repo::delete_all_user_sessions, state::AppState,
 };
 use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
@@ -32,7 +30,10 @@ pub async fn terminate_session_handler(
     state.cache.revoke_jti(user.claims.jti).await;
 
     // 2. Global User Revocation: Stamp user ID into Tier-2 Global User Kill-Switch cache
-    state.cache.revoke_all_user_sessions(user.claims.sub, now_ts).await;
+    state
+        .cache
+        .revoke_all_user_sessions(user.claims.sub, now_ts)
+        .await;
 
     // 3. PostgreSQL Session Purge: Hard delete all active sessions for this user in PostgreSQL
     let deleted_count = delete_all_user_sessions(&state.pool, user.claims.sub).await?;
@@ -68,4 +69,3 @@ mod tests {
         );
     }
 }
-

@@ -103,12 +103,14 @@ mod tests {
         assert!(req.refresh_token.is_none());
 
         // CamelCase allDevices: true
-        let req: LogoutRequest = serde_json::from_str(r#"{"allDevices": true, "refreshToken": "test_tok"}"#).unwrap();
+        let req: LogoutRequest =
+            serde_json::from_str(r#"{"allDevices": true, "refreshToken": "test_tok"}"#).unwrap();
         assert!(req.all_devices);
         assert_eq!(req.refresh_token.as_deref(), Some("test_tok"));
 
         // Snake_case all_devices: true
-        let req: LogoutRequest = serde_json::from_str(r#"{"all_devices": true, "refresh_token": "test_tok"}"#).unwrap();
+        let req: LogoutRequest =
+            serde_json::from_str(r#"{"all_devices": true, "refresh_token": "test_tok"}"#).unwrap();
         assert!(req.all_devices);
         assert_eq!(req.refresh_token.as_deref(), Some("test_tok"));
     }

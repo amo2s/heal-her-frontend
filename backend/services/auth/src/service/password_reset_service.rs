@@ -65,7 +65,11 @@ pub async fn process_otp_request(state: &AppState, email: &str) -> Result<(), In
             let otp = format!("{:06}", otp_num);
             let otp_hash = blake3::hash(otp.as_bytes()).to_hex().to_string();
 
-            state.reset_cache.otp_cache.insert(clean_email.clone(), otp_hash).await;
+            state
+                .reset_cache
+                .otp_cache
+                .insert(clean_email.clone(), otp_hash)
+                .await;
 
             let email_clone = clean_email.clone();
             let name_clone = user.full_name.clone();
@@ -166,13 +170,19 @@ pub async fn verify_reset_otp(
 
     // Step F: Handle Match (Atomic Burn & Mint)
     state.reset_cache.otp_cache.invalidate(&clean_email).await;
-    state.reset_cache.otp_strikes_cache.invalidate(&clean_email).await;
+    state
+        .reset_cache
+        .otp_strikes_cache
+        .invalidate(&clean_email)
+        .await;
 
     let mut token_bytes = [0u8; 32];
     OsRng.fill_bytes(&mut token_bytes);
 
     let raw_reset_token = URL_SAFE_NO_PAD.encode(token_bytes);
-    let hashed_token = blake3::hash(raw_reset_token.as_bytes()).to_hex().to_string();
+    let hashed_token = blake3::hash(raw_reset_token.as_bytes())
+        .to_hex()
+        .to_string();
     state
         .reset_cache
         .reset_token_cache
@@ -212,7 +222,11 @@ pub async fn confirm_password_reset(
     };
 
     // ATOMIC BURN: Instantly delete the token from the cache so it is consumed permanently
-    state.reset_cache.reset_token_cache.invalidate(&token_hash).await;
+    state
+        .reset_cache
+        .reset_token_cache
+        .invalidate(&token_hash)
+        .await;
 
     // Step C: Resolve User & Hash Password
     let user_id: Uuid = sqlx::query_scalar("SELECT id FROM users WHERE email = $1")
@@ -263,7 +277,11 @@ mod tests {
     fn build_test_state() -> AppState {
         let pool = PgPool::connect_lazy("postgres://localhost/dummy").unwrap();
         let reset_cache = Arc::new(PasswordResetCache::new());
-        AppState::new(pool, "test_secret_32_bytes_long_ok!!".to_string(), reset_cache)
+        AppState::new(
+            pool,
+            "test_secret_32_bytes_long_ok!!".to_string(),
+            reset_cache,
+        )
     }
 
     #[test]
@@ -290,7 +308,11 @@ mod tests {
 
         // Seed OTP cache
         let otp_hash = blake3::hash(otp.as_bytes()).to_hex().to_string();
-        state.reset_cache.otp_cache.insert(email.to_string(), otp_hash).await;
+        state
+            .reset_cache
+            .otp_cache
+            .insert(email.to_string(), otp_hash)
+            .await;
 
         let input = VerifyOtpInput {
             email: email.to_string(),
@@ -307,7 +329,9 @@ mod tests {
         assert!(state.reset_cache.otp_cache.get(email).await.is_none());
 
         // Assert reset token is present in reset_token_cache
-        let hashed_token = blake3::hash(res.reset_token.as_bytes()).to_hex().to_string();
+        let hashed_token = blake3::hash(res.reset_token.as_bytes())
+            .to_hex()
+            .to_string();
         assert_eq!(
             state.reset_cache.reset_token_cache.get(&hashed_token).await,
             Some(email.to_string())
@@ -322,7 +346,11 @@ mod tests {
 
         // Seed OTP cache
         let otp_hash = blake3::hash(otp.as_bytes()).to_hex().to_string();
-        state.reset_cache.otp_cache.insert(email.to_string(), otp_hash).await;
+        state
+            .reset_cache
+            .otp_cache
+            .insert(email.to_string(), otp_hash)
+            .await;
 
         let bad_input = VerifyOtpInput {
             email: email.to_string(),
@@ -332,17 +360,26 @@ mod tests {
         // Attempt 1: Mismatch
         let err1 = verify_reset_otp(&state, &bad_input).await.unwrap_err();
         assert!(matches!(err1, InternalAuthError::InvalidAuthorizationCode));
-        assert_eq!(state.reset_cache.otp_strikes_cache.get(email).await, Some(1));
+        assert_eq!(
+            state.reset_cache.otp_strikes_cache.get(email).await,
+            Some(1)
+        );
 
         // Attempt 2: Mismatch
         let err2 = verify_reset_otp(&state, &bad_input).await.unwrap_err();
         assert!(matches!(err2, InternalAuthError::InvalidAuthorizationCode));
-        assert_eq!(state.reset_cache.otp_strikes_cache.get(email).await, Some(2));
+        assert_eq!(
+            state.reset_cache.otp_strikes_cache.get(email).await,
+            Some(2)
+        );
 
         // Attempt 3: Mismatch -> reaches 3 strikes
         let err3 = verify_reset_otp(&state, &bad_input).await.unwrap_err();
         assert!(matches!(err3, InternalAuthError::InvalidAuthorizationCode));
-        assert_eq!(state.reset_cache.otp_strikes_cache.get(email).await, Some(3));
+        assert_eq!(
+            state.reset_cache.otp_strikes_cache.get(email).await,
+            Some(3)
+        );
 
         // Attempt 4: Strikes >= 3 -> AccountTemporarilyLocked (even if correct OTP is provided!)
         let correct_input = VerifyOtpInput {
@@ -365,7 +402,10 @@ mod tests {
 
         let err = verify_reset_otp(&state, &input).await.unwrap_err();
         assert!(matches!(err, InternalAuthError::InvalidAuthorizationCode));
-        assert_eq!(state.reset_cache.otp_strikes_cache.get(email).await, Some(1));
+        assert_eq!(
+            state.reset_cache.otp_strikes_cache.get(email).await,
+            Some(1)
+        );
     }
 
     #[tokio::test]
@@ -377,7 +417,9 @@ mod tests {
             confirm_password: "MismatchPassword1!".to_string(),
         };
         let err = confirm_password_reset(&state, &input).await.unwrap_err();
-        assert!(matches!(err, InternalAuthError::ValidationError(msg) if msg == "Passwords do not match"));
+        assert!(
+            matches!(err, InternalAuthError::ValidationError(msg) if msg == "Passwords do not match")
+        );
     }
 
     #[tokio::test]
@@ -399,8 +441,17 @@ mod tests {
         let token_hash = blake3::hash(raw_token.as_bytes()).to_hex().to_string();
         let email = "nonexistent_user_in_mock_db@healher.internal";
 
-        state.reset_cache.reset_token_cache.insert(token_hash.clone(), email.to_string()).await;
-        assert!(state.reset_cache.reset_token_cache.get(&token_hash).await.is_some());
+        state
+            .reset_cache
+            .reset_token_cache
+            .insert(token_hash.clone(), email.to_string())
+            .await;
+        assert!(state
+            .reset_cache
+            .reset_token_cache
+            .get(&token_hash)
+            .await
+            .is_some());
 
         let input = ConfirmResetInput {
             reset_token: raw_token.to_string(),
@@ -412,7 +463,11 @@ mod tests {
         let _ = confirm_password_reset(&state, &input).await;
 
         // Verify token was evicted atomically from cache
-        assert!(state.reset_cache.reset_token_cache.get(&token_hash).await.is_none());
-
+        assert!(state
+            .reset_cache
+            .reset_token_cache
+            .get(&token_hash)
+            .await
+            .is_none());
     }
 }

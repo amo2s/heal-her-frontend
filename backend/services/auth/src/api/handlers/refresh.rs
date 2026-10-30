@@ -20,11 +20,15 @@ pub async fn refresh_handler(
     let raw_token = payload
         .and_then(|Json(p)| p.refresh_token)
         .or_else(|| extract_refresh_token_from_cookies(&headers))
-        .ok_or_else(|| ApiError::BadRequest("Missing refresh token in request body or cookies".to_string()))?;
+        .ok_or_else(|| {
+            ApiError::BadRequest("Missing refresh token in request body or cookies".to_string())
+        })?;
 
     let raw_token = raw_token.trim();
     if raw_token.is_empty() {
-        return Err(ApiError::BadRequest("Refresh token cannot be empty".to_string()));
+        return Err(ApiError::BadRequest(
+            "Refresh token cannot be empty".to_string(),
+        ));
     }
 
     // 2. Extract client telemetry
@@ -70,4 +74,3 @@ fn extract_refresh_token_from_cookies(headers: &HeaderMap) -> Option<String> {
     }
     None
 }
-

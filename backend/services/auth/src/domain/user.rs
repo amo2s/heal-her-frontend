@@ -10,7 +10,11 @@ pub struct SignupRequest {
     #[validate(length(min = 8, message = "password must be at least 8 characters long"))]
     pub password: String,
 
-    #[validate(length(min = 2, max = 100, message = "full_name must be between 2 and 100 characters"))]
+    #[validate(length(
+        min = 2,
+        max = 100,
+        message = "full_name must be between 2 and 100 characters"
+    ))]
     pub full_name: String,
 
     #[validate(range(min = 4, max = 120, message = "age must be strictly between 4 and 120"))]

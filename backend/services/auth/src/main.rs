@@ -71,10 +71,13 @@ async fn main() -> Result<(), ApiError> {
     let pool = create_pool(&config).await?;
 
     // 3b. Launch background non-blocking database sweeper (purges expired/revoked sessions)
-    tokio::spawn(crate::infrastructure::sweeper::start_session_sweeper(pool.clone()));
+    tokio::spawn(crate::infrastructure::sweeper::start_session_sweeper(
+        pool.clone(),
+    ));
 
     // 4. Construct immutable application state with dedicated L1 reset cache
-    let reset_cache = std::sync::Arc::new(crate::infrastructure::reset_cache::PasswordResetCache::new());
+    let reset_cache =
+        std::sync::Arc::new(crate::infrastructure::reset_cache::PasswordResetCache::new());
     let jit_cache = std::sync::Arc::new(crate::infrastructure::reset_cache::TosJitCache::new());
     let app_state = AppState::new(pool.clone(), config.jwt_secret_key, reset_cache)
         .with_jit(jit_cache, config.jit_ed25519_private_key);
@@ -88,7 +91,9 @@ async fn main() -> Result<(), ApiError> {
         Ok(parsed) => parsed,
         Err(err) => {
             tracing::error!(error = %err, addr = %addr_str, "Invalid socket address format");
-            return Err(ApiError::InternalServerError(format!("Invalid socket address {addr_str}: {err}")));
+            return Err(ApiError::InternalServerError(format!(
+                "Invalid socket address {addr_str}: {err}"
+            )));
         }
     };
 
@@ -96,7 +101,9 @@ async fn main() -> Result<(), ApiError> {
         Ok(l) => l,
         Err(err) => {
             tracing::error!(error = ?err, "Failed to bind TCP listener to {}", addr);
-            return Err(ApiError::InternalServerError(format!("Failed to bind TCP listener to {addr}: {err}")));
+            return Err(ApiError::InternalServerError(format!(
+                "Failed to bind TCP listener to {addr}: {err}"
+            )));
         }
     };
 
@@ -108,7 +115,9 @@ async fn main() -> Result<(), ApiError> {
         .await
     {
         tracing::error!(error = ?err, "Axum HTTP server terminated unexpectedly");
-        return Err(ApiError::InternalServerError("Server terminated unexpectedly".to_string()));
+        return Err(ApiError::InternalServerError(
+            "Server terminated unexpectedly".to_string(),
+        ));
     }
 
     tracing::info!("HEAL-HER Auth Microservice stopped gracefully.");
