@@ -70,6 +70,12 @@ class TosAuditLedger(Base):
         nullable=False,
         doc="Path coordinate of the PDF within the Supabase tos-vault bucket"
     )
+    document_version: Mapped[str] = mapped_column(
+        String(10),
+        nullable=False,
+        default="1.0",
+        doc="Document version of the legal terms executed (e.g. '1.0')"
+    )
     execution_timestamp: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

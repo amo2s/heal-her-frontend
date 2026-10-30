@@ -85,6 +85,7 @@ class EnrichedSignaturePayload(BaseModel):
     minor_name: Optional[str] = None
     minor_age: Optional[int] = None
     ip_address: str
+    document_version: str = "1.0"
 
 
 class TOSExecutionResponse(BaseModel):
@@ -101,11 +102,12 @@ class TOSExecutionResponse(BaseModel):
     request_id: UUID
     document_hash: str
     storage_path: str
+    document_version: str = "1.0"
 
 
 class TOSStatusResponse(BaseModel):
     """
-    Blazing-fast status payload for Next.js Server Component dashboard banner.
+    Blazing-fast status payload for Next.js Server Component dashboard modal gate with dynamic versioning.
     """
     model_config = ConfigDict(
         populate_by_name=True,
@@ -113,4 +115,6 @@ class TOSStatusResponse(BaseModel):
     )
 
     has_signed: bool
+    requires_reconsent: bool
+    active_version: str
 

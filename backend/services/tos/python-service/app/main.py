@@ -90,7 +90,7 @@ async def health_check():
     response_model=TOSStatusResponse,
     status_code=status.HTTP_200_OK,
     tags=["Legal Consent"],
-    summary="Check whether the authenticated user has executed the unified TOS & Privacy agreement"
+    summary="Check whether the authenticated user has executed the active version of the TOS & Privacy agreement"
 )
 @app.get(
     "/status",
@@ -103,18 +103,58 @@ async def get_tos_consent_status(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Sub-10ms Status Interrogation:
-    Checks if client_email exists in tos_audit_ledger.
-    Protected by Zero-Trust JWT dependency.
+    Sub-10ms Status Interrogation with Dynamic Version Gatekeeping:
+    Fetches the most recent signature record for client_email ordered by execution_timestamp DESC.
+    
+    Logic Matrix:
+    1. No record exists -> has_signed: false, requires_reconsent: false (Brand new user)
+    2. Record exists AND record.document_version == settings.active_tos_version -> has_signed: true, requires_reconsent: false (Fully compliant)
+    3. Record exists AND record.document_version != settings.active_tos_version -> has_signed: false, requires_reconsent: true (User signed outdated version; must re-consent)
     """
     try:
-        query = text("SELECT 1 FROM tos_audit_ledger WHERE client_email = :email LIMIT 1")
+        query = text(
+            """
+            SELECT document_version 
+            FROM tos_audit_ledger 
+            WHERE client_email = :email 
+            ORDER BY execution_timestamp DESC 
+            LIMIT 1
+            """
+        )
         result = await db.execute(query, {"email": user.email})
-        has_signed = result.scalar() is not None
-        return TOSStatusResponse(has_signed=has_signed)
+        row = result.fetchone()
+
+        if row is None:
+            # Case 1: Brand new user
+            return TOSStatusResponse(
+                has_signed=False,
+                requires_reconsent=False,
+                active_version=settings.active_tos_version,
+            )
+
+        recorded_version = str(row[0]) if row[0] is not None else ""
+        if recorded_version == settings.active_tos_version:
+            # Case 2: Fully compliant user on active version
+            return TOSStatusResponse(
+                has_signed=True,
+                requires_reconsent=False,
+                active_version=settings.active_tos_version,
+            )
+        else:
+            # Case 3: Outdated version signature; requires re-consent
+            return TOSStatusResponse(
+                has_signed=False,
+                requires_reconsent=True,
+                active_version=settings.active_tos_version,
+            )
+
     except Exception as exc:
         logger.error(f"Error querying TOS consent status for user {user.email}: {exc}")
-        return TOSStatusResponse(has_signed=False)
+        return TOSStatusResponse(
+            has_signed=False,
+            requires_reconsent=False,
+            active_version=settings.active_tos_version,
+        )
 
 
 @app.post(
@@ -159,6 +199,7 @@ async def execute_tos_agreement(
         minor_name=payload.minor_name,
         minor_age=payload.minor_age,
         ip_address=user.ip_address,
+        document_version=settings.active_tos_version,
     )
 
     # 2. Render and encrypt PDF entirely in RAM
@@ -196,11 +237,12 @@ async def execute_tos_agreement(
             ip_address=user.ip_address,
             sha512_hash=sha512_hash,
             storage_path=storage_path,
+            document_version=settings.active_tos_version,
             execution_timestamp=datetime.now(timezone.utc),
         )
         db.add(audit_entry)
         await db.commit()
-        logger.info(f"Committed audit record to tos_audit_ledger [Request ID: {request_id}, SHA: {sha512_hash[:16]}...]")
+        logger.info(f"Committed audit record to tos_audit_ledger [Request ID: {request_id}, Version: {settings.active_tos_version}, SHA: {sha512_hash[:16]}...]")
     except Exception as exc:
         await db.rollback()
         logger.critical(f"Database commit failure for tos_audit_ledger: {exc}")
@@ -226,6 +268,7 @@ async def execute_tos_agreement(
         request_id=request_id,
         document_hash=sha512_hash,
         storage_path=storage_path,
+        document_version=settings.active_tos_version,
     )
 
 

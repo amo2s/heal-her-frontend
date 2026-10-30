@@ -2,13 +2,19 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck, ShieldAlert, Scale, Lock, Loader2, AlertCircle, CheckCircle2, ChevronDown } from "lucide-react";
+import { ShieldCheck, ShieldAlert, Scale, Lock, Loader2, AlertCircle, AlertTriangle, CheckCircle2, ChevronDown } from "lucide-react";
 
 interface LegalConsentModalProps {
   onConsentSuccess?: () => void;
+  hasSigned?: boolean;
+  requiresReconsent?: boolean;
 }
 
-export function LegalConsentModal({ onConsentSuccess }: LegalConsentModalProps) {
+export function LegalConsentModal({
+  onConsentSuccess,
+  hasSigned = false,
+  requiresReconsent = false,
+}: LegalConsentModalProps) {
   const [isVisible, setIsVisible] = useState(true);
   const [hasReachedBottom, setHasReachedBottom] = useState(false);
   const [isConsentChecked, setIsConsentChecked] = useState(false);
@@ -215,11 +221,33 @@ export function LegalConsentModal({ onConsentSuccess }: LegalConsentModalProps) 
       >
         {/* Header Component */}
         <div className="p-5 sm:p-6 border-b border-white/10 bg-gradient-to-r from-indigo-950/40 via-zinc-900/40 to-transparent">
+          {/* Re-Consent Alert Banner (Phase 2.1 Dynamic Re-Consent Engine) */}
+          {requiresReconsent && (
+            <div className="mb-4 p-3.5 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-200 flex items-start gap-3 shadow-lg shadow-amber-500/10 animate-pulse">
+              <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-xs sm:text-sm font-bold text-amber-300">
+                  Action Required: Updated Terms of Service & Privacy Policy
+                </p>
+                <p className="text-xs text-amber-100/95 leading-relaxed">
+                  Action Required: We have updated our Legal Consent Agreement (Terms of Service & Privacy Policy). To continue utilizing the HEAL-HER platform and ensure uninterrupted access to your account, you must review and accept the latest version.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1 text-[10px] uppercase font-bold tracking-widest text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/25">
-              <ShieldAlert className="w-3 h-3 text-indigo-400" />
-              Mandatory Legal Enforcement
-            </span>
+            {requiresReconsent ? (
+              <span className="inline-flex items-center gap-1 text-[10px] uppercase font-bold tracking-widest text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/25">
+                <AlertTriangle className="w-3 h-3 text-amber-400" />
+                Re-Consent Required
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-[10px] uppercase font-bold tracking-widest text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/25">
+                <ShieldAlert className="w-3 h-3 text-indigo-400" />
+                Mandatory Legal Enforcement
+              </span>
+            )}
             <span className="text-[10px] uppercase font-semibold tracking-wider text-zinc-400 bg-zinc-800/60 px-2.5 py-0.5 rounded-full border border-white/5">
               2-in-1 Unified Covenant
             </span>
@@ -231,7 +259,9 @@ export function LegalConsentModal({ onConsentSuccess }: LegalConsentModalProps) 
           </h2>
 
           <p className="text-xs sm:text-sm text-zinc-400 mt-1 leading-relaxed">
-            To maintain cryptographic audit compliance and safeguard your sensitive health data, you must review and execute this unified instrument before continuing to your dashboard.
+            {requiresReconsent
+              ? "Action Required: We have updated our Legal Consent Agreement (Terms of Service & Privacy Policy). To continue utilizing the HEAL-HER platform and ensure uninterrupted access to your account, you must review and accept the latest version."
+              : "Welcome to HEAL-HER. To ensure your protection and compliance with data privacy regulations, please review and accept our comprehensive Legal Consent Agreement."}
           </p>
         </div>
 

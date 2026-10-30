@@ -10,6 +10,7 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   let hasSigned = true;
+  let requiresReconsent = false;
 
   try {
     const cookieStore = await cookies();
@@ -31,18 +32,25 @@ export default async function DashboardLayout({
 
       if (response.ok) {
         const data = await response.json();
-        hasSigned = Boolean(data.has_signed);
+        hasSigned = Boolean(data.has_signed ?? data.hasSigned);
+        requiresReconsent = Boolean(data.requires_reconsent ?? data.requiresReconsent);
       }
     }
   } catch (error) {
     // Fail-Open Failsafe: Default has_signed to true on failure to prevent user lockouts or broken dashboard
     console.error("[SSR Legal Consent Status Check] Fail-open engaged:", error);
     hasSigned = true;
+    requiresReconsent = false;
   }
 
   return (
     <HealProvider>
-      {!hasSigned && <LegalConsentModal />}
+      {!hasSigned && (
+        <LegalConsentModal
+          hasSigned={hasSigned}
+          requiresReconsent={requiresReconsent}
+        />
+      )}
       {children}
     </HealProvider>
   );

@@ -27,6 +27,7 @@
     <div class="status-badge-panel">
         <strong>Document Status:</strong> ACTIVE & BINDING<br>
         <strong>Instrument Type:</strong> 2-in-1 Unified Legal Consent (TOS + Privacy Policy)<br>
+        <strong>Document Version:</strong> Version {{ active_version }}<br>
         <strong>Revised Effective Date:</strong> July 17, 2026<br>
         <strong>Jurisdiction:</strong> Federal Republic of Nigeria (Global Applicability)<br>
         <strong>Digital Audit ID:</strong> SECURE-TLS-{{ request_id }}
@@ -338,6 +339,7 @@
             <p class="sig-meta"><strong>Date of Effect:</strong> {{ execution_date }}</p>
             <p class="sig-meta"><strong>Audit Fingerprint:</strong> SECURE-TLS-{{ request_id }}</p>
             <p class="sig-meta"><strong>Client IP Address:</strong> {{ payload.ipAddress }}</p>
+            <p class="sig-meta"><strong>Document Version:</strong> <span class="audit-font">{{ active_version }}</span></p>
         </div>
     </div>
 </div>
