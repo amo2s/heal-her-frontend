@@ -6,70 +6,12 @@ import { useHeal } from "@/store/heal";
 import { useAudio } from "@/components/shared/context/audio-manager";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
-
-// =====================================================================
-// 1. THE GRAPHQL QUERY (Tailored for Young Adults TopBar)
-// =====================================================================
-const YOUNG_ADULT_TOPBAR_QUERY = `
-  query GetYoungAdultTopBarProfile {
-    getMe {
-      success
-      profile {
-        firstName
-      }
-    }
-  }
-`;
 
 export function TopBar() {
   const { toggle } = useSidebar();
   const { nickname } = useHeal(); 
   const { playSfx } = useAudio();
   const router = useRouter();
-
-  // 1. STATE: Instant fallback using local nickname
-  const [greeting, setGreeting] = useState(`Hey, ${nickname || 'there'}`);
-
-  // 2. FETCH DATA: Call the new GraphQL backend via Next.js proxy
-  useEffect(() => {
-    // AbortController prevents memory leaks
-    const controller = new AbortController();
-
-    const fetchGreeting = async () => {
-      try {
-        const response = await fetch('/api/proxy/young_adult/dashboard/graphql', {
-          method: 'POST',
-          signal: controller.signal,
-          headers: {
-            'Content-Type': 'application/json'
-            // "Authorization": `Bearer ${localStorage.getItem('token')}` // Uncomment if needed
-          },
-          body: JSON.stringify({ query: YOUNG_ADULT_TOPBAR_QUERY })
-        }); 
-        
-        if (!response.ok) {
-          throw new Error(`HTTP Error! Status: ${response.status}`);
-        }
-
-        const payload = await response.json();
-
-        // Safely extract firstName from the GraphQL payload
-        if (payload.data?.getMe?.success) {
-          const { profile } = payload.data.getMe;
-          setGreeting(`Hey, ${profile.firstName}`);
-        }
-      } catch (error: any) {
-        if (error.name !== 'AbortError') {
-          console.error("[GREETING ERROR] Failed to fetch young adult greeting:", error.message);
-        }
-      }
-    };
-
-    fetchGreeting();
-
-    return () => controller.abort();
-  }, []);
 
   const handleAskAI = () => {
     playSfx('click');
@@ -98,7 +40,7 @@ export function TopBar() {
             animate={{ opacity: 1, x: 0 }}
             className="text-2xl font-bold tracking-tight text-white flex items-center gap-2"
           >
-            {greeting} <span className="inline-block">✨</span>
+            Hey, {nickname || 'there'} <span className="inline-block">✨</span>
           </motion.h2>
           <motion.p 
             initial={{ opacity: 0 }}

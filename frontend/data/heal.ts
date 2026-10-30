@@ -207,7 +207,7 @@ export const CHATS: Record<AgeGroup, ChatMessage[]> = {
     { id: "5", role: "assistant", text: "Then you can say 'No thank you!' Your body is YOURS. A high-five works too! ✋✨", time: "9:03 AM" },
   ],
   teens: [
-    { id: "1", role: "assistant", text: "Hey Sarah 💜 You asked about consent earlier — want to go a little deeper today?", time: "10:14 AM" },
+    { id: "1", role: "assistant", text: "Hey there 💜 You asked about consent earlier — want to go a little deeper today?", time: "10:14 AM" },
     { id: "2", role: "user", text: "yeah. like what counts as real consent?", time: "10:14 AM" },
     { id: "3", role: "assistant", text: "Real consent is FRIES: Freely given, Reversible, Informed, Enthusiastic, Specific. If any of those is missing — it isn't consent.", time: "10:15 AM" },
     { id: "4", role: "user", text: "what if someone says yes but seems unsure?", time: "10:15 AM" },

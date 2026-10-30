@@ -18,23 +18,28 @@ interface ApiResponse {
   session_id: string
 }
 
-// Types needed for the Staff Dashboard (Fixes build errors)
+// Types needed for the Staff Dashboard
 export interface Patient {
   id: string
   name: string
   age: number
   condition: string
-  status: "Stable" | "Critical" | "Recovering"
+  status: "Stable" | "Critical" | "Recovering" | "critical" | "monitoring" | "stable" | "recovered"
+  priority: "critical" | "high" | "medium" | "low"
   lastCheckup: string
   roomNumber?: string
+  lastUpdated: string
+  admittedDate: string
 }
 
 export interface Alert {
   id: string
   patientName: string
-  type: "Emergency" | "Warning" | "Info"
+  type: "Emergency" | "Warning" | "Info" | "critical" | "warning" | "info"
   message: string
   time: string
+  timestamp: string
+  resolved: boolean
 }
 
 export interface Report {
@@ -42,7 +47,15 @@ export interface Report {
   title: string
   date: string
   author: string
-  status: "Finalized" | "Draft" | "Pending Review"
+  type: string
+  status: "Finalized" | "Draft" | "Pending Review" | "approved" | "pending" | "draft"
+}
+
+export interface StatItem {
+  label: string
+  value: string | number
+  change: string
+  trend: "up" | "down" | "neutral"
 }
 
 // ------------------------------------------------------------------
@@ -51,35 +64,38 @@ export interface Report {
 
 export const mockPatients: Patient[] = [
   { 
-    id: "1", name: "Sarah Johnson", age: 45, condition: "Post-surgery recovery", 
-    status: "Stable", lastCheckup: "2 hours ago", roomNumber: "304"
+    id: "1", name: "Jane Doe", age: 45, condition: "Post-surgery recovery", 
+    status: "stable", priority: "low", lastCheckup: "2 hours ago", roomNumber: "304",
+    lastUpdated: new Date().toISOString(), admittedDate: "2024-10-20"
   },
   { 
     id: "2", name: "Michael Chen", age: 62, condition: "Hypertension monitoring", 
-    status: "Recovering", lastCheckup: "4 hours ago", roomNumber: "201"
+    status: "monitoring", priority: "medium", lastCheckup: "4 hours ago", roomNumber: "201",
+    lastUpdated: new Date().toISOString(), admittedDate: "2024-10-22"
   },
   { 
     id: "3", name: "Emily Davis", age: 28, condition: "Severe allergic reaction", 
-    status: "Critical", lastCheckup: "15 mins ago", roomNumber: "ICU-4"
+    status: "critical", priority: "critical", lastCheckup: "15 mins ago", roomNumber: "ICU-4",
+    lastUpdated: new Date().toISOString(), admittedDate: "2024-10-24"
   }
 ]
 
 export const mockAlerts: Alert[] = [
-  { id: "1", patientName: "Emily Davis", type: "Emergency", message: "O2 Saturation dropped below 90%", time: "10 mins ago" },
-  { id: "2", patientName: "Michael Chen", type: "Warning", message: "Missed scheduled medication", time: "1 hour ago" },
-  { id: "3", patientName: "Sarah Johnson", type: "Info", message: "Routine checkup completed", time: "2 hours ago" }
+  { id: "1", patientName: "Emily Davis", type: "critical", message: "O2 Saturation dropped below 90%", time: "10 mins ago", timestamp: new Date().toISOString(), resolved: false },
+  { id: "2", patientName: "Michael Chen", type: "warning", message: "Missed scheduled medication", time: "1 hour ago", timestamp: new Date().toISOString(), resolved: false },
+  { id: "3", patientName: "Jane Doe", type: "info", message: "Routine checkup completed", time: "2 hours ago", timestamp: new Date().toISOString(), resolved: true }
 ]
 
-export const mockStats = {
-  totalPatients: 24,
-  criticalCases: 3,
-  activeAlerts: 5,
-  staffOnDuty: 8
-}
+export const mockStats: StatItem[] = [
+  { label: "Total Patients", value: 24, change: "+12%", trend: "up" },
+  { label: "Critical Cases", value: 3, change: "-2%", trend: "down" },
+  { label: "Active Alerts", value: 5, change: "+1", trend: "up" },
+  { label: "Staff On Duty", value: 8, change: "0%", trend: "neutral" },
+]
 
 export const mockReports: Report[] = [
-  { id: "r-101", title: "Monthly Patient Turnover", date: "Oct 25, 2024", author: "Dr. Smith", status: "Finalized" },
-  { id: "r-102", title: "Inventory Usage Q3", date: "Oct 24, 2024", author: "Nurse Joy", status: "Pending Review" }
+  { id: "r-101", title: "Monthly Patient Turnover", date: "Oct 25, 2024", author: "Dr. Smith", type: "Clinical", status: "approved" },
+  { id: "r-102", title: "Inventory Usage Q3", date: "Oct 24, 2024", author: "Nurse Joy", type: "Administrative", status: "pending" }
 ]
 
 // ------------------------------------------------------------------

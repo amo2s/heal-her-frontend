@@ -44,58 +44,15 @@ export function Sidebar({ base = "teens" }: SidebarProps) {
   const pathname = usePathname();
   const { playSfx } = useAudio();
 
-  // New states for our modular additions
+  // State tracking for the logout modal
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-  const [displayName, setDisplayName] = useState(nickname || "User");
 
   // Close mobile sidebar on route change
   useEffect(() => { 
     close(); 
   }, [pathname, close]);
 
-  // GraphQL Data Fetch & Cache for User Name
-  useEffect(() => {
-    const fetchUserName = async () => {
-      // Check cache first to avoid redundant network requests
-      const cachedName = localStorage.getItem("heal_user_name");
-      if (cachedName) {
-        setDisplayName(cachedName);
-        return;
-      }
-
-      try {
-        // Fetch from the proxy if not in cache
-        const res = await fetch("/api/proxy/teens/dashboard/graphql", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            query: `
-              query GetUserProfile {
-                me {
-                  fullName
-                }
-              }
-            `
-          }),
-        });
-
-        const result = await res.json();
-        
-        // Extract and cache the real name
-        if (result?.data?.me?.fullName) {
-          const fetchedName = result.data.me.fullName;
-          setDisplayName(fetchedName);
-          localStorage.setItem("heal_user_name", fetchedName);
-        }
-      } catch (error) {
-        console.error("[UI SHIELD] Failed to fetch user name:", error);
-      }
-    };
-
-    fetchUserName();
-  }, []);
+  const displayName = nickname || "User";
 
   const SidebarContent = (
     <div className="flex h-full flex-col p-6">
@@ -191,7 +148,7 @@ export function Sidebar({ base = "teens" }: SidebarProps) {
           <div className="relative group">
             <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center shadow-lg">
               <span className="text-xs font-black text-white uppercase tracking-wider">
-                {displayName.slice(0, 2)}
+                {displayName.slice(0, 2).toUpperCase()}
               </span>
             </div>
             <div className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-background bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
@@ -203,6 +160,7 @@ export function Sidebar({ base = "teens" }: SidebarProps) {
           </div>
 
           <button 
+            type="button"
             onClick={() => { 
               playSfx('click'); 
               setIsLogoutModalOpen(true); 
@@ -250,7 +208,7 @@ export function Sidebar({ base = "teens" }: SidebarProps) {
         )}
       </AnimatePresence>
 
-      {/* The Universal Logout Modal Integration */}
+      {/* The Universal Logout Modal Component Trigger */}
       <LogoutModal 
         isOpen={isLogoutModalOpen} 
         onClose={() => setIsLogoutModalOpen(false)} 

@@ -38,57 +38,15 @@ export function Sidebar({ base }: { base: string }) {
   const pathname = usePathname();
   const { playSfx } = useAudio();
 
-  // New state tracking for advanced additions
+  // State tracking for the logout modal
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-  const [displayName, setDisplayName] = useState(nickname || "Explorer");
 
   // Close mobile sidebar on route change
   useEffect(() => { 
     close(); 
   }, [pathname, close]);
 
-  // Secure User Data Fetching and Memory Cache Setup
-  useEffect(() => {
-    const fetchKidsProfileName = async () => {
-      // Direct cache lookup to maximize client-side request efficiency
-      const cachedKidsName = localStorage.getItem("heal_kids_user_name");
-      if (cachedKidsName) {
-        setDisplayName(cachedKidsName);
-        return;
-      }
-
-      try {
-        // Pointing cleanly to your explicit target context proxy route
-        const res = await fetch("/api/proxy/kids/dashboard/graphql", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            query: `
-              query GetKidsProfile {
-                getMe {
-                  fullName
-                }
-              }
-            `
-          }),
-        });
-
-        const result = await res.json();
-
-        if (result?.data?.me?.fullName) {
-          const fetchedKidsName = result.data.me.fullName;
-          setDisplayName(fetchedKidsName);
-          localStorage.setItem("heal_kids_user_name", fetchedKidsName);
-        }
-      } catch (error) {
-        console.error("[UI SHIELD] Failed to resolve user name context:", error);
-      }
-    };
-
-    fetchKidsProfileName();
-  }, []);
+  const displayName = nickname || "Explorer";
 
   const SidebarContent = (
     <div className="flex h-full flex-col p-6">
@@ -165,7 +123,7 @@ export function Sidebar({ base }: { base: string }) {
         })}
       </nav>
 
-      {/* Profile Footer - Premium Badge */}
+      {/* Profile Footer */}
       <div className="pt-6 mt-4 border-t border-white/10">
         <motion.div 
           whileHover={{ y: -2 }}

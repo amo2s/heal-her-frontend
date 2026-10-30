@@ -6,70 +6,12 @@ import { useHeal } from "@/store/heal";
 import { useAudio } from "@/components/shared/context/audio-manager";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
-
-// =====================================================================
-// 1. THE GRAPHQL QUERY (Tailored for TopBar)
-// =====================================================================
-const KIDS_TOPBAR_QUERY = `
-  query GetKidsTopBarProfile {
-    getMe {
-      success
-      profile {
-        firstName
-      }
-    }
-  }
-`;
 
 export function TopBar() {
   const { toggle } = useSidebar();
   const { nickname } = useHeal(); 
   const { playSfx } = useAudio();
   const router = useRouter();
-
-  // 1. STATE: We use your local 'nickname' as the instant fallback
-  const [greeting, setGreeting] = useState(`Hi, ${nickname || 'Buddy'}`);
-
-  // 2. FETCH DATA: Call the new GraphQL backend via your Next.js proxy
-  useEffect(() => {
-    // AbortController to prevent memory leaks if component unmounts
-    const controller = new AbortController();
-
-    const fetchGreeting = async () => {
-      try {
-        const response = await fetch('/api/proxy/kids/dashboard/graphql', {
-          method: 'POST',
-          signal: controller.signal,
-          headers: {
-            'Content-Type': 'application/json'
-            // "Authorization": `Bearer ${localStorage.getItem('token')}` // Uncomment if using LocalStorage
-          },
-          body: JSON.stringify({ query: KIDS_TOPBAR_QUERY })
-        }); 
-        
-        if (!response.ok) {
-          throw new Error(`HTTP Error! Status: ${response.status}`);
-        }
-
-        const payload = await response.json();
-
-        // Safely extract the firstName from the GraphQL response structure
-        if (payload.data?.getMe?.success) {
-          const { profile } = payload.data.getMe;
-          setGreeting(`Hi, ${profile.firstName}`);
-        }
-      } catch (error: any) {
-        if (error.name !== 'AbortError') {
-          console.error("[GREETING ERROR] Failed to fetch live greeting for TopBar:", error.message);
-        }
-      }
-    };
-
-    fetchGreeting();
-
-    return () => controller.abort();
-  }, []);
 
   const handleAskBuddy = () => {
     playSfx('yay');
@@ -101,8 +43,7 @@ export function TopBar() {
             animate={{ opacity: 1, x: 0 }}
             className="text-2xl font-black tracking-tight text-white flex items-center gap-2"
           >
-            {/* The clean "Hi, Amos" text goes here, followed by the emoji */}
-            {greeting} <span className="animate-bounce origin-bottom-right inline-block">👋</span>
+            Hi, {nickname || 'Buddy'} <span className="animate-bounce origin-bottom-right inline-block">👋</span>
           </motion.h2>
           <motion.p 
             initial={{ opacity: 0 }}

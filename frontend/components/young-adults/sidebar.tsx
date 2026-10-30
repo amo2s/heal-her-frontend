@@ -17,6 +17,7 @@ import {
   ShieldCheck
 } from "lucide-react";
 import { useSidebar } from "@/store/use-sidebar";
+import { useHeal } from "@/store/heal";
 import { useAudio } from "@/components/shared/context/audio-manager";
 import { cn } from "@/lib/utils";
 
@@ -33,91 +34,25 @@ const NAV = [
   { to: "learn", label: "Resources", icon: BookOpen },
 ];
 
-// The exact GraphQL Query from your Dashboard
-const DASHBOARD_PROFILE_QUERY = `
-  query GetYoungAdultDashboardProfile {
-    getMe {
-      success
-      profile {
-        firstName
-      }
-    }
-  }
-`;
-
 export interface SidebarProps {
   base?: string;
 }
 
 export function Sidebar({ base = "young-adults" }: SidebarProps) {
   const { isOpen, close } = useSidebar();
-  const [nickname, setNickname] = useState("...");
-  const [group, setGroup] = useState("Young Adult"); 
+  const { nickname, group } = useHeal();
   const pathname = usePathname();
   const { playSfx } = useAudio();
 
-  // New state tracking for the logout modal
+  // State tracking for the logout modal
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-
-  // Fetch real user data using the exact logic from the dashboard with Caching
-  useEffect(() => {
-    // 1. Direct cache lookup to maximize client-side request efficiency
-    const cachedName = localStorage.getItem("heal_ya_user_name");
-    if (cachedName) {
-      setNickname(cachedName);
-      return; // Short-circuit to avoid redundant network calls
-    }
-
-    const controller = new AbortController();
-
-    const fetchDashboardProfile = async () => {
-      try {
-        const response = await fetch('/api/proxy/young_adult/dashboard/graphql', {
-          method: 'POST',
-          signal: controller.signal,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ query: DASHBOARD_PROFILE_QUERY })
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP Error! Status: ${response.status}`);
-        }
-
-        const payload = await response.json();
-        
-        if (payload.errors) {
-          console.error("[UI SHIELD] GraphQL Errors:", payload.errors);
-          return;
-        }
-        
-        // Safely extract firstName exactly like the TopBar/Dashboard
-        if (payload.data?.getMe?.success) {
-          const { profile } = payload.data.getMe;
-          if (profile?.firstName) {
-            setNickname(profile.firstName);
-            // 2. Commit to cache for future page reloads
-            localStorage.setItem("heal_ya_user_name", profile.firstName);
-          }
-        }
-        
-      } catch (error: any) {
-        if (error.name !== 'AbortError') {
-          console.error("[UI SHIELD] Sidebar profile fetch failed:", error.message);
-        }
-      }
-    };
-    
-    fetchDashboardProfile();
-
-    return () => controller.abort();
-  }, []);
 
   // Close mobile sidebar on route change
   useEffect(() => { 
     close(); 
   }, [pathname, close]);
+
+  const displayName = nickname || "User";
 
   const SidebarContent = (
     <div className="flex h-full flex-col p-6">
@@ -213,14 +148,14 @@ export function Sidebar({ base = "young-adults" }: SidebarProps) {
           <div className="relative group">
             <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center shadow-lg">
               <span className="text-xs font-black text-white uppercase tracking-wider">
-                {nickname !== "..." ? nickname.slice(0, 2) : "..."}
+                {displayName.slice(0, 2).toUpperCase()}
               </span>
             </div>
             <div className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-background bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
           </div>
           
           <div className="flex flex-1 flex-col min-w-0">
-            <span className="truncate text-xs font-black text-white uppercase tracking-wider">{nickname}</span>
+            <span className="truncate text-xs font-black text-white uppercase tracking-wider">{displayName}</span>
             <span className="truncate text-[9px] text-primary uppercase font-bold tracking-[0.2em]">{group || "Young Adult"} User</span>
           </div>
 

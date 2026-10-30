@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { 
   Sparkles, 
   MessageCircleHeart, 
@@ -25,91 +25,17 @@ const itemVars = {
   animate: { opacity: 1, y: 0, scale: 1, transition: { type: "spring" as const, stiffness: 200, damping: 20 } } 
 };
 
-// =====================================================================
-// 1. THE GRAPHQL QUERY
-// =====================================================================
-const KIDS_DASHBOARD_QUERY = `
-  query GetKidsDashboardHeader {
-    getMe {
-      success
-      profile {
-        firstName
-      }
-      context {
-        greeting
-        contextualMessage
-        currentStreak
-      }
-    }
-  }
-`;
-
 export default function KidsHome() {
   const { nickname } = useHeal();
   const router = useRouter();
-  const { playSfx, speak } = useAudio();
+  const { playSfx } = useAudio();
   
   // --- STATE MANAGEMENT ---
   const [mounted, setMounted] = useState(false);
-  const [greetingText, setGreetingText] = useState<string | null>(null);
-  const [contextMessage, setContextMessage] = useState<string>("Let's explore your safe space and practice 1 new scenario today!");
-  const [isFetching, setIsFetching] = useState(true);
 
-  // --- DATA FETCHING (VIA SECURE NEXT.JS PROXY) ---
   useEffect(() => {
     setMounted(true);
-
-    // Initialize AbortController for cleanup
-    const controller = new AbortController();
-
-    const fetchLiveGreeting = async () => {
-      try {
-        // Routing through your Next.js proxy to hit the new Python GraphQL endpoint
-        const response = await fetch('/api/proxy/kids/dashboard/graphql', {
-          method: 'POST', // GraphQL strictly uses POST
-          signal: controller.signal,
-          headers: {
-            'Content-Type': 'application/json'
-            // "Authorization": `Bearer ${localStorage.getItem('token')}` // Uncomment if token isn't in cookies
-          },
-          body: JSON.stringify({ query: KIDS_DASHBOARD_QUERY })
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP Error! Status: ${response.status}`);
-        }
-
-        const payload = await response.json();
-
-        // Extract the secure GraphQL response
-        if (payload.data?.getMe?.success) {
-          const { profile, context } = payload.data.getMe;
-          // Dynamically combining the smart greeting and the child's atomized first name
-          setGreetingText(`${context.greeting}, ${profile.firstName}!`);
-          // Injecting the dynamic vibe message from the Temporal Warden
-          setContextMessage(context.contextualMessage);
-        } else {
-          throw new Error("Invalid GraphQL payload or missing data");
-        }
-
-      } catch (error: any) {
-        // Ignore AbortErrors (user navigated away quickly)
-        if (error.name !== 'AbortError') {
-          console.error("[FRONTEND ERROR] Failed to fetch secure dashboard data:", error.message);
-          // Graceful Degradation: Fallback to Zustand state if backend is unreachable
-          setGreetingText(`Hello, ${nickname}!`);
-          setContextMessage("Let's explore your safe space and practice 1 new scenario today!");
-        }
-      } finally {
-        setIsFetching(false);
-      }
-    };
-
-    fetchLiveGreeting();
-
-    // Cleanup function cancels the fetch if component unmounts
-    return () => controller.abort();
-  }, [nickname]);
+  }, []);
 
   const handleNavigate = (path: string, sound: 'yay' | 'boing' | 'click' = 'click') => {
     playSfx(sound);
@@ -147,34 +73,19 @@ export default function KidsHome() {
               <Sparkles className="h-3 w-3 animate-pulse" /> Today's Mission
             </motion.div>
             
-            {/* DYNAMIC GREETING LOADER */}
+            {/* DYNAMIC GREETING */}
             <div className="min-h-[60px] flex items-center justify-center md:justify-start mb-2">
-              <AnimatePresence mode="wait">
-                {isFetching ? (
-                  // Premium Skeleton Loader
-                  <motion.div 
-                    key="skeleton"
-                    initial={{ opacity: 0 }} 
-                    animate={{ opacity: 1 }} 
-                    exit={{ opacity: 0 }}
-                    className="h-10 w-3/4 md:w-1/2 bg-white/10 animate-pulse rounded-lg border border-white/5"
-                  />
-                ) : (
-                  // Live Data from GraphQL Backend
-                  <motion.h1 
-                    key="content"
-                    initial={{ opacity: 0, y: 10 }} 
-                    animate={{ opacity: 1, y: 0 }}
-                    className="font-display text-2xl md:text-4xl font-black leading-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-[#CCCCD9]"
-                  >
-                    {greetingText}
-                  </motion.h1>
-                )}
-              </AnimatePresence>
+              <motion.h1 
+                initial={{ opacity: 0, y: 10 }} 
+                animate={{ opacity: 1, y: 0 }}
+                className="font-display text-2xl md:text-4xl font-black leading-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-[#CCCCD9]"
+              >
+                Hello, <span className="text-white">{nickname}</span>!
+              </motion.h1>
             </div>
 
             <p className="text-[#CCCCD9] font-medium text-sm md:text-base max-w-md">
-              {contextMessage}
+              Let's explore your safe space and practice 1 new scenario today!
             </p>
           </div>
 

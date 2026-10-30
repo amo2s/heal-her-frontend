@@ -28,12 +28,14 @@ const itemVars = {
 
 export default function Gateway() {
   const router = useRouter();
-  const { setUser } = useHeal();
-  const [nickname, setNickname] = useState("Sarah");
+  const { nickname, setUser } = useHeal();
+  const [customName, setCustomName] = useState<string | null>(null);
   const [age, setAge] = useState(16);
 
+  const activeNickname = customName !== null ? customName : (nickname !== "there" ? nickname : "");
+
   const enter = () => {
-    setUser(nickname.trim() || "friend", age);
+    setUser(activeNickname.trim() || (nickname !== "there" ? nickname : "friend"), age);
     router.push(ROUTES[groupFor(age)]);
   };
 
@@ -134,8 +136,8 @@ export default function Gateway() {
             <label className="block">
               <span className="ml-1 text-xs font-semibold uppercase tracking-wider text-foreground/60">Your nickname</span>
               <input
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
+                value={activeNickname}
+                onChange={(e) => setCustomName(e.target.value)}
                 className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-base outline-none transition-all focus:border-primary/50 focus:bg-white/10 focus:ring-4 focus:ring-primary/10 placeholder:text-foreground/30"
                 placeholder="What should we call you?"
               />
@@ -190,7 +192,7 @@ export default function Gateway() {
 
           <p className="mt-6 text-center text-[11px] leading-relaxed text-foreground/40">
             Private & Secure. We don't store your personal data without permission. <br />
-            Dyg? Your safety is our priority.
+            Your safety is our priority.
           </p>
         </motion.div>
       </div>

@@ -21,6 +21,11 @@ interface HealState {
   toggleStealth: () => void;
 }
 
+export interface HealProviderProps {
+  children: ReactNode;
+  initialNickname?: string;
+}
+
 export const groupFor = (age: number): AgeGroup =>
   age <= 12 ? "kids" : age <= 17 ? "teens" : "ya";
 
@@ -28,9 +33,9 @@ const HealCtx = createContext<HealState | null>(null);
 
 const STORAGE_KEY = "heal-her-user";
 
-export function HealProvider({ children }: { children: ReactNode }) {
-  // Initial states match your React version
-  const [nickname, setNickname] = useState("Sarah");
+export function HealProvider({ children, initialNickname }: HealProviderProps) {
+  // Consume the server-injected initialNickname or fallback to "there"
+  const [nickname, setNickname] = useState(initialNickname || "there");
   const [age, setAge] = useState(16);
   const [stealthMode, setStealthMode] = useState(false);
 
@@ -40,13 +45,15 @@ export function HealProvider({ children }: { children: ReactNode }) {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed.nickname) setNickname(parsed.nickname);
+        if (parsed.nickname && parsed.nickname !== "Sarah" && !initialNickname) {
+          setNickname(parsed.nickname);
+        }
         if (typeof parsed.age === "number") setAge(parsed.age);
       }
     } catch (error) {
       console.error("Failed to load heal state:", error);
     }
-  }, []);
+  }, [initialNickname]);
 
   const setUser = useCallback((n: string, a: number) => {
     setNickname(n);

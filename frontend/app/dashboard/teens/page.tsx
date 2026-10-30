@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { 
   MessageSquare, 
   AlertTriangle, 
@@ -24,82 +24,16 @@ const itemVars = {
   animate: { opacity: 1, y: 0, scale: 1, transition: { type: "spring" as const, stiffness: 200, damping: 20 } } 
 };
 
-// =====================================================================
-// 1. THE GRAPHQL QUERY
-// =====================================================================
-const TEENS_DASHBOARD_QUERY = `
-  query GetTeensDashboardHeader {
-    getMe {
-      success
-      profile {
-        firstName
-      }
-      context {
-        greeting
-        contextualMessage
-        currentStreak
-      }
-    }
-  }
-`;
-
 export default function TeensDashboardPage() {
   const { nickname } = useHeal();
   const router = useRouter();
   
   // --- STATE MANAGEMENT ---
   const [mounted, setMounted] = useState(false);
-  const [greetingText, setGreetingText] = useState<string | null>(null);
-  const [contextMessage, setContextMessage] = useState<string>("Real talk about boundaries, consent, and staying safe.");
-  const [streak, setStreak] = useState<number>(0);
-  const [isFetching, setIsFetching] = useState(true);
 
-  // --- DATA FETCHING (VIA SECURE NEXT.JS PROXY) ---
   useEffect(() => {
     setMounted(true);
-    const controller = new AbortController();
-
-    const fetchLiveGreeting = async () => {
-      try {
-        // Routing through your hidden Next.js proxy
-        const response = await fetch('/api/proxy/teens/dashboard/graphql', {
-          method: 'POST',
-          signal: controller.signal,
-          headers: {
-            'Content-Type': 'application/json'
-            // "Authorization": `Bearer ${localStorage.getItem('token')}` // If needed
-          },
-          body: JSON.stringify({ query: TEENS_DASHBOARD_QUERY })
-        });
-
-        if (!response.ok) throw new Error(`HTTP Error! Status: ${response.status}`);
-
-        const payload = await response.json();
-
-        if (payload.data?.getMe?.success) {
-          const { profile, context } = payload.data.getMe;
-          setGreetingText(`${context.greeting}, ${profile.firstName}.`);
-          setContextMessage(context.contextualMessage);
-          setStreak(context.currentStreak);
-        } else {
-          throw new Error("Invalid GraphQL payload or missing data");
-        }
-
-      } catch (error: any) {
-        if (error.name !== 'AbortError') {
-          console.error("[FRONTEND ERROR] Failed to fetch secure dashboard data:", error.message);
-          // Graceful Degradation
-          setGreetingText(`Hey, ${nickname || 'there'}.`);
-          setContextMessage("Real talk about boundaries, consent, and staying safe.");
-        }
-      } finally {
-        setIsFetching(false);
-      }
-    };
-
-    fetchLiveGreeting();
-    return () => controller.abort();
-  }, [nickname]);
+  }, []);
 
   const handleNavigate = (path: string) => {
     router.push(path);
@@ -134,32 +68,21 @@ export default function TeensDashboardPage() {
               className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-[#DA8CA0] mb-6"
             >
               <Activity className="h-4 w-4" /> 
-              Your Space {streak > 0 && <span className="ml-2 pl-2 border-l border-white/20 text-white/70">{streak} Day Streak</span>}
+              Your Space
             </motion.div>
             
-            {/* DYNAMIC GREETING LOADER */}
+            {/* DYNAMIC GREETING */}
             <div className="min-h-[60px] flex items-center justify-center md:justify-start mb-2">
-              <AnimatePresence mode="wait">
-                {isFetching ? (
-                  <motion.div 
-                    key="skeleton"
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    className="h-10 w-3/4 md:w-1/2 bg-white/10 animate-pulse rounded-lg border border-white/5"
-                  />
-                ) : (
-                  <motion.h1 
-                    key="content"
-                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                    className="font-display text-3xl md:text-5xl font-extrabold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-[#CCCCD9]"
-                  >
-                    {greetingText}
-                  </motion.h1>
-                )}
-              </AnimatePresence>
+              <motion.h1 
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                className="font-display text-3xl md:text-5xl font-extrabold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-[#CCCCD9]"
+              >
+                Hey, <span className="text-white">{nickname}</span>.
+              </motion.h1>
             </div>
 
             <p className="text-[#CCCCD9] font-medium text-sm md:text-base max-w-md mt-2">
-              {contextMessage}
+              Real talk about boundaries, consent, and staying safe.
             </p>
           </div>
 

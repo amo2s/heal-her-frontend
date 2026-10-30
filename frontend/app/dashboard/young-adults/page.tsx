@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { motion, Variants } from "framer-motion";
 import { useHeal } from "@/store/heal"; 
 import { 
   Briefcase, Scale, Globe, ShieldCheck, 
-  ChevronLeft, ChevronRight, Droplet, Activity, 
+  Activity, 
   Wallet, Plus, ArrowRight, PieChart, Info
 } from "lucide-react";
 
@@ -16,75 +16,8 @@ const itemVars: Variants = {
   animate: { opacity: 1, y: 0, scale: 1, transition: { type: "spring" as const, stiffness: 200, damping: 20 } } 
 };
 
-// =====================================================================
-// 1. THE EXACT GRAPHQL QUERY (Matched to TopBar Schema)
-// =====================================================================
-const DASHBOARD_PROFILE_QUERY = `
-  query GetYoungAdultDashboardProfile {
-    getMe {
-      success
-      profile {
-        firstName
-      }
-    }
-  }
-`;
-
 export default function YoungAdultsDashboardPage() {
   const { nickname } = useHeal(); 
-  
-  // STATE: Local override to instantly bypass the store's "Sarah" issue
-  const [dashboardName, setDashboardName] = useState("");
-  const [isNameLoading, setIsNameLoading] = useState(true);
-
-  // FETCH DATA: Matched exactly to the TopBar's robust fetching logic
-  useEffect(() => {
-    const controller = new AbortController();
-
-    const fetchDashboardProfile = async () => {
-      try {
-        setIsNameLoading(true);
-        
-        const response = await fetch('/api/proxy/young_adult/dashboard/graphql', {
-          method: 'POST',
-          signal: controller.signal,
-          headers: {
-            'Content-Type': 'application/json',
-            // 'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify({ query: DASHBOARD_PROFILE_QUERY })
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP Error! Status: ${response.status}`);
-        }
-
-        const payload = await response.json();
-        
-        if (payload.errors) {
-          console.error("GraphQL Errors:", payload.errors);
-          return;
-        }
-        
-        // Safely extract firstName exactly like the TopBar
-        if (payload.data?.getMe?.success) {
-          const { profile } = payload.data.getMe;
-          setDashboardName(profile.firstName);
-        }
-        
-      } catch (error: any) {
-        if (error.name !== 'AbortError') {
-          console.error("Dashboard profile fetch failed:", error.message);
-        }
-      } finally {
-        setIsNameLoading(false);
-      }
-    };
-    
-    fetchDashboardProfile();
-
-    return () => controller.abort();
-  }, []);
   
   return (
     <motion.section 
@@ -112,16 +45,9 @@ export default function YoungAdultsDashboardPage() {
               <ShieldCheck className="h-4 w-4" /> Young Adult Command Center
             </div>
             
-            {/* DYNAMIC WELCOME HEADER WITH LOCAL STATE AND SKELETON */}
+            {/* DYNAMIC WELCOME HEADER */}
             <h1 className="font-display text-3xl md:text-5xl font-extrabold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-[#CCCCD9] flex flex-wrap items-center gap-x-3 gap-y-1">
-              Welcome back, 
-              {isNameLoading ? (
-                <span className="inline-block h-8 md:h-12 w-32 md:w-48 bg-white/20 animate-pulse rounded-xl align-middle shadow-inner border border-white/10" />
-              ) : (
-                <span className="text-white">
-                  {dashboardName || nickname || "there"}
-                </span>
-              )}
+              Welcome back, <span className="text-white">{nickname}</span>
             </h1>
 
             <p className="mt-3 text-sm md:text-base font-medium text-[#CCCCD9] max-w-md">
