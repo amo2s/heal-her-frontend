@@ -2,6 +2,7 @@ mod api;
 mod cache;
 mod config;
 mod db;
+mod error;
 mod graphql;
 mod middleware;
 mod state;
@@ -11,7 +12,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::{
     api::router::create_router, cache::init_profile_cache, config::Config, db::init_pool,
-    graphql::schema::build_schema, state::AppState,
+    state::AppState,
 };
 
 #[tokio::main]
@@ -25,7 +26,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    tracing::info!("Starting HEAL-HER Zero-Stress Dashboard GraphQL Microservice...");
+    tracing::info!("Starting HEAL-HER Zero-Trust Multi-Schema Dashboard GraphQL Microservice...");
 
     // 2. Load environment configuration via dotenvy
     let config = Config::from_env();
@@ -42,20 +43,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 4. Construct immutable application state
     let state = AppState::new(pool, config.jwt_secret_key, cache);
 
-    // 5. Build async-graphql schema with AST attack defense limits
-    let schema = build_schema(state.clone());
+    // 5. Build Axum router with Multi-Schema routing guillotine
+    let app = create_router(state);
 
-    // 6. Build Axum router with middleware and CORS
-    let app = create_router(state, schema);
-
-    // 7. Bind TCP listener to 0.0.0.0:{PORT}
+    // 6. Bind TCP listener to 0.0.0.0:{PORT}
     let addr_str = format!("{}:{}", config.host, config.port);
     let addr: SocketAddr = addr_str.parse()?;
     let listener = tokio::net::TcpListener::bind(&addr).await?;
 
-    tracing::info!("Dashboard GraphQL service listening on http://{}", addr);
+    tracing::info!(
+        "Dashboard Multi-Schema GraphQL service listening on http://{}",
+        addr
+    );
 
-    // 8. Serve Axum HTTP server
+    // 7. Serve Axum HTTP server
     axum::serve(listener, app).await?;
 
     Ok(())
