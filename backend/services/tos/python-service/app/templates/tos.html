@@ -340,6 +340,8 @@
             <p class="sig-meta"><strong>Audit Fingerprint:</strong> SECURE-TLS-{{ request_id }}</p>
             <p class="sig-meta"><strong>Client IP Address:</strong> {{ payload.ipAddress }}</p>
             <p class="sig-meta"><strong>Document Version:</strong> <span class="audit-font">{{ active_version }}</span></p>
+            <p class="sig-meta"><strong>Verification Protocol:</strong> <span class="audit-font">Asymmetric Ed25519 Cryptography</span></p>
+            <p class="sig-meta"><strong>Cryptographic Nonce (JTI):</strong> <span class="audit-font">{{ jit_nonce }}</span></p>
         </div>
     </div>
 </div>

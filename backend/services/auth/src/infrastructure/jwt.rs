@@ -134,6 +134,47 @@ pub fn forge_token_pair(
     Ok((pair.access_token, pair.refresh_token))
 }
 
+/// Upgraded Zero-Trust Asymmetric JIT Consent Claims.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct JitConsentClaims {
+    pub sub: Uuid,
+    pub ctx: String,
+    pub jti: Uuid,
+    pub iat: i64,
+    pub exp: i64,
+    pub iss: String,
+}
+
+/// Mints an asymmetric Ed25519 (EdDSA) JIT consent receipt with strict 60-second TTL.
+/// Cryptographically binds the User ID (sub), Document Version (ctx), and unique Nonce (jti).
+pub fn mint_jit_consent_receipt(
+    user_id: Uuid,
+    active_version: &str,
+    jti: Uuid,
+    private_key_pem: &str,
+) -> Result<String, InternalAuthError> {
+    let now = Utc::now().timestamp();
+    let exp = now + 60; // 60 seconds strict TTL
+
+    let claims = JitConsentClaims {
+        sub: user_id,
+        ctx: active_version.to_string(),
+        jti,
+        iat: now,
+        exp,
+        iss: "heal-her-rust-auth".to_string(),
+    };
+
+    let encoding_key = EncodingKey::from_ed_pem(private_key_pem.as_bytes())
+        .map_err(|e| InternalAuthError::JwtSigningError(format!("Invalid Ed25519 private key: {e}")))?;
+
+    let header = Header::new(Algorithm::EdDSA);
+    let token = encode(&header, &claims, &encoding_key)
+        .map_err(|e| InternalAuthError::JwtSigningError(format!("Failed to sign JIT receipt: {e}")))?;
+
+    Ok(token)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -210,5 +251,34 @@ mod tests {
 
         // Invalid secret must fail
         assert!(verify_token(&pair.access_token, "wrong_secret").is_err());
+    }
+
+    #[test]
+    fn test_mint_and_verify_jit_consent_receipt_eddsa() {
+        let private_pem = "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIFto8G+u9sEIJnNcxT9/HQ3xIVN/szR1dRsTkRQFM2Xf\n-----END PRIVATE KEY-----";
+        let public_pem = "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAGlTjijyplUHjl2K8QNw0VoJ8Xt2Dv6S81vRUQ61V4js=\n-----END PUBLIC KEY-----";
+
+        let user_id = Uuid::new_v4();
+        let jti = Uuid::new_v4();
+        let version = "2.0";
+
+        let token = mint_jit_consent_receipt(user_id, version, jti, private_pem)
+            .expect("Minting JIT consent receipt should succeed");
+
+        let decoding_key = DecodingKey::from_ed_pem(public_pem.as_bytes())
+            .expect("Decoding key parsing should succeed");
+
+        let mut validation = Validation::new(Algorithm::EdDSA);
+        validation.set_issuer(&["heal-her-rust-auth"]);
+        validation.validate_aud = false;
+
+        let token_data = decode::<JitConsentClaims>(&token, &decoding_key, &validation)
+            .expect("Decoding JIT receipt should succeed");
+
+        assert_eq!(token_data.claims.sub, user_id);
+        assert_eq!(token_data.claims.ctx, version);
+        assert_eq!(token_data.claims.jti, jti);
+        assert_eq!(token_data.claims.iss, "heal-her-rust-auth");
+        assert_eq!(token_data.claims.exp - token_data.claims.iat, 60);
     }
 }

@@ -28,6 +28,10 @@ class Settings(BaseSettings):
 
     # Zero-Trust Cryptography & Auth
     jwt_secret_key: str = ""
+    jit_ed25519_public_key: str = Field(
+        default="-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAGlTjijyplUHjl2K8QNw0VoJ8Xt2Dv6S81vRUQ61V4js=\n-----END PUBLIC KEY-----",
+        validation_alias="JIT_ED25519_PUBLIC_KEY",
+    )
 
     # PostgreSQL Database Engine
     database_url_raw: str = Field(default="", validation_alias="DATABASE_URL")

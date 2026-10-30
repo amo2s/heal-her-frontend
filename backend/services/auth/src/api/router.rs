@@ -6,6 +6,7 @@ use crate::{
         refresh::refresh_handler,
         signup::handle_signup,
         terminate::terminate_session_handler,
+        tos_jit::{request_tos_jit_otp_handler, verify_tos_jit_otp_handler},
     },
     state::AppState,
 };
@@ -57,6 +58,13 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/v1/auth/terminate-session", post(terminate_session_handler))
         .route("/api/auth/terminate-session", post(terminate_session_handler))
         .route("/terminate-session", post(terminate_session_handler))
+        // Legal Consent JIT Handshake: Asymmetric Ed25519 OTP Request & Verify
+        .route("/api/v1/auth/tos-jit/request", post(request_tos_jit_otp_handler))
+        .route("/api/auth/tos-jit/request", post(request_tos_jit_otp_handler))
+        .route("/tos-jit/request", post(request_tos_jit_otp_handler))
+        .route("/api/v1/auth/tos-jit/verify", post(verify_tos_jit_otp_handler))
+        .route("/api/auth/tos-jit/verify", post(verify_tos_jit_otp_handler))
+        .route("/tos-jit/verify", post(verify_tos_jit_otp_handler))
         // Password Reset routes: Ghost Protocol OTP Request & Verification
         .route("/api/v1/auth/password-reset/request", post(request_otp_handler))
         .route("/api/auth/password-reset/request", post(request_otp_handler))

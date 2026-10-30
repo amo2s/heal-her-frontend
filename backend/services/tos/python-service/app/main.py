@@ -7,6 +7,8 @@ import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
+import jwt
+
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -189,7 +191,63 @@ async def execute_tos_agreement(
     request_id = uuid.uuid4()
     logger.info(f"Processing TOS execution [Request ID: {request_id}] for user: {user.email}")
 
-    # 1. Construct immutable enriched payload
+    # 1. Asymmetric Cryptographic JIT Receipt Verification (Ed25519 / EdDSA)
+    try:
+        jit_claims = jwt.decode(
+            payload.jit_receipt,
+            settings.jit_ed25519_public_key,
+            algorithms=["EdDSA"],
+            issuer="heal-her-rust-auth",
+            options={"require": ["sub", "ctx", "jti", "exp", "iss"]},
+        )
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="JIT consent authorization receipt has expired (TTL 60s exceeded). Please re-verify.",
+        )
+    except jwt.InvalidTokenError as exc:
+        logger.warning(f"Invalid JIT receipt presented for user {user.email}: {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cryptographic JIT signature invalid: {exc}",
+        )
+
+    # 2. Context-Bound Zero-Trust Claims Enforcement
+    if jit_claims.get("sub") != str(user.user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="JIT consent receipt subject does not match authenticated user.",
+        )
+
+    if jit_claims.get("ctx") != settings.active_tos_version:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"JIT consent version mismatch: receipt signed for version {jit_claims.get('ctx')}, but active platform version is {settings.active_tos_version}.",
+        )
+
+    try:
+        jit_nonce = uuid.UUID(str(jit_claims.get("jti")))
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Malformed cryptographic JTI nonce in JIT receipt.",
+        )
+
+    # 3. Double-Spend Replay Attack Defense (PostgreSQL Nonce Gate)
+    nonce_check_query = text(
+        "SELECT 1 FROM tos_audit_ledger WHERE jit_nonce = :nonce LIMIT 1"
+    )
+    nonce_result = await db.execute(nonce_check_query, {"nonce": jit_nonce})
+    if nonce_result.fetchone() is not None:
+        logger.critical(
+            f"REPLAY ATTACK DETECTED: Nonce {jit_nonce} already spent! Aborting execution for user {user.email}."
+        )
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cryptographic nonce already spent. Replay attack detected and aborted.",
+        )
+
+    # 4. Construct immutable enriched payload
     enriched_payload = EnrichedSignaturePayload(
         request_id=request_id,
         user_id=user.user_id,
@@ -200,9 +258,10 @@ async def execute_tos_agreement(
         minor_age=payload.minor_age,
         ip_address=user.ip_address,
         document_version=settings.active_tos_version,
+        jit_nonce=jit_nonce,
     )
 
-    # 2. Render and encrypt PDF entirely in RAM
+    # 5. Render and encrypt PDF entirely in RAM
     try:
         pdf_bytes = render_tos_pdf(enriched_payload)
     except DocumentRenderingError as exc:
@@ -212,10 +271,10 @@ async def execute_tos_agreement(
             detail="Document rendering failure. Please retry.",
         )
 
-    # 3. Calculate deterministic SHA-512 non-repudiation fingerprint
+    # 6. Calculate deterministic SHA-512 non-repudiation fingerprint
     sha512_hash = hashlib.sha512(pdf_bytes).hexdigest()
 
-    # 4. Asynchronously vault document to Supabase Storage
+    # 7. Asynchronously vault document to Supabase Storage
     timestamp_epoch = int(time.time())
     storage_path = f"{user.user_id}/{timestamp_epoch}_tos.pdf"
 
@@ -225,7 +284,7 @@ async def execute_tos_agreement(
         logger.error(f"Storage vault upload failure for request {request_id}: {exc}")
         # Proceed with ledger record to guarantee audit compliance even if vault retry is needed
 
-    # 5. Commit audit ledger record to PostgreSQL
+    # 8. Commit audit ledger record to PostgreSQL
     try:
         audit_entry = TosAuditLedger(
             request_id=request_id,
@@ -238,11 +297,14 @@ async def execute_tos_agreement(
             sha512_hash=sha512_hash,
             storage_path=storage_path,
             document_version=settings.active_tos_version,
+            jit_nonce=jit_nonce,
             execution_timestamp=datetime.now(timezone.utc),
         )
         db.add(audit_entry)
         await db.commit()
-        logger.info(f"Committed audit record to tos_audit_ledger [Request ID: {request_id}, Version: {settings.active_tos_version}, SHA: {sha512_hash[:16]}...]")
+        logger.info(
+            f"Committed audit record to tos_audit_ledger [Request ID: {request_id}, Version: {settings.active_tos_version}, Nonce: {jit_nonce}, SHA: {sha512_hash[:16]}...]"
+        )
     except Exception as exc:
         await db.rollback()
         logger.critical(f"Database commit failure for tos_audit_ledger: {exc}")

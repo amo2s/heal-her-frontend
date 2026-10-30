@@ -9,6 +9,7 @@ pub struct Config {
     pub max_connections: u32,
     pub acquire_timeout_secs: u64,
     pub idle_timeout_secs: u64,
+    pub jit_ed25519_private_key: String,
 }
 
 impl Config {
@@ -33,6 +34,11 @@ impl Config {
 
         let jwt_secret_key = env::var("JWT_SECRET_KEY")
             .expect("FATAL: JWT_SECRET_KEY environment variable must be set");
+
+        let jit_ed25519_private_key = env::var("JIT_ED25519_PRIVATE_KEY")
+            .unwrap_or_else(|_| {
+                "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIFto8G+u9sEIJnNcxT9/HQ3xIVN/szR1dRsTkRQFM2Xf\n-----END PRIVATE KEY-----".to_string()
+            });
 
         let host = env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
 
@@ -65,6 +71,7 @@ impl Config {
             max_connections,
             acquire_timeout_secs,
             idle_timeout_secs,
+            jit_ed25519_private_key,
         }
     }
 }

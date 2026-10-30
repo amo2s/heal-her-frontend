@@ -75,7 +75,9 @@ async fn main() -> Result<(), ApiError> {
 
     // 4. Construct immutable application state with dedicated L1 reset cache
     let reset_cache = std::sync::Arc::new(crate::infrastructure::reset_cache::PasswordResetCache::new());
-    let app_state = AppState::new(pool.clone(), config.jwt_secret_key, reset_cache);
+    let jit_cache = std::sync::Arc::new(crate::infrastructure::reset_cache::TosJitCache::new());
+    let app_state = AppState::new(pool.clone(), config.jwt_secret_key, reset_cache)
+        .with_jit(jit_cache, config.jit_ed25519_private_key);
 
     // 5. Compose Axum router with Tower security middleware armor and application state
     let app = create_router(app_state);

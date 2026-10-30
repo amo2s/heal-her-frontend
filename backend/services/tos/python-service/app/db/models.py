@@ -76,6 +76,13 @@ class TosAuditLedger(Base):
         default="1.0",
         doc="Document version of the legal terms executed (e.g. '1.0')"
     )
+    jit_nonce: Mapped[Optional[UUID]] = mapped_column(
+        PG_UUID(as_uuid=True),
+        unique=True,
+        index=True,
+        nullable=True,
+        doc="Cryptographic single-use nonce (JTI) from the Asymmetric Ed25519 JIT handshake"
+    )
     execution_timestamp: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

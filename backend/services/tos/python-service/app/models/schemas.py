@@ -25,6 +25,11 @@ class SignatureRequest(BaseModel):
         max_length=255,
         description="Full legal name of the individual executing the agreement"
     )
+    jit_receipt: str = Field(
+        ...,
+        min_length=10,
+        description="Asymmetric Ed25519 JWT receipt issued by Rust Auth microservice"
+    )
     is_parental_consent: bool = Field(
         default=False,
         description="Flag indicating whether signing on behalf of a minor child"
@@ -86,6 +91,7 @@ class EnrichedSignaturePayload(BaseModel):
     minor_age: Optional[int] = None
     ip_address: str
     document_version: str = "1.0"
+    jit_nonce: Optional[UUID] = None
 
 
 class TOSExecutionResponse(BaseModel):

@@ -22,3 +22,4 @@ ON tos_audit_ledger (client_email, document_version);
 -- Accelerates `ORDER BY execution_timestamp DESC LIMIT 1` queries for re-consent checks
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tos_audit_email_timestamp 
 ON tos_audit_ledger (client_email, execution_timestamp DESC);
+

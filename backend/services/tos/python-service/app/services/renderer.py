@@ -50,7 +50,8 @@ def render_tos_pdf(payload: EnrichedSignaturePayload) -> bytes:
             "payload": payload.model_dump(by_alias=True),
             "request_id": str(payload.request_id),
             "execution_date": datetime.now(timezone.utc).strftime("%B %d, %Y"),
-            "active_version": settings.active_tos_version,
+            "active_version": payload.document_version or settings.active_tos_version,
+            "jit_nonce": str(payload.jit_nonce) if payload.jit_nonce else "N/A",
         }
 
         # 2. Compile child template
