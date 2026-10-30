@@ -1,56 +1,36 @@
 # ==============================================================================
-# STAGE 1: The Builder (Compiles the Rust Microservice with Layer Caching)
+# STAGE 1: Chef Base (Installs cargo-chef for dependency caching)
 # ==============================================================================
-FROM rust:1.80-slim-bookworm AS builder
-
-WORKDIR /usr/src/app
-
-# Install system compilation packages (pkg-config, OpenSSL headers)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    pkg-config \
-    libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy dependency manifests
-COPY Cargo.toml Cargo.lock ./
-
-# Cache dependencies using a dummy entrypoint
-RUN mkdir src && \
-    echo "fn main() {}" > src/main.rs && \
-    cargo build --release && \
-    rm -rf src
-
-# Copy genuine source code and Askama compile-time templates
-COPY src ./src
-COPY templates ./templates
-
-# Force timestamp refresh on main.rs and compile final release binary
-RUN touch src/main.rs && cargo build --release
-
-# ==============================================================================
-# STAGE 2: The Minimal Production Runner (Zero Toolchain, Non-Root Execution)
-# ==============================================================================
-FROM debian:bookworm-slim AS runner
-
+FROM rust:1.80-slim-bullseye AS chef
+RUN cargo install cargo-chef
 WORKDIR /app
 
-# Install CA certificates for secure TLS handshakes (reqwest -> Google Mailer Webhook)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+# ==============================================================================
+# STAGE 2: Planner (Calculates dependency recipe lockfile)
+# ==============================================================================
+FROM chef AS planner
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
 
-# Create dedicated unprivileged user and group for hardened defense-in-depth
-RUN groupadd -r appgroup && useradd -r -g appgroup -s /sbin/nologin appuser
+# ==============================================================================
+# STAGE 3: Builder (Cooks cached dependencies, then compiles release binary)
+# ==============================================================================
+FROM chef AS builder
+COPY --from=planner /app/recipe.json recipe.json
+ENV CARGO_PROFILE_RELEASE_STRIP=true
+ENV CARGO_PROFILE_RELEASE_LTO=fat
+RUN cargo chef cook --release --recipe-path recipe.json
+COPY . .
+RUN cargo build --release --bin auth
 
-# Copy isolated binary from builder stage
-COPY --from=builder /usr/src/app/target/release/auth /usr/local/bin/auth
+# ==============================================================================
+# STAGE 4: Distroless Runtime (Zero-shell, minimal attack surface)
+# ==============================================================================
+FROM gcr.io/distroless/cc-debian12
+WORKDIR /app
+COPY --from=builder /app/target/release/auth /app/auth
 
-# Ensure executable permissions and switch to unprivileged user
-RUN chmod +x /usr/local/bin/auth
-USER appuser
-
-# Expose internal microservice port
 EXPOSE 8080
-
-# Default execution entrypoint
-CMD ["auth"]
+ENV HOST=0.0.0.0
+ENV PORT=8080
+ENTRYPOINT ["/app/auth"]

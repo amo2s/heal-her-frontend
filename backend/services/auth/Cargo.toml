@@ -29,3 +29,10 @@ reqwest = { version = "0.11", features = ["json", "rustls-tls"] }
 rand = "0.8"
 base64 = "0.22"
 askama = "0.12"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = true
+
