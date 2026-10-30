@@ -5,6 +5,7 @@ use crate::{
         password_reset::{confirm_reset_handler, request_otp_handler, verify_otp_handler},
         refresh::refresh_handler,
         signup::handle_signup,
+        terminate::terminate_session_handler,
     },
     state::AppState,
 };
@@ -52,6 +53,10 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/v1/auth/logout", post(logout_handler))
         .route("/api/auth/logout", post(logout_handler))
         .route("/logout", post(logout_handler))
+        // Legal Consent Kill-Switch: Nuclear Session Termination
+        .route("/api/v1/auth/terminate-session", post(terminate_session_handler))
+        .route("/api/auth/terminate-session", post(terminate_session_handler))
+        .route("/terminate-session", post(terminate_session_handler))
         // Password Reset routes: Ghost Protocol OTP Request & Verification
         .route("/api/v1/auth/password-reset/request", post(request_otp_handler))
         .route("/api/auth/password-reset/request", post(request_otp_handler))

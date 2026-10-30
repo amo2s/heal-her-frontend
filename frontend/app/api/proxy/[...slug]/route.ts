@@ -19,10 +19,16 @@ async function proxyRequest(request: NextRequest, { params }: { params: Promise<
   const path = mappedSlug.join("/");
   let backendUrl = process.env.BACKEND_URL || "https://sliverboy-healher-backend.hf.space";
 
-  // --- TRAFFIC ROUTER: Route TOS execution to the Python Legal Consent Microservice ---
+  // --- TRAFFIC ROUTER: Route TOS execution to Python, Auth to Rust Microservice ---
   if (path.startsWith("api/v1/tos")) {
     backendUrl =
       process.env.PYTHON_TOS_URL ||
+      (process.env.BACKEND_URL && !process.env.BACKEND_URL.includes("graphql")
+        ? process.env.BACKEND_URL
+        : "http://127.0.0.1:8080");
+  } else if (path.startsWith("api/v1/auth")) {
+    backendUrl =
+      process.env.RUST_AUTH_URL ||
       (process.env.BACKEND_URL && !process.env.BACKEND_URL.includes("graphql")
         ? process.env.BACKEND_URL
         : "http://127.0.0.1:8080");

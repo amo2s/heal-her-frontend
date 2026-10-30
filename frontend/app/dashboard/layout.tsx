@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { HealProvider } from "@/store/heal";
-import { LegalConsentBanner } from "@/components/dashboard/legal-consent-banner";
+import { LegalConsentModal } from "@/components/dashboard/LegalConsentModal";
 
 export const dynamic = "force-dynamic";
 
@@ -42,11 +42,7 @@ export default async function DashboardLayout({
 
   return (
     <HealProvider>
-      {!hasSigned && (
-        <div className="w-full px-4 pt-4 sm:px-6 lg:px-8 z-50">
-          <LegalConsentBanner />
-        </div>
-      )}
+      {!hasSigned && <LegalConsentModal />}
       {children}
     </HealProvider>
   );
