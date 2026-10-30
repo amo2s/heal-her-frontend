@@ -34,3 +34,4 @@ EXPOSE 8081
 ENV HOST=0.0.0.0
 ENV PORT=8081
 ENTRYPOINT ["/app/dashboard"]
+
