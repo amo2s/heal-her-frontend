@@ -36,7 +36,7 @@ jobs:
               - 'backend/services/gateway/**'
               - '.github/workflows/**'
             tos:
-              - 'backend/services/tos/**'
+              - 'backend/legal_service/**'
               - '.github/workflows/**'
 
   build-auth:
@@ -157,7 +157,7 @@ jobs:
       - name: Build and push TOS container
         uses: docker/build-push-action@v5
         with:
-          context: backend/services/tos/python_service
+          context: backend/legal_service
           push: true
           tags: ghcr.io/${{ env.REPO_OWNER }}/heal-her-tos:latest
           cache-from: type=gha

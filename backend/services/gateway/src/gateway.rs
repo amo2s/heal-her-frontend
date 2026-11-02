@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use lazy_static::lazy_static;
 use pingora::http::{RequestHeader, ResponseHeader};
 use pingora_core::upstreams::peer::HttpPeer;
 use pingora_core::Result;
@@ -8,6 +9,50 @@ use tracing::{debug, warn};
 
 use crate::rate_limiter::check_rate_limit;
 use crate::upstreams::{AUTH_CLUSTER, DASHBOARD_CLUSTER, TOS_CLUSTER};
+
+lazy_static! {
+    /// Whitelist of origins permitted to communicate with the Gateway.
+    /// Supports dynamic expansion via ALLOWED_ORIGINS and FRONTEND_URL environment variables.
+    static ref ALLOWED_ORIGINS: Vec<String> = {
+        let mut origins = vec![
+            "https://healher.vercel.app".to_string(),
+            "http://localhost:3000".to_string(),
+            "http://127.0.0.1:3000".to_string(),
+        ];
+        if let Ok(val) = std::env::var("ALLOWED_ORIGINS") {
+            for item in val.split(',') {
+                let trimmed = item.trim();
+                if !trimmed.is_empty() && !origins.iter().any(|o| o.eq_ignore_ascii_case(trimmed)) {
+                    origins.push(trimmed.to_string());
+                }
+            }
+        }
+        if let Ok(val) = std::env::var("FRONTEND_URL") {
+            for item in val.split(',') {
+                let trimmed = item.trim();
+                if !trimmed.is_empty() && !origins.iter().any(|o| o.eq_ignore_ascii_case(trimmed)) {
+                    origins.push(trimmed.to_string());
+                }
+            }
+        }
+        origins
+    };
+}
+
+/// Resolves the incoming request origin against the configured whitelist.
+/// Echoes back the matching origin to support credentials (cookies, authorization headers).
+fn resolve_allowed_origin(req_header: &RequestHeader) -> String {
+    if let Some(origin_val) = req_header.headers.get("origin") {
+        if let Ok(origin_str) = origin_val.to_str() {
+            let trimmed = origin_str.trim();
+            if ALLOWED_ORIGINS.iter().any(|o| o.eq_ignore_ascii_case(trimmed)) {
+                return trimmed.to_string();
+            }
+        }
+    }
+    // Default to the production Vercel frontend origin
+    "https://healher.vercel.app".to_string()
+}
 
 pub struct GatewayProxy;
 
@@ -56,6 +101,18 @@ impl ProxyHttp for GatewayProxy {
     }
 
     async fn request_filter(&self, session: &mut Session, _ctx: &mut Self::CTX) -> Result<bool> {
+        let path = session.req_header().uri.path();
+
+        // Step A0: Gateway Liveness & Health Probe
+        if path == "/health" || path == "/api/health" {
+            let mut resp = ResponseHeader::build(200, Some(2))?;
+            resp.insert_header("Content-Type", "application/json")?;
+            let body = r#"{"status":"healthy","service":"heal-her-gateway"}"#;
+            session.write_response_header(Box::new(resp), false).await?;
+            session.write_response_body(Some(body.into()), true).await?;
+            return Ok(true);
+        }
+
         // Step A: Rate Limiting Enforcement
         let client_ip = if let Some(addr) = session.client_addr() {
             if let Some(inet) = addr.as_inet() {
@@ -81,21 +138,24 @@ impl ProxyHttp for GatewayProxy {
             return Ok(true);
         }
 
-        // Step B: CORS OPTIONS Short-Circuiting
+        // Step B: CORS OPTIONS Short-Circuiting (Preflight requests answered without JWT requirements)
         if session.req_header().method == http::Method::OPTIONS {
             debug!(
                 path = session.req_header().uri.path(),
                 "Edge Guardrail: CORS preflight OPTIONS request short-circuited at edge"
             );
-            let mut resp = ResponseHeader::build(204, Some(4))?;
-            resp.insert_header("Access-Control-Allow-Origin", "*")?;
+            let origin = resolve_allowed_origin(session.req_header());
+            let mut resp = ResponseHeader::build(204, Some(5))?;
+            resp.insert_header("Access-Control-Allow-Origin", &origin)?;
+            resp.insert_header("Access-Control-Allow-Credentials", "true")?;
+            resp.insert_header("Vary", "Origin")?;
             resp.insert_header(
                 "Access-Control-Allow-Methods",
-                "POST, GET, OPTIONS, PUT, DELETE",
+                "GET, POST, PUT, PATCH, DELETE, OPTIONS",
             )?;
             resp.insert_header(
                 "Access-Control-Allow-Headers",
-                "Authorization, Content-Type, Accept, X-Requested-With",
+                "Authorization, Content-Type, Accept, X-Requested-With, x-healher-handshake, x-healher-verified-ip",
             )?;
             resp.insert_header("Access-Control-Max-Age", "86400")?;
             session.write_response_header(Box::new(resp), true).await?;
@@ -198,18 +258,21 @@ impl ProxyHttp for GatewayProxy {
 
     async fn response_filter(
         &self,
-        _session: &mut Session,
+        session: &mut Session,
         upstream_response: &mut ResponseHeader,
         _ctx: &mut Self::CTX,
     ) -> Result<()> {
-        upstream_response.insert_header("Access-Control-Allow-Origin", "*")?;
+        let origin = resolve_allowed_origin(session.req_header());
+        upstream_response.insert_header("Access-Control-Allow-Origin", &origin)?;
+        upstream_response.insert_header("Access-Control-Allow-Credentials", "true")?;
+        upstream_response.insert_header("Vary", "Origin")?;
         upstream_response.insert_header(
             "Access-Control-Allow-Methods",
-            "POST, GET, OPTIONS, PUT, DELETE",
+            "GET, POST, PUT, PATCH, DELETE, OPTIONS",
         )?;
         upstream_response.insert_header(
             "Access-Control-Allow-Headers",
-            "Authorization, Content-Type, Accept, X-Requested-With",
+            "Authorization, Content-Type, Accept, X-Requested-With, x-healher-handshake, x-healher-verified-ip",
         )?;
         Ok(())
     }

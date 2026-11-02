@@ -60,18 +60,21 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Cross-Origin Security Armor
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        settings.frontend_url,
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["*"],
-)
+# CORS is strictly enforced at the Edge API Gateway (Pingora) to prevent duplicate header rejections in browsers.
+# If running standalone during isolated local testing without the gateway, set ENABLE_STANDALONE_CORS=true.
+if os.getenv("ENABLE_STANDALONE_CORS", "false").lower() in ("true", "1"):
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            settings.frontend_url,
+            "https://healher.vercel.app",
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+        ],
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["*"],
+    )
 
 
 @app.get("/health", tags=["Observability"])
