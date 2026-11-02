@@ -6,9 +6,12 @@ use std::sync::Arc;
 use std::time::Duration;
 
 lazy_static! {
-    /// Upstream load-balanced cluster routing to the Authentication microservice (Port 8080).
+    /// Upstream load-balanced cluster routing to the Authentication microservice.
+    /// Dynamically resolves AUTH_UPSTREAM_HOST from the environment with 127.0.0.1:8080 fallback.
     pub static ref AUTH_CLUSTER: Arc<LoadBalancer<RoundRobin>> = {
-        let mut lb = LoadBalancer::try_from_iter(["127.0.0.1:8080"])
+        let host = std::env::var("AUTH_UPSTREAM_HOST")
+            .unwrap_or_else(|_| "127.0.0.1:8080".to_string());
+        let mut lb = LoadBalancer::try_from_iter([host.as_str()])
             .expect("Failed to initialize AUTH_CLUSTER upstream load balancer");
         let mut hc = TcpHealthCheck::new();
         hc.peer_template.options.connection_timeout = Some(Duration::from_secs(1));
@@ -17,9 +20,12 @@ lazy_static! {
         Arc::new(lb)
     };
 
-    /// Upstream load-balanced cluster routing to the Dashboard microservice (Port 8081).
+    /// Upstream load-balanced cluster routing to the Dashboard microservice.
+    /// Dynamically resolves DASHBOARD_UPSTREAM_HOST from the environment with 127.0.0.1:8081 fallback.
     pub static ref DASHBOARD_CLUSTER: Arc<LoadBalancer<RoundRobin>> = {
-        let mut lb = LoadBalancer::try_from_iter(["127.0.0.1:8081"])
+        let host = std::env::var("DASHBOARD_UPSTREAM_HOST")
+            .unwrap_or_else(|_| "127.0.0.1:8081".to_string());
+        let mut lb = LoadBalancer::try_from_iter([host.as_str()])
             .expect("Failed to initialize DASHBOARD_CLUSTER upstream load balancer");
         let mut hc = TcpHealthCheck::new();
         hc.peer_template.options.connection_timeout = Some(Duration::from_secs(1));

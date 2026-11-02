@@ -1,0 +1,130 @@
+name: Deploy Backend Microservices
+
+on:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  filter:
+    name: Filter Changed Microservices
+    runs-on: ubuntu-latest
+    outputs:
+      auth: ${{ steps.changes.outputs.auth }}
+      dashboard: ${{ steps.changes.outputs.dashboard }}
+      gateway: ${{ steps.changes.outputs.gateway }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect path changes
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            auth:
+              - 'backend/services/auth/**'
+              - '.github/workflows/**'
+            dashboard:
+              - 'backend/services/dashboard/**'
+              - '.github/workflows/**'
+            gateway:
+              - 'backend/services/gateway/**'
+              - '.github/workflows/**'
+
+  build-auth:
+    name: Build & Push Auth Container
+    needs: filter
+    if: ${{ needs.filter.outputs.auth == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Normalize repository owner to lowercase
+        run: echo "REPO_OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Auth container
+        uses: docker/build-push-action@v5
+        with:
+          context: backend/services/auth
+          push: true
+          tags: ghcr.io/${{ env.REPO_OWNER }}/heal-her-auth:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-dashboard:
+    name: Build & Push Dashboard Container
+    needs: filter
+    if: ${{ needs.filter.outputs.dashboard == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Normalize repository owner to lowercase
+        run: echo "REPO_OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Dashboard container
+        uses: docker/build-push-action@v5
+        with:
+          context: backend/services/dashboard
+          push: true
+          tags: ghcr.io/${{ env.REPO_OWNER }}/heal-her-dashboard:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-gateway:
+    name: Build & Push Gateway Container
+    needs: filter
+    if: ${{ needs.filter.outputs.gateway == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Normalize repository owner to lowercase
+        run: echo "REPO_OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Gateway container
+        uses: docker/build-push-action@v5
+        with:
+          context: backend/services/gateway
+          push: true
+          tags: ghcr.io/${{ env.REPO_OWNER }}/heal-her-gateway:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
