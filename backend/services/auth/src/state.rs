@@ -20,9 +20,9 @@ pub struct AppState {
 
 impl AppState {
     pub fn new(pool: PgPool, jwt_secret: String, reset_cache: Arc<PasswordResetCache>) -> Self {
-        let jit_ed25519_private_key = std::env::var("JIT_ED25519_PRIVATE_KEY").unwrap_or_else(|_| {
-            "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIFto8G+u9sEIJnNcxT9/HQ3xIVN/szR1dRsTkRQFM2Xf\n-----END PRIVATE KEY-----".to_string()
-        });
+        let jit_ed25519_private_key = std::env::var("JIT_ED25519_PRIVATE_KEY")
+            .map(|k| k.replace("\\n", "\n"))
+            .unwrap_or_default();
 
         Self {
             pool,

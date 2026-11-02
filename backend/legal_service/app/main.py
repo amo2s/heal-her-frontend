@@ -45,6 +45,13 @@ async def lifespan(app: FastAPI):
     Initializes PostgreSQL connection pool and ensures schema readiness on startup.
     """
     logger.info("Initializing Heal Her Legal Consent (TOS) Microservice...")
+    # Cryptographic & Secret Integrity Validation
+    if not settings.jwt_secret_key:
+        raise RuntimeError("FATAL: JWT_SECRET_KEY environment variable must be set in production.")
+    if not settings.jit_ed25519_public_key:
+        raise RuntimeError("FATAL: JIT_ED25519_PUBLIC_KEY environment variable must be set in production.")
+    if not settings.pdf_owner_password:
+        raise RuntimeError("FATAL: PDF_OWNER_PASSWORD environment variable must be set in production.")
     try:
         await init_db()
     except Exception as e:
@@ -198,7 +205,7 @@ async def execute_tos_agreement(
     try:
         jit_claims = jwt.decode(
             payload.jit_receipt,
-            settings.jit_ed25519_public_key,
+            settings.public_key_pem,
             algorithms=["EdDSA"],
             issuer="heal-her-rust-auth",
             options={"require": ["sub", "ctx", "jti", "exp", "iss"]},

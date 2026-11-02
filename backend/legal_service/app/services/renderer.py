@@ -68,7 +68,9 @@ def render_tos_pdf(payload: EnrichedSignaturePayload) -> bytes:
         for page in reader.pages:
             writer.add_page(page)
 
-        owner_password = settings.pdf_owner_password or "heal-her-strict-internal-secret"
+        if not settings.pdf_owner_password:
+            raise DocumentRenderingError("FATAL: PDF_OWNER_PASSWORD environment variable is not configured.")
+        owner_password = settings.pdf_owner_password
 
         # Blank user password allows instant view; strong owner password locks modifications
         writer.encrypt(

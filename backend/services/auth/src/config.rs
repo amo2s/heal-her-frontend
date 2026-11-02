@@ -35,10 +35,9 @@ impl Config {
         let jwt_secret_key = env::var("JWT_SECRET_KEY")
             .expect("FATAL: JWT_SECRET_KEY environment variable must be set");
 
-        let jit_ed25519_private_key = env::var("JIT_ED25519_PRIVATE_KEY")
-            .unwrap_or_else(|_| {
-                "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIFto8G+u9sEIJnNcxT9/HQ3xIVN/szR1dRsTkRQFM2Xf\n-----END PRIVATE KEY-----".to_string()
-            });
+        let jit_ed25519_private_key_raw = env::var("JIT_ED25519_PRIVATE_KEY")
+            .expect("FATAL: JIT_ED25519_PRIVATE_KEY environment variable must be set");
+        let jit_ed25519_private_key = jit_ed25519_private_key_raw.replace("\\n", "\n");
 
         let host = env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
 
@@ -82,6 +81,15 @@ mod tests {
 
     #[test]
     fn test_config_from_env() {
+        if env::var("DATABASE_URL").is_err() {
+            unsafe { env::set_var("DATABASE_URL", "postgres://localhost/test"); }
+        }
+        if env::var("JWT_SECRET_KEY").is_err() {
+            unsafe { env::set_var("JWT_SECRET_KEY", "test_secret_key"); }
+        }
+        if env::var("JIT_ED25519_PRIVATE_KEY").is_err() {
+            unsafe { env::set_var("JIT_ED25519_PRIVATE_KEY", "test_key"); }
+        }
         let config = Config::from_env();
         assert!(!config.jwt_secret_key.is_empty());
         assert!(!config.database_url.is_empty());

@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     # Zero-Trust Cryptography & Auth
     jwt_secret_key: str = ""
     jit_ed25519_public_key: str = Field(
-        default="-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAGlTjijyplUHjl2K8QNw0VoJ8Xt2Dv6S81vRUQ61V4js=\n-----END PUBLIC KEY-----",
+        default="",
         validation_alias="JIT_ED25519_PUBLIC_KEY",
     )
 
@@ -48,7 +48,14 @@ class Settings(BaseSettings):
     google_mailer_webhook_url: str = ""
 
     # PDF Security
-    pdf_owner_password: str = "heal-her-strict-internal-secret"
+    pdf_owner_password: str = Field(default="", validation_alias="PDF_OWNER_PASSWORD")
+
+    @property
+    def public_key_pem(self) -> str:
+        """
+        Normalizes single-line \n escaped PEM keys to valid multiline PEM.
+        """
+        return self.jit_ed25519_public_key.replace("\\n", "\n").strip()
 
     @property
     def database_url(self) -> str:
