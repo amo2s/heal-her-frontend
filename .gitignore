@@ -28,3 +28,5 @@ next-env.d.ts
 
 production-secrets.local.txt
 *.local.txt
+caasify-env/
+*.env
