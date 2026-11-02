@@ -15,7 +15,7 @@ lazy_static! {
             .expect("Failed to initialize AUTH_CLUSTER upstream load balancer");
         let mut hc = TcpHealthCheck::new();
         hc.peer_template.options.connection_timeout = Some(Duration::from_secs(1));
-        lb.set_health_check(Box::new(hc));
+        lb.set_health_check(hc);
         lb.health_check_frequency = Some(Duration::from_secs(1));
         Arc::new(lb)
     };
@@ -29,7 +29,7 @@ lazy_static! {
             .expect("Failed to initialize DASHBOARD_CLUSTER upstream load balancer");
         let mut hc = TcpHealthCheck::new();
         hc.peer_template.options.connection_timeout = Some(Duration::from_secs(1));
-        lb.set_health_check(Box::new(hc));
+        lb.set_health_check(hc);
         lb.health_check_frequency = Some(Duration::from_secs(1));
         Arc::new(lb)
     };

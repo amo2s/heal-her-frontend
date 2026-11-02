@@ -1,7 +1,7 @@
 use async_trait::async_trait;
+use pingora::http::{RequestHeader, ResponseHeader};
 use pingora_core::upstreams::peer::HttpPeer;
 use pingora_core::Result;
-use pingora_http::{RequestHeader, ResponseHeader};
 use pingora_proxy::{ProxyHttp, Session};
 use std::time::Duration;
 use tracing::{debug, warn};
@@ -21,7 +21,7 @@ impl ProxyHttp for GatewayProxy {
         &self,
         session: &mut Session,
         _ctx: &mut Self::CTX,
-    ) -> Result<bool> {
+    ) -> Result<()> {
         let path = session.req_header().uri.path();
         let is_auth_route = path.starts_with("/api/v1/auth/")
             || path.starts_with("/api/auth/")
@@ -45,22 +45,23 @@ impl ProxyHttp for GatewayProxy {
                             let body = r#"{"error":"Payload Too Large","message":"Request payload exceeds maximum allowed size of 2048 bytes"}"#;
                             session.write_response_header(Box::new(resp), false).await?;
                             session.write_response_body(Some(body.into()), true).await?;
-                            return Ok(true);
+                            return Ok(());
                         }
                     }
                 }
             }
         }
 
-        Ok(false)
+        Ok(())
     }
 
     async fn request_filter(&self, session: &mut Session, _ctx: &mut Self::CTX) -> Result<bool> {
         // Step A: Rate Limiting Enforcement
         let client_ip = if let Some(addr) = session.client_addr() {
-            match addr {
-                std::net::SocketAddr::V4(v4) => v4.ip().to_string(),
-                std::net::SocketAddr::V6(v6) => v6.ip().to_string(),
+            if let Some(inet) = addr.as_inet() {
+                inet.ip().to_string()
+            } else {
+                "127.0.0.1".to_string()
             }
         } else {
             "127.0.0.1".to_string()
@@ -158,9 +159,10 @@ impl ProxyHttp for GatewayProxy {
         _ctx: &mut Self::CTX,
     ) -> Result<()> {
         if let Some(client_addr) = session.client_addr() {
-            let client_ip = match client_addr {
-                std::net::SocketAddr::V4(v4) => v4.ip().to_string(),
-                std::net::SocketAddr::V6(v6) => v6.ip().to_string(),
+            let client_ip = if let Some(inet) = client_addr.as_inet() {
+                inet.ip().to_string()
+            } else {
+                "127.0.0.1".to_string()
             };
 
             upstream_request.insert_header("X-Real-IP", &client_ip)?;
