@@ -1,7 +1,7 @@
 # ==============================================================================
 # STAGE 1: Chef Base with C++ Toolchain (Pingora / BoringSSL Native Build Tools)
 # ==============================================================================
-FROM lukemathwalker/cargo-chef:latest-rust-1.85 AS chef
+FROM lukemathwalker/cargo-chef:latest-rust-latest AS chef
 RUN apt-get update && apt-get install -y cmake pkg-config libssl-dev build-essential perl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 

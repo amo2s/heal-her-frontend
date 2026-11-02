@@ -1,7 +1,7 @@
 # ==============================================================================
 # STAGE 1: Chef Base (Installs cargo-chef for dependency caching)
 # ==============================================================================
-FROM lukemathwalker/cargo-chef:latest-rust-1.85 AS chef
+FROM lukemathwalker/cargo-chef:latest-rust-latest AS chef
 WORKDIR /app
 
 # ==============================================================================
