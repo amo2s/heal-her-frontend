@@ -1,9 +1,8 @@
 # ==============================================================================
 # STAGE 1: Chef Base with C++ Toolchain (Pingora / BoringSSL Native Build Tools)
 # ==============================================================================
-FROM rust:1.85-slim-bookworm AS chef
+FROM lukemathwalker/cargo-chef:latest-rust-1.85 AS chef
 RUN apt-get update && apt-get install -y cmake pkg-config libssl-dev build-essential perl && rm -rf /var/lib/apt/lists/*
-RUN cargo install cargo-chef
 WORKDIR /app
 
 # ==============================================================================
