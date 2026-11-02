@@ -1,7 +1,7 @@
 # ==============================================================================
 # STAGE 1: Chef Base (Installs cargo-chef for dependency caching)
 # ==============================================================================
-FROM rust:1.80-slim-bullseye AS chef
+FROM rust:1.85-slim-bookworm AS chef
 RUN cargo install cargo-chef
 WORKDIR /app
 
