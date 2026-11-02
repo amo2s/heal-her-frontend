@@ -33,4 +33,18 @@ lazy_static! {
         lb.health_check_frequency = Some(Duration::from_secs(1));
         Arc::new(lb)
     };
+
+    /// Upstream load-balanced cluster routing to the Python Terms of Service (TOS) microservice.
+    /// Dynamically resolves TOS_UPSTREAM_HOST from the environment with 127.0.0.1:8082 fallback.
+    pub static ref TOS_CLUSTER: Arc<LoadBalancer<RoundRobin>> = {
+        let host = std::env::var("TOS_UPSTREAM_HOST")
+            .unwrap_or_else(|_| "127.0.0.1:8082".to_string());
+        let mut lb = LoadBalancer::try_from_iter([host.as_str()])
+            .expect("Failed to initialize TOS_CLUSTER upstream load balancer");
+        let mut hc = TcpHealthCheck::new();
+        hc.peer_template.options.connection_timeout = Some(Duration::from_secs(1));
+        lb.set_health_check(hc);
+        lb.health_check_frequency = Some(Duration::from_secs(1));
+        Arc::new(lb)
+    };
 }

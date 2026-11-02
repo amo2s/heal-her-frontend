@@ -16,6 +16,7 @@ jobs:
       auth: ${{ steps.changes.outputs.auth }}
       dashboard: ${{ steps.changes.outputs.dashboard }}
       gateway: ${{ steps.changes.outputs.gateway }}
+      tos: ${{ steps.changes.outputs.tos }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -33,6 +34,9 @@ jobs:
               - '.github/workflows/**'
             gateway:
               - 'backend/services/gateway/**'
+              - '.github/workflows/**'
+            tos:
+              - 'backend/services/tos/**'
               - '.github/workflows/**'
 
   build-auth:
@@ -125,6 +129,37 @@ jobs:
           context: backend/services/gateway
           push: true
           tags: ghcr.io/${{ env.REPO_OWNER }}/heal-her-gateway:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-tos:
+    name: Build & Push TOS Container
+    needs: filter
+    if: ${{ needs.filter.outputs.tos == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Normalize repository owner to lowercase
+        run: echo "REPO_OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push TOS container
+        uses: docker/build-push-action@v5
+        with:
+          context: backend/services/tos/python_service
+          push: true
+          tags: ghcr.io/${{ env.REPO_OWNER }}/heal-her-tos:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

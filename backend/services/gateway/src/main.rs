@@ -11,7 +11,7 @@ use pingora_load_balancing::selection::RoundRobin;
 use pingora_load_balancing::LoadBalancer;
 use std::sync::Arc;
 use tracing::info;
-use upstreams::{AUTH_CLUSTER, DASHBOARD_CLUSTER};
+use upstreams::{AUTH_CLUSTER, DASHBOARD_CLUSTER, TOS_CLUSTER};
 
 pub struct LoadBalancerHealthCheck(pub Arc<LoadBalancer<RoundRobin>>);
 
@@ -59,10 +59,15 @@ fn main() {
         "dashboard_cluster_health",
         LoadBalancerHealthCheck(DASHBOARD_CLUSTER.clone()),
     );
+    let tos_health = background_service(
+        "tos_cluster_health",
+        LoadBalancerHealthCheck(TOS_CLUSTER.clone()),
+    );
 
     server.add_service(proxy_service);
     server.add_service(auth_health);
     server.add_service(dashboard_health);
+    server.add_service(tos_health);
 
     info!("Starting Pingora Gateway engine (run_forever)...");
     server.run_forever();

@@ -7,7 +7,7 @@ use std::time::Duration;
 use tracing::{debug, warn};
 
 use crate::rate_limiter::check_rate_limit;
-use crate::upstreams::{AUTH_CLUSTER, DASHBOARD_CLUSTER};
+use crate::upstreams::{AUTH_CLUSTER, DASHBOARD_CLUSTER, TOS_CLUSTER};
 
 pub struct GatewayProxy;
 
@@ -139,6 +139,20 @@ impl ProxyHttp for GatewayProxy {
             })?;
 
             debug!(path = path, target = ?upstream, "Routing request to DASHBOARD_CLUSTER");
+            let mut peer = Box::new(HttpPeer::new(upstream, false, "".to_string()));
+            peer.options.connection_timeout = Some(Duration::from_secs(2));
+            return Ok(peer);
+        }
+
+        if path.starts_with("/api/v1/tos") || path.starts_with("/api/v1/render") {
+            let upstream = TOS_CLUSTER.select(b"", 256).ok_or_else(|| {
+                pingora_core::Error::explain(
+                    pingora_core::ErrorType::HTTPStatus(503),
+                    "No healthy upstream in TOS_CLUSTER",
+                )
+            })?;
+
+            debug!(path = path, target = ?upstream, "Routing request to TOS_CLUSTER");
             let mut peer = Box::new(HttpPeer::new(upstream, false, "".to_string()));
             peer.options.connection_timeout = Some(Duration::from_secs(2));
             return Ok(peer);
