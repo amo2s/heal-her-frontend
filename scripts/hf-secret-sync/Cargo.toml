@@ -1,0 +1,11 @@
+[package]
+name = "hf-secret-sync"
+version = "0.1.0"
+edition = "2021"
+description = "Hugging Face Space Secret Synchronization and Lifecycle Orchestrator"
+
+[dependencies]
+tokio = { version = "1.40", features = ["full"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

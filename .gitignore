@@ -26,6 +26,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Rust build targets
+target/
+**/target/
+
 production-secrets.local.txt
 *.local.txt
 caasify-env/
