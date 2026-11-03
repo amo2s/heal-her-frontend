@@ -209,7 +209,7 @@ async def execute_tos_agreement(
             settings.public_key_pem,
             algorithms=["EdDSA"],
             issuer="heal-her-rust-auth",
-            options={"require": ["sub", "ctx", "jti", "exp", "iss"]},
+            options={"verify_aud": False, "require": ["sub", "ctx", "jti", "exp", "iss"]},
         )
     except jwt.ExpiredSignatureError:
         raise HTTPException(

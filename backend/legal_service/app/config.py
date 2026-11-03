@@ -28,6 +28,10 @@ class Settings(BaseSettings):
 
     # Zero-Trust Cryptography & Auth
     jwt_secret_key: str = ""
+    jwt_audience: str = Field(
+        default="",
+        validation_alias="JWT_AUDIENCE",
+    )
     jit_ed25519_public_key: str = Field(
         default="",
         validation_alias="JIT_ED25519_PUBLIC_KEY",

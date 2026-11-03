@@ -80,12 +80,35 @@ async def get_current_user(
             detail="Authentication subsystem configuration error."
         )
 
+    # Configure audience validation:
+    # Rust Auth microservice sets the `aud` claim dynamically to the user's demographic role
+    # (e.g. 'kid', 'teen', 'young-adult', 'young_adult', 'adult', 'admin', 'user')
+    # and validates with `validate_aud = false` across internal microservices.
+    # If JWT_AUDIENCE is explicitly set, we validate against it or the demographic roles.
+    # Otherwise, we align with the Rust auth/dashboard microservices and disable strict audience validation.
+    allowed_audiences = [
+        "kid",
+        "teen",
+        "young-adult",
+        "young_adult",
+        "adult",
+        "admin",
+        "user",
+        "healher-web",
+    ]
+    if settings.jwt_audience:
+        allowed_audiences.append(settings.jwt_audience)
+
     try:
         payload = jwt.decode(
             token,
             settings.jwt_secret_key,
             algorithms=["HS256"],
-            options={"require": ["sub", "exp"]}
+            audience=allowed_audiences if settings.jwt_audience else None,
+            options={
+                "verify_aud": bool(settings.jwt_audience),
+                "require": ["sub", "exp"],
+            },
         )
     except jwt.ExpiredSignatureError:
         logger.warning("Token verification failed: token signature expired")
@@ -150,4 +173,3 @@ async def get_current_user(
         ip_address=ip_address,
         role=role
     )
-
