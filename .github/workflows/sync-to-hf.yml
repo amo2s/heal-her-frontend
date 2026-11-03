@@ -14,7 +14,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          lfs: true
 
       - name: Verify Secret Availability
         env:
@@ -25,8 +24,22 @@ jobs:
             exit 1
           fi
 
-      - name: Push to Hugging Face
+      - name: Prepare Clean Backend Bundle & Push to HF
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          git push --force https://Sliverboy:${HF_TOKEN}@huggingface.co/spaces/Sliverboy/healher-backend main
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Create and switch to a temporary orphan branch (purges binary git history)
+          git checkout --orphan hf-deploy
+          
+          # Remove frontend and public directories containing images/binaries
+          rm -rf frontend public
+          
+          # Stage and commit the clean backend state
+          git add -A
+          git commit -m "chore: strip frontend assets for Hugging Face backend deployment" || echo "No changes to commit"
+          
+          # Force push the clean branch to Hugging Face Space main branch
+          git push --force https://Sliverboy:${HF_TOKEN}@huggingface.co/spaces/Sliverboy/healher-backend hf-deploy:main
