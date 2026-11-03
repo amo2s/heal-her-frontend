@@ -5,14 +5,20 @@
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
+# BASE: Cargo-Chef with Modern Rust Toolchain (Tracks Latest Rust 1.x / >= 1.89)
+# ------------------------------------------------------------------------------
+FROM lukemathwalker/cargo-chef:latest-rust-1-bookworm AS chef
+WORKDIR /app
+
+# ------------------------------------------------------------------------------
 # STAGE 1: Build Rust Authentication Microservice (Cargo-Chef Cache Acceleration)
 # ------------------------------------------------------------------------------
-FROM lukemathwalker/cargo-chef:latest-rust-1.85-bookworm AS auth-planner
+FROM chef AS auth-planner
 WORKDIR /app
 COPY backend/services/auth .
 RUN cargo chef prepare --recipe-path recipe.json
 
-FROM lukemathwalker/cargo-chef:latest-rust-1.85-bookworm AS auth-builder
+FROM chef AS auth-builder
 WORKDIR /app
 COPY --from=auth-planner /app/recipe.json recipe.json
 ENV CARGO_PROFILE_RELEASE_STRIP=true
@@ -24,12 +30,12 @@ RUN cargo build --release --bin auth
 # ------------------------------------------------------------------------------
 # STAGE 2: Build Rust Multi-Schema Dashboard Microservice
 # ------------------------------------------------------------------------------
-FROM lukemathwalker/cargo-chef:latest-rust-1.85-bookworm AS dashboard-planner
+FROM chef AS dashboard-planner
 WORKDIR /app
 COPY backend/services/dashboard .
 RUN cargo chef prepare --recipe-path recipe.json
 
-FROM lukemathwalker/cargo-chef:latest-rust-1.85-bookworm AS dashboard-builder
+FROM chef AS dashboard-builder
 WORKDIR /app
 COPY --from=dashboard-planner /app/recipe.json recipe.json
 ENV CARGO_PROFILE_RELEASE_STRIP=true
