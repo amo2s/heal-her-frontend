@@ -1,0 +1,9 @@
+[package]
+name = "hf-secrets-uploader"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["json", "blocking", "rustls-tls"] }
+dotenvy = "0.15"
+serde_json = "1.0"
