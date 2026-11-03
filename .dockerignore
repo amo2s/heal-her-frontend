@@ -16,3 +16,7 @@ caasify-env/
 *.env
 *.env.*
 !*.env.example
+
+# Exclude non-backend directories from Hugging Face Docker build context
+frontend/
+scripts/
