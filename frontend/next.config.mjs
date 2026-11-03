@@ -9,10 +9,15 @@ const nextConfig = {
     unoptimized: true,
   },
   async rewrites() {
+    const backendUrl = (process.env.BACKEND_URL || 'https://placeholder-url.hf.space').replace(/\/$/, '');
     return [
       {
-        source: "/api/v1/auth/:path*",
-        destination: "http://127.0.0.1:8080/api/v1/auth/:path*",
+        source: '/api/v1/:path*',
+        destination: `${backendUrl}/api/v1/:path*`,
+      },
+      {
+        source: '/api/:path*',
+        destination: `${backendUrl}/:path*`,
       },
     ];
   },

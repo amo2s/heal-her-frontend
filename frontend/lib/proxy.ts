@@ -2,8 +2,8 @@ import axios from "axios";
 import { io, Socket } from "socket.io-client";
 
 // --- CONFIGURATION ---
-const NEXTJS_PROXY_BASE = ""; 
-const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://sliverboy-healher-backend.hf.space";
+const NEXTJS_PROXY_BASE = "/api"; 
+const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
 
 // --- 1. THE GHOST API (Dumb Messenger) ---
 export const api = axios.create({

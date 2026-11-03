@@ -102,8 +102,8 @@ export const mockReports: Report[] = [
 // 3. BACKEND CONNECTION (The Real Chat Logic)
 // ------------------------------------------------------------------
 
-// This automatically switches between localhost and production URL
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "https://sliverboy-heal-her-backend.hf.space"
+// Server-side rewrite base path
+const BACKEND_URL = "/api"
 
 export const sendMessage = async (
   userText: string, 
