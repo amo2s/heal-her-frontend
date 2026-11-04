@@ -10,6 +10,7 @@ pub struct Config {
     pub acquire_timeout_secs: u64,
     pub idle_timeout_secs: u64,
     pub jit_ed25519_private_key: String,
+    pub tos_execution_public_key: String,
 }
 
 impl Config {
@@ -38,6 +39,10 @@ impl Config {
         let jit_ed25519_private_key_raw = env::var("JIT_ED25519_PRIVATE_KEY")
             .expect("FATAL: JIT_ED25519_PRIVATE_KEY environment variable must be set");
         let jit_ed25519_private_key = jit_ed25519_private_key_raw.replace("\\n", "\n");
+
+        let tos_execution_public_key_raw = env::var("TOS_EXECUTION_PUBLIC_KEY")
+            .expect("FATAL: TOS_EXECUTION_PUBLIC_KEY environment variable must be set");
+        let tos_execution_public_key = tos_execution_public_key_raw.replace("\\n", "\n");
 
         let host = env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
 
@@ -71,6 +76,7 @@ impl Config {
             acquire_timeout_secs,
             idle_timeout_secs,
             jit_ed25519_private_key,
+            tos_execution_public_key,
         }
     }
 }
@@ -86,6 +92,9 @@ mod tests {
         }
         if env::var("JWT_SECRET_KEY").is_err() {
             unsafe { env::set_var("JWT_SECRET_KEY", "test_secret_key"); }
+        }
+        if env::var("TOS_EXECUTION_PUBLIC_KEY").is_err() {
+            unsafe { env::set_var("TOS_EXECUTION_PUBLIC_KEY", "test_pub_key"); }
         }
         if env::var("JIT_ED25519_PRIVATE_KEY").is_err() {
             unsafe { env::set_var("JIT_ED25519_PRIVATE_KEY", "test_key"); }

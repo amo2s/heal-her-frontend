@@ -19,6 +19,9 @@ pub enum InternalAuthError {
     #[error("User not found in PostgreSQL")]
     UserNotFoundInPostgres,
 
+    #[error("User not found in PostgreSQL")]
+    UserNotFound,
+
     #[error("Argon2id password hash verification mismatch")]
     Argon2HashMismatch,
 
@@ -101,7 +104,7 @@ impl From<InternalAuthError> for ApiError {
             InternalAuthError::JwtSigningError(_) => {
                 ApiError::InternalServerError("An unexpected system error occurred.".to_string())
             }
-            InternalAuthError::UserNotFoundInPostgres => {
+            InternalAuthError::UserNotFoundInPostgres | InternalAuthError::UserNotFound => {
                 ApiError::Unauthorized("Invalid credentials".to_string())
             }
             InternalAuthError::Argon2HashMismatch => {

@@ -80,7 +80,8 @@ async fn main() -> Result<(), ApiError> {
         std::sync::Arc::new(crate::infrastructure::reset_cache::PasswordResetCache::new());
     let jit_cache = std::sync::Arc::new(crate::infrastructure::reset_cache::TosJitCache::new());
     let app_state = AppState::new(pool.clone(), config.jwt_secret_key, reset_cache)
-        .with_jit(jit_cache, config.jit_ed25519_private_key);
+        .with_jit(jit_cache, config.jit_ed25519_private_key)
+        .with_execution_key(config.tos_execution_public_key);
 
     // 5. Compose Axum router with Tower security middleware armor and application state
     let app = create_router(app_state);

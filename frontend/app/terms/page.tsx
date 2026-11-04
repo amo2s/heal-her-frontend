@@ -215,6 +215,29 @@ export default function TermsPage() {
         throw new Error(result?.detail || result?.error || "Execution failed. Invalid payload or server error.")
       }
 
+      // If an execution_receipt is present and the user has an active session token, upgrade session state
+      if (result?.execution_receipt) {
+        const token =
+          typeof window !== "undefined"
+            ? sessionStorage.getItem("accessToken") ||
+              sessionStorage.getItem("sb-access-token")
+            : null;
+        if (token) {
+          await fetch("/api/v1/auth/session/upgrade", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              execution_receipt: result.execution_receipt,
+            }),
+          }).catch((err) => {
+            console.warn("Session upgrade notification non-fatal error:", err);
+          });
+        }
+      }
+
       // Zero-Leak Memory Destruction
       setShowOtpModal(false)
       resetOtpDigits()

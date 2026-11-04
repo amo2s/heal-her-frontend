@@ -24,3 +24,25 @@ pub async fn create_pool(config: &Config) -> Result<PgPool, InternalAuthError> {
     tracing::info!("PostgreSQL connection pool established successfully.");
     Ok(pool)
 }
+
+/// Atomically upgrades the user's legal consent status (`tos_cleared = TRUE`) directly in PostgreSQL.
+/// Executes a parameterized query matching either user UUID string or registered email.
+/// Rejects with `InternalAuthError::UserNotFound` if no rows were affected to prevent ghost upgrades.
+pub async fn upgrade_user_tos_status(
+    pool: &PgPool,
+    user_id: &str,
+) -> Result<(), InternalAuthError> {
+    let result = sqlx::query(
+        "UPDATE users SET tos_cleared = TRUE, updated_at = NOW() WHERE email = $1 OR id::text = $1",
+    )
+    .bind(user_id)
+    .execute(pool)
+    .await
+    .map_err(InternalAuthError::DatabaseError)?;
+
+    if result.rows_affected() == 0 {
+        return Err(InternalAuthError::UserNotFound);
+    }
+
+    Ok(())
+}

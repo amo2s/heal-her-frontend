@@ -16,11 +16,15 @@ pub struct AppState {
     pub reset_cache: Arc<PasswordResetCache>,
     pub jit_cache: Arc<TosJitCache>,
     pub jit_ed25519_private_key: String,
+    pub tos_execution_public_key: String,
 }
 
 impl AppState {
     pub fn new(pool: PgPool, jwt_secret: String, reset_cache: Arc<PasswordResetCache>) -> Self {
         let jit_ed25519_private_key = std::env::var("JIT_ED25519_PRIVATE_KEY")
+            .map(|k| k.replace("\\n", "\n"))
+            .unwrap_or_default();
+        let tos_execution_public_key = std::env::var("TOS_EXECUTION_PUBLIC_KEY")
             .map(|k| k.replace("\\n", "\n"))
             .unwrap_or_default();
 
@@ -31,6 +35,7 @@ impl AppState {
             reset_cache,
             jit_cache: Arc::new(TosJitCache::new()),
             jit_ed25519_private_key,
+            tos_execution_public_key,
         }
     }
 
@@ -41,6 +46,14 @@ impl AppState {
     ) -> Self {
         self.jit_cache = jit_cache;
         self.jit_ed25519_private_key = jit_ed25519_private_key;
+        self
+    }
+
+    pub fn with_execution_key(
+        mut self,
+        tos_execution_public_key: String,
+    ) -> Self {
+        self.tos_execution_public_key = tos_execution_public_key.replace("\\n", "\n");
         self
     }
 }

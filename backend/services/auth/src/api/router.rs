@@ -7,6 +7,7 @@ use crate::{
         signup::handle_signup,
         terminate::terminate_session_handler,
         tos_jit::{request_tos_jit_otp_handler, verify_tos_jit_otp_handler},
+        upgrade_session::upgrade_session_handler,
     },
     state::AppState,
 };
@@ -75,6 +76,16 @@ pub fn create_router(state: AppState) -> Router {
         )
         .route("/api/auth/tos-jit/verify", post(verify_tos_jit_otp_handler))
         .route("/tos-jit/verify", post(verify_tos_jit_otp_handler))
+        // Zero-Trust Session Upgrade: Cryptographic Receipt Consumer & PostgreSQL State Mutation
+        .route(
+            "/api/v1/auth/session/upgrade",
+            post(upgrade_session_handler),
+        )
+        .route(
+            "/api/auth/session/upgrade",
+            post(upgrade_session_handler),
+        )
+        .route("/session/upgrade", post(upgrade_session_handler))
         // Password Reset routes: Ghost Protocol OTP Request & Verification
         .route(
             "/api/v1/auth/password-reset/request",

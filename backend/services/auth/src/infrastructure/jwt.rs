@@ -177,6 +177,47 @@ pub fn mint_jit_consent_receipt(
     Ok(token)
 }
 
+/// Upgraded Zero-Trust Execution Receipt Claims issued by Python Legal service.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct ExecutionReceiptClaims {
+    pub sub: String, // User ID / Email
+    pub jti: String, // Request ID (UUID)
+    pub iat: i64,
+    pub exp: i64,
+    pub iss: String,
+    pub aud: String,
+}
+
+/// Strictly verifies an asymmetric Ed25519 (EdDSA) Execution Receipt issued by the Python Legal service.
+/// Zero-Trust constraints:
+/// - Algorithm: EdDSA
+/// - Audience: "heal-her-rust-auth"
+/// - Issuer: "heal-her-python-legal"
+/// - Expiration enforced with 0 leeway
+/// - Required claims: "exp", "sub", "iss", "aud", "jti", "iat"
+pub fn verify_execution_receipt(
+    receipt: &str,
+    public_key_pem: &str,
+) -> Result<ExecutionReceiptClaims, InternalAuthError> {
+    let decoding_key = DecodingKey::from_ed_pem(public_key_pem.as_bytes()).map_err(|e| {
+        InternalAuthError::InvalidToken(format!("Invalid Ed25519 public key format: {e}"))
+    })?;
+
+    let mut validation = Validation::new(Algorithm::EdDSA);
+    validation.set_audience(&["heal-her-rust-auth"]);
+    validation.set_issuer(&["heal-her-python-legal"]);
+    validation.validate_exp = true;
+    validation.leeway = 0;
+    validation.set_required_spec_claims(&["exp", "sub", "iss", "aud", "jti", "iat"]);
+
+    let token_data = decode::<ExecutionReceiptClaims>(receipt, &decoding_key, &validation)
+        .map_err(|e| {
+            InternalAuthError::InvalidToken(format!("Execution receipt verification failed: {e}"))
+        })?;
+
+    Ok(token_data.claims)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -285,5 +326,31 @@ mod tests {
         assert_eq!(token_data.claims.jti, jti);
         assert_eq!(token_data.claims.iss, "heal-her-rust-auth");
         assert_eq!(token_data.claims.exp - token_data.claims.iat, 60);
+    }
+
+    #[test]
+    fn test_verify_execution_receipt_eddsa() {
+        let private_pem = "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIFto8G+u9sEIJnNcxT9/HQ3xIVN/szR1dRsTkRQFM2Xf\n-----END PRIVATE KEY-----";
+        let public_pem = "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAGlTjijyplUHjl2K8QNw0VoJ8Xt2Dv6S81vRUQ61V4js=\n-----END PUBLIC KEY-----";
+
+        let now = Utc::now().timestamp();
+        let claims = ExecutionReceiptClaims {
+            sub: "user@example.com".to_string(),
+            jti: "test-nonce-123".to_string(),
+            iat: now,
+            exp: now + 120,
+            iss: "heal-her-python-legal".to_string(),
+            aud: "heal-her-rust-auth".to_string(),
+        };
+
+        let encoding_key = EncodingKey::from_ed_pem(private_pem.as_bytes()).unwrap();
+        let header = Header::new(Algorithm::EdDSA);
+        let receipt = encode(&header, &claims, &encoding_key).unwrap();
+
+        let verified = verify_execution_receipt(&receipt, public_pem).expect("Receipt must verify");
+        assert_eq!(verified.sub, "user@example.com");
+        assert_eq!(verified.jti, "test-nonce-123");
+        assert_eq!(verified.iss, "heal-her-python-legal");
+        assert_eq!(verified.aud, "heal-her-rust-auth");
     }
 }

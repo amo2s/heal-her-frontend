@@ -262,6 +262,33 @@ export function LegalConsentModal({
           );
         }
 
+        const executeData = await executeResponse.json().catch(() => null);
+        const executionReceipt = executeData?.execution_receipt;
+
+        if (!executionReceipt) {
+          throw new Error(
+            "Missing legal execution receipt from legal verification authority."
+          );
+        }
+
+        // 4. Upgrade session in Rust Auth microservice with cryptographic execution receipt
+        const upgradeResponse = await fetch("/api/v1/auth/session/upgrade", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            execution_receipt: executionReceipt,
+          }),
+        });
+
+        if (!upgradeResponse.ok) {
+          const upgradeErr = await upgradeResponse.json().catch(() => null);
+          throw new Error(
+            upgradeErr?.detail ||
+              upgradeErr?.message ||
+              "Session state elevation rejected by security authority."
+          );
+        }
+
         // Immediate unblock upon 200 OK
         setIsVisible(false);
         if (onConsentSuccess) {
