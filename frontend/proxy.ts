@@ -31,7 +31,7 @@ export async function proxy(request: NextRequest) {
   const isDashboardRoute = path.startsWith('/dashboard');
 
   // If the route is neither (e.g., an unlisted API or public page), just pass it.
-  if (!isManagementRoute && !isDashboardRoute && !path.startsWith('/api/proxy')) {
+  if (!isManagementRoute && !isDashboardRoute) {
     return NextResponse.next();
   }
 
@@ -248,6 +248,5 @@ export const config = {
   matcher: [
     '/dashboard/:path*',
     '/management/:path*', 
-    '/api/proxy/:path*' 
   ]
 }

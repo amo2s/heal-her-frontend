@@ -26,7 +26,7 @@ export class FortressError extends Error {
  * 
  * DESIGN PHILOSOPHY:
  * - Server: Calls the Go/FastAPI backend directly (Direct Connect).
- * - Client: Calls /api/proxy (Shielded Connect) to hide the backend.
+ * - Client: Calls /api (Shielded Connect via Next.js rewrites) to hide the backend.
  * - Security: Strictly enforces Admin Identity using only the Access Token.
  */
 export async function fortressFetch<T = any>(
