@@ -38,7 +38,7 @@ async def dispatch_tos_confirmation_email_async(
     }
 
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
             response = await client.post(webhook_url, json=payload)
             if response.status_code in (200, 201):
                 logger.info(f"TOS confirmation email successfully dispatched via webhook to {email}")
