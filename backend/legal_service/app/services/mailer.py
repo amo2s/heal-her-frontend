@@ -11,6 +11,11 @@ logger = logging.getLogger("tos_service.mailer")
 settings = get_settings()
 
 
+class MailerDispatchError(Exception):
+    """Raised when transactional Google Apps Script mailer webhook fails."""
+    pass
+
+
 async def dispatch_tos_confirmation_email_async(
     email: str,
     client_name: str,
@@ -42,8 +47,13 @@ async def dispatch_tos_confirmation_email_async(
             response = await client.post(webhook_url, json=payload)
             if response.status_code in (200, 201):
                 logger.info(f"TOS confirmation email successfully dispatched via webhook to {email}")
+                return
             else:
-                logger.warning(f"Google mailer webhook returned status {response.status_code}: {response.text}")
+                logger.error(f"Google mailer webhook returned status {response.status_code}: {response.text}")
+                raise MailerDispatchError(f"Google mailer webhook failed with status {response.status_code}: {response.text}")
+    except MailerDispatchError:
+        raise
     except Exception as exc:
         logger.error(f"Failed to dispatch TOS confirmation email to {email}: {exc}")
+        raise MailerDispatchError(f"Failed to dispatch confirmation email: {exc}") from exc
 

@@ -36,6 +36,10 @@ class Settings(BaseSettings):
         default="",
         validation_alias="JIT_ED25519_PUBLIC_KEY",
     )
+    tos_execution_private_key: str = Field(
+        default="",
+        validation_alias="TOS_EXECUTION_PRIVATE_KEY",
+    )
 
     # PostgreSQL Database Engine
     database_url_raw: str = Field(default="", validation_alias="DATABASE_URL")
@@ -60,6 +64,13 @@ class Settings(BaseSettings):
         Normalizes single-line \n escaped PEM keys to valid multiline PEM.
         """
         return self.jit_ed25519_public_key.replace("\\n", "\n").strip()
+
+    @property
+    def execution_private_key_pem(self) -> str:
+        """
+        Normalizes single-line \n escaped PEM keys to valid multiline PEM.
+        """
+        return self.tos_execution_private_key.replace("\\n", "\n").strip()
 
     @property
     def database_url(self) -> str:

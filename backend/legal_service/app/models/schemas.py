@@ -109,6 +109,7 @@ class TOSExecutionResponse(BaseModel):
     document_hash: str
     storage_path: str
     document_version: str = "1.0"
+    execution_receipt: str
 
 
 class TOSStatusResponse(BaseModel):

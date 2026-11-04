@@ -29,6 +29,7 @@ from app.models.schemas import (
 from app.services.mailer import dispatch_tos_confirmation_email_async
 from app.services.renderer import DocumentRenderingError, render_tos_pdf
 from app.services.storage import StorageUploadError, upload_document_to_vault
+from app.security import mint_execution_receipt
 
 # Structured Logging
 logging.basicConfig(
@@ -53,6 +54,15 @@ async def lifespan(app: FastAPI):
         raise RuntimeError("FATAL: JIT_ED25519_PUBLIC_KEY environment variable must be set in production.")
     if not settings.pdf_owner_password:
         raise RuntimeError("FATAL: PDF_OWNER_PASSWORD environment variable must be set in production.")
+    if not settings.tos_execution_private_key:
+        logger.critical("FATAL: TOS_EXECUTION_PRIVATE_KEY environment variable must be set in production.")
+        raise RuntimeError("FATAL: TOS_EXECUTION_PRIVATE_KEY environment variable must be set in production.")
+    try:
+        from cryptography.hazmat.primitives import serialization
+        serialization.load_pem_private_key(settings.execution_private_key_pem.encode("utf-8"), password=None)
+    except Exception as e:
+        logger.critical(f"FATAL: TOS_EXECUTION_PRIVATE_KEY is malformed: {e}")
+        raise RuntimeError(f"FATAL: TOS_EXECUTION_PRIVATE_KEY is malformed: {e}")
     try:
         await init_db()
     except Exception as e:
@@ -293,7 +303,10 @@ async def execute_tos_agreement(
         await upload_document_to_vault(pdf_bytes, storage_path)
     except StorageUploadError as exc:
         logger.error(f"Storage vault upload failure for request {request_id}: {exc}")
-        # Proceed with ledger record to guarantee audit compliance even if vault retry is needed
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Storage vault upload failure: {exc}",
+        )
 
     # 8. Commit audit ledger record to PostgreSQL
     try:
@@ -324,17 +337,29 @@ async def execute_tos_agreement(
             detail="Failed to record document audit trail in database.",
         )
 
-    # 6. Schedule zero-latency asynchronous email dispatch
-    background_tasks.add_task(
-        dispatch_tos_confirmation_email_async,
-        email=user.email,
-        client_name=payload.client_name,
-        request_id=request_id,
-        storage_path=storage_path,
-        document_hash=sha512_hash,
+    # 9. Transactional Google Mailer Webhook Dispatch (Strict Success Gate)
+    try:
+        await dispatch_tos_confirmation_email_async(
+            email=user.email,
+            client_name=payload.client_name,
+            request_id=request_id,
+            storage_path=storage_path,
+            document_hash=sha512_hash,
+        )
+    except Exception as exc:
+        logger.error(f"Transactional confirmation mailer failed for request {request_id}: {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Mailer dispatch failure: {exc}",
+        )
+
+    # 10. Mint Asymmetric Ed25519 Execution Receipt for Stateless Session Upgrade Handshake
+    execution_receipt = mint_execution_receipt(
+        user_id=user.email,
+        request_id=str(request_id),
     )
 
-    # 7. Return instantaneous success response
+    # 11. Return instantaneous success response with cryptographic execution receipt
     return TOSExecutionResponse(
         status="success",
         message="Terms of Service agreement executed and cryptographically sealed.",
@@ -342,6 +367,7 @@ async def execute_tos_agreement(
         document_hash=sha512_hash,
         storage_path=storage_path,
         document_version=settings.active_tos_version,
+        execution_receipt=execution_receipt,
     )
 
 
