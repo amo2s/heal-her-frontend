@@ -7,7 +7,7 @@ import PrivacyPolicyDocument, { SignaturePayload } from "@/components/shared/leg
 import { Loader2, ShieldCheck, X } from "lucide-react"
 
 // Updated to route through the Next.js API Proxy
-const GRAPHQL_ENDPOINT = "/api/proxy/graphql"
+const GRAPHQL_ENDPOINT = "/api/graphql"
 
 export default function PrivacyPage() {
   const [isProcessing, setIsProcessing] = useState(false)

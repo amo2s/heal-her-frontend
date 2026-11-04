@@ -71,7 +71,7 @@ export async function fortressFetch<T = any>(
   // =====================================================================
   else {
     // We route through the Next.js API Proxy to hide the Backend URL from the Network Tab.
-    targetUrl = `/api/proxy/${cleanPath}`;
+    targetUrl = cleanPath.startsWith("api/") ? `/${cleanPath}` : `/api/${cleanPath}`;
     
     // NOTE: We do not manually set the Authorization header here.
     // The Next.js Middleware intercepts these requests and injects 

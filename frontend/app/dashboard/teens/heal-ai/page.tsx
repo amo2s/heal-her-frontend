@@ -109,7 +109,7 @@ function ChatContent() {
         }
       `;
       // Updated proxy route for teens
-      const response = await api.post("/api/proxy/teens/heal-ai", { 
+      const response = await api.post("/teens/heal-ai", { 
         query, variables: { sessionId: sessId } 
       }, {
         headers: { "Authorization": `Bearer ${authToken}` }
@@ -152,7 +152,7 @@ function ChatContent() {
       };
 
       // Updated proxy route for teens
-      const response = await fetch("/api/proxy/teens/heal-ai/chat/stream", {
+      const response = await fetch("/api/teens/heal-ai/chat/stream", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",

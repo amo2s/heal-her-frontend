@@ -110,7 +110,7 @@ function ChatContent() {
         }
       `;
 
-      const response = await api.post("/api/proxy/kids/ai-buddy/graphql", { 
+      const response = await api.post("/kids/ai-buddy/graphql", { 
         query, 
         variables: { sessionId: sessId } 
       });
@@ -166,7 +166,7 @@ function ChatContent() {
         }
       };
 
-      const response = await fetch("/api/proxy/kids/ai-buddy/chat/stream", {
+      const response = await fetch("/api/kids/ai-buddy/chat/stream", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

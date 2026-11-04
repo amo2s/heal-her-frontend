@@ -16,7 +16,7 @@ export function LogoutButton() {
       // await destroySession(); // Server action that deletes cookies
       
       // Fallback for proxy logic if you don't use Server Actions yet:
-      await fetch("/api/proxy/api/auth/logout", { method: "POST" });
+      await fetch("/api/v1/auth/logout", { method: "POST" });
       
       router.push("/management/auth/login");
       router.refresh(); // Forces layout to re-run its Aegis check

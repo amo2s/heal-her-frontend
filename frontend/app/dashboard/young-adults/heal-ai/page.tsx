@@ -109,7 +109,7 @@ function ChatContent() {
         }
       `;
       // Updated proxy route for young adults
-      const response = await api.post("/api/proxy/young_adult/heal-ai/graphql", { 
+      const response = await api.post("/young_adult/heal-ai/graphql", { 
         query, variables: { sessionId: sessId } 
       }, {
         headers: { "Authorization": `Bearer ${authToken}` }
@@ -152,7 +152,7 @@ function ChatContent() {
       };
 
       // Updated proxy route for young adults
-      const response = await fetch("/api/proxy/young_adult/heal-ai/chat/stream", {
+      const response = await fetch("/api/young_adult/heal-ai/chat/stream", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",

@@ -18,7 +18,7 @@ export function ProfileDropdown({ profile }: ProfileDropdownProps) {
 
   const handleLogout = () => {
     startTransition(async () => {
-      await fetch("/api/proxy/api/auth/logout", { method: "POST" });
+      await fetch("/api/v1/auth/logout", { method: "POST" });
       router.push("/management/auth/login");
       router.refresh();
     });

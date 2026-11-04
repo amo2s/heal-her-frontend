@@ -64,7 +64,7 @@ function SidebarContent({ className, onClose }: SidebarProps) {
     `
     try {
       // UPDATED PATH: Correctly targets the kids graphql management endpoint
-      const response = await fetch("/api/proxy/kids/ai-buddy/graphql", {
+      const response = await fetch("/api/kids/ai-buddy/graphql", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -153,7 +153,7 @@ function SidebarContent({ className, onClose }: SidebarProps) {
       }
 
       // 2. Perform the actual backend deletion in the background
-      await fetch("/api/proxy/kids/ai-buddy/graphql", {
+      await fetch("/api/kids/ai-buddy/graphql", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

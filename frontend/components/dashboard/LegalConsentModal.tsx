@@ -151,7 +151,7 @@ export function LegalConsentModal({
         headers["Authorization"] = `Bearer ${accessToken}`;
       }
 
-      const response = await fetch("/api/proxy/api/v1/auth/tos-jit/request", {
+      const response = await fetch("/api/v1/auth/tos-jit/request", {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -203,7 +203,7 @@ export function LegalConsentModal({
         }
 
         // 1. Verify OTP with Rust Auth microservice to receive Asymmetric Ed25519 JIT Receipt
-        const verifyResponse = await fetch("/api/proxy/api/v1/auth/tos-jit/verify", {
+        const verifyResponse = await fetch("/api/v1/auth/tos-jit/verify", {
           method: "POST",
           headers,
           body: JSON.stringify({
@@ -243,7 +243,7 @@ export function LegalConsentModal({
         }
 
         // 3. Dispatch execution payload with JIT receipt to Python Legal Engine
-        const executeResponse = await fetch("/api/proxy/api/v1/tos/execute", {
+        const executeResponse = await fetch("/api/v1/tos/execute", {
           method: "POST",
           headers,
           body: JSON.stringify({
@@ -345,7 +345,7 @@ export function LegalConsentModal({
       }
 
       // Fire cryptographic kill-switch request through proxy to Rust microservice
-      const response = await fetch("/api/proxy/api/v1/auth/terminate-session", {
+      const response = await fetch("/api/v1/auth/terminate-session", {
         method: "POST",
         headers,
       });

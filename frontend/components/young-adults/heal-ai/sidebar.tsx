@@ -61,7 +61,7 @@ function SidebarContent({ className, onClose }: SidebarProps) {
       }
     `
     try {
-      const response = await fetch("/api/proxy/young_adult/heal-ai/graphql", {
+      const response = await fetch("/api/young_adult/heal-ai/graphql", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -138,7 +138,7 @@ function SidebarContent({ className, onClose }: SidebarProps) {
       setSessionToDelete(null)
       if (currentSessionId === targetId) router.push("/dashboard/young_adults/heal-ai")
 
-      await fetch("/api/proxy/young_adult/heal-ai/graphql", {
+      await fetch("/api/young_adult/heal-ai/graphql", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

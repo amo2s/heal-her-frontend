@@ -6,8 +6,8 @@ import { Footer } from "@/components/layout/footer"
 import LegalTermsDocument, { SignaturePayload } from "@/components/shared/legal/terms"
 import { Loader2, ShieldCheck, X, MailCheck } from "lucide-react"
 
-const GRAPHQL_ENDPOINT = "api/proxy/graphql"
-const TOS_EXECUTION_ENDPOINT = "/api/proxy/api/v1/tos/execute"
+const GRAPHQL_ENDPOINT = "/api/graphql"
+const TOS_EXECUTION_ENDPOINT = "/api/v1/tos/execute"
 
 // Masks an email for display so the modal never echoes the full address back on-screen.
 function maskEmail(email: string): string {
