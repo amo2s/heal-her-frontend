@@ -133,6 +133,50 @@ export function LegalConsentModal({
     );
   };
 
+  // Dedicated Resend Handler: Bypasses initial reading state guard to allow resending while in OTP input mode
+  const handleResendCode = async () => {
+    if (resendCooldown > 0) return;
+
+    setErrorMessage(null);
+
+    try {
+      const accessToken = getAccessToken();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (accessToken) {
+        headers["Authorization"] = `Bearer ${accessToken}`;
+      }
+
+      const response = await fetch("/api/v1/auth/tos-jit/request", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          document_version: activeVersion,
+        }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => null);
+        throw new Error(
+          errData?.detail ||
+            errData?.message ||
+            "Failed to resend legal authorization code. Please retry."
+        );
+      }
+
+      setResendCooldown(60);
+      setCountdownSeconds(300);
+      setOtpDigits(["", "", "", "", "", ""]);
+      setTimeout(() => {
+        inputRefs.current[0]?.focus();
+      }, 150);
+    } catch (err: any) {
+      console.error("[JIT OTP RESEND ERROR]:", err);
+      setErrorMessage(err?.message || "Failed to resend verification code.");
+    }
+  };
+
   // 4. Phase 2.2: Step 1 of Handshake - Request JIT OTP from Rust Auth Microservice
   const handleInitiateJitHandshake = async () => {
     if (!hasReachedBottom || !isConsentChecked || handshakeState !== "reading") {
@@ -762,7 +806,7 @@ export function LegalConsentModal({
 
                 <button
                   type="button"
-                  onClick={handleInitiateJitHandshake}
+                  onClick={handleResendCode}
                   disabled={resendCooldown > 0}
                   className="inline-flex items-center gap-1 text-indigo-400 hover:text-indigo-300 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                 >
