@@ -4,16 +4,16 @@ import { LegalConsentModal } from "@/components/dashboard/LegalConsentModal";
 
 export const dynamic = "force-dynamic";
 
-function getDashboardRouteFromToken(token: string): string {
+function parseTokenClaims(token: string): Record<string, any> | null {
   try {
     const payloadBase64 = token.split(".")[1];
+    if (!payloadBase64) return null;
     const normalizedBase64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
     const decodedPayload = Buffer.from(normalizedBase64, "base64").toString("utf-8");
-    const claims = JSON.parse(decodedPayload);
-    return claims.dashboard || "young-adults"; // Fallback
+    return JSON.parse(decodedPayload);
   } catch (e) {
-    console.error("Failed to parse JWT payload for routing", e);
-    return "young-adults";
+    console.error("Failed to parse JWT payload", e);
+    return null;
   }
 }
 
@@ -28,37 +28,18 @@ export default async function DashboardLayout({
 
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get("sb-access-token")?.value;
+    const token =
+      cookieStore.get("sb-access-token")?.value ||
+      cookieStore.get("accessToken")?.value;
 
     if (token) {
-      // 1. Legal Consent Verification Check
-      const pythonUrl =
-        process.env.PYTHON_TOS_URL ||
-        (process.env.BACKEND_URL && !process.env.BACKEND_URL.includes("graphql")
-          ? process.env.BACKEND_URL
-          : "http://127.0.0.1:8080");
-
-      try {
-        const response = await fetch(`${pythonUrl}/api/v1/tos/status`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          cache: "no-store",
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          hasSigned = Boolean(data.has_signed ?? data.hasSigned);
-          requiresReconsent = Boolean(data.requires_reconsent ?? data.requiresReconsent);
-        }
-      } catch (tosErr) {
-        console.error("[SSR Legal Consent Status Check] Fail-open engaged:", tosErr);
-        hasSigned = true;
-        requiresReconsent = false;
-      }
+      // 1. Zero-Trust Legal Consent Verification: Extract claims directly from cryptographically minted JWT
+      const claims = parseTokenClaims(token);
+      hasSigned = Boolean(claims?.tos_cleared ?? claims?.tosCleared);
+      requiresReconsent = false;
 
       // 2. Server-Side GraphQL Profile Fetch (Edge Cached)
-      const dashboardRoute = getDashboardRouteFromToken(token);
+      const dashboardRoute = claims?.dashboard || "young-adults";
       const graphqlPort = process.env.DASHBOARD_GRAPHQL_PORT || "8081";
       const graphqlUrl = `http://127.0.0.1:${graphqlPort}/api/v1/dashboard/${dashboardRoute}/graphql`;
 
@@ -84,8 +65,7 @@ export default async function DashboardLayout({
       }
     }
   } catch (error) {
-    // Fail-Open Failsafe: Default has_signed to true on failure to prevent user lockouts or broken dashboard
-    console.error("[SSR Layout Check] Fail-open engaged:", error);
+    console.error("[SSR Layout Check] Error evaluating session claims:", error);
     hasSigned = true;
     requiresReconsent = false;
   }

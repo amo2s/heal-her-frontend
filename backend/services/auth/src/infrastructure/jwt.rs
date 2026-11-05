@@ -27,6 +27,8 @@ pub struct Claims {
     pub token_type: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub aud: Option<String>,
+    #[serde(default)]
+    pub tos_cleared: bool,
 }
 
 /// Backward compatibility alias
@@ -43,13 +45,14 @@ pub struct GeneratedTokenPair {
 }
 
 /// Forges an asymmetric access (10 min) & refresh (7 day) token pair.
-/// Embeds JTI, Session ID (sid), Family ID (fid), and Demographic Role into claims.
+/// Embeds JTI, Session ID (sid), Family ID (fid), Demographic Role, and TOS status into claims.
 pub fn generate_token_pair(
     user_id: Uuid,
     role: &str,
     dashboard: Option<&str>,
     session_id: Uuid,
     family_id: Uuid,
+    tos_cleared: bool,
     secret: &str,
 ) -> Result<GeneratedTokenPair, InternalAuthError> {
     let now_utc = Utc::now();
@@ -73,6 +76,7 @@ pub fn generate_token_pair(
         exp: access_exp,
         token_type: "access".to_string(),
         aud: Some(role.to_string()),
+        tos_cleared,
     };
 
     let refresh_claims = Claims {
@@ -86,6 +90,7 @@ pub fn generate_token_pair(
         exp: refresh_exp,
         token_type: "refresh".to_string(),
         aud: Some(role.to_string()),
+        tos_cleared,
     };
 
     let encoding_key = EncodingKey::from_secret(secret.as_ref());
@@ -130,7 +135,7 @@ pub fn forge_token_pair(
     let uid = user_id.parse::<Uuid>().unwrap_or_else(|_| Uuid::new_v4());
     let sid = Uuid::new_v4();
     let fid = Uuid::new_v4();
-    let pair = generate_token_pair(uid, role, Some(dashboard), sid, fid, secret)?;
+    let pair = generate_token_pair(uid, role, Some(dashboard), sid, fid, false, secret)?;
     Ok((pair.access_token, pair.refresh_token))
 }
 
@@ -249,6 +254,7 @@ mod tests {
             Some(dashboard),
             session_id,
             family_id,
+            true,
             secret,
         )
         .expect("Token pair generation failed");
@@ -272,6 +278,7 @@ mod tests {
         assert_eq!(decoded_access.claims.dashboard.as_deref(), Some(dashboard));
         assert_eq!(decoded_access.claims.token_type, "access");
         assert_eq!(decoded_access.claims.exp - decoded_access.claims.iat, 600);
+        assert!(decoded_access.claims.tos_cleared);
 
         // Validate Refresh Token
         let decoded_refresh = decode::<Claims>(&pair.refresh_token, &decoding_key, &validation)
@@ -282,6 +289,7 @@ mod tests {
         assert_eq!(decoded_refresh.claims.role, role);
         assert_eq!(decoded_refresh.claims.dashboard.as_deref(), Some(dashboard));
         assert_eq!(decoded_refresh.claims.token_type, "refresh");
+        assert!(decoded_refresh.claims.tos_cleared);
         assert_eq!(
             decoded_refresh.claims.exp - decoded_refresh.claims.iat,
             604800

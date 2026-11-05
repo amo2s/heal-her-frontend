@@ -22,6 +22,7 @@ struct UserAuthRecord {
     password_hash: String,
     role: String,
     is_active: bool,
+    pub tos_cleared: bool,
 }
 
 /// Orchestrates the authentication lifecycle with strict timing-attack immunity,
@@ -42,7 +43,7 @@ pub async fn authenticate_user(
     // 2. Query user credentials and state from PostgreSQL
     let user_opt: Option<UserAuthRecord> = sqlx::query_as(
         r#"
-        SELECT id, email, full_name, password_hash, role, is_active
+        SELECT id, email, full_name, password_hash, role, is_active, tos_cleared
         FROM users
         WHERE email = $1
         "#,
@@ -105,6 +106,7 @@ pub async fn authenticate_user(
         Some(&dashboard),
         session_id,
         family_id,
+        record.tos_cleared,
         secret,
     )?;
 
@@ -143,6 +145,7 @@ pub async fn authenticate_user(
             full_name: record.full_name,
             is_active: record.is_active,
             dashboard,
+            tos_cleared: record.tos_cleared,
         },
     })
 }
@@ -185,7 +188,7 @@ pub async fn refresh_user_session(
     // 4. Query user record from PostgreSQL to ensure account active
     let user_opt: Option<UserAuthRecord> = sqlx::query_as(
         r#"
-        SELECT id, email, full_name, password_hash, role, is_active
+        SELECT id, email, full_name, password_hash, role, is_active, tos_cleared
         FROM users
         WHERE id = $1
         "#,
@@ -230,6 +233,7 @@ pub async fn refresh_user_session(
         Some(&dashboard),
         new_session_id,
         claims.fid,
+        user.tos_cleared,
         secret,
     )?;
 
@@ -276,6 +280,7 @@ pub async fn refresh_user_session(
                     full_name: user.full_name,
                     is_active: user.is_active,
                     dashboard,
+                    tos_cleared: user.tos_cleared,
                 },
             })
         }

@@ -24,6 +24,8 @@ pub struct UserType {
     #[serde(rename = "isActive")]
     pub is_active: bool,
     pub dashboard: String,
+    #[serde(rename = "tos_cleared", alias = "tosCleared")]
+    pub tos_cleared: bool,
 }
 
 /// Successful authentication response returned to the Next.js gateway / client.

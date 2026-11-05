@@ -123,6 +123,7 @@ mod tests {
             Some("young-adults"),
             session_id,
             family_id,
+            true,
             secret,
         )
         .unwrap();
@@ -160,6 +161,7 @@ mod tests {
             Some("young-adults"),
             session_id,
             family_id,
+            true,
             secret,
         )
         .unwrap();
@@ -194,6 +196,7 @@ mod tests {
             Some("young-adults"),
             session_id,
             family_id,
+            true,
             secret,
         )
         .unwrap();
@@ -232,6 +235,7 @@ mod tests {
             Some("young-adults"),
             session_id,
             family_id,
+            true,
             secret,
         )
         .unwrap();
@@ -270,6 +274,7 @@ mod tests {
             Some("young-adults"),
             session_id,
             family_id,
+            true,
             secret,
         )
         .unwrap();
