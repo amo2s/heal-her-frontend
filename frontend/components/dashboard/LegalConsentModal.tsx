@@ -307,7 +307,8 @@ export function LegalConsentModal({
         }
 
         const executeData = await executeResponse.json().catch(() => null);
-        const executionReceipt = executeData?.execution_receipt;
+        const executionReceipt =
+          executeData?.executionReceipt || executeData?.execution_receipt;
 
         if (!executionReceipt) {
           throw new Error(
