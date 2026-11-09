@@ -99,6 +99,14 @@ pub async fn authenticate_user(
     let session_id = Uuid::new_v4();
     let family_id = Uuid::new_v4();
 
+    // Safe first name extraction for conversational greeting
+    let extracted_first_name = record
+        .full_name
+        .trim()
+        .split_whitespace()
+        .next()
+        .map(|s| s.to_string());
+
     // 9. Forge asymmetric access (10 min) & refresh (7 day) token pair with BLAKE3 hashing
     let token_pair = generate_token_pair(
         record.id,
@@ -107,6 +115,7 @@ pub async fn authenticate_user(
         session_id,
         family_id,
         record.tos_cleared,
+        extracted_first_name,
         secret,
     )?;
 
@@ -226,6 +235,14 @@ pub async fn refresh_user_session(
     // 7. Generate a fresh new session ID while strictly preserving the family ID
     let new_session_id = Uuid::new_v4();
 
+    // Safe first name extraction for conversational greeting
+    let extracted_first_name = user
+        .full_name
+        .trim()
+        .split_whitespace()
+        .next()
+        .map(|s| s.to_string());
+
     // 8. Forge new candidate access (10 min) & refresh (7 day) token pair
     let new_token_pair = generate_token_pair(
         user.id,
@@ -234,6 +251,7 @@ pub async fn refresh_user_session(
         new_session_id,
         claims.fid,
         user.tos_cleared,
+        extracted_first_name,
         secret,
     )?;
 

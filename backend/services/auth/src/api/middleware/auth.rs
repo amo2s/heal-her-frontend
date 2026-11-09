@@ -124,6 +124,7 @@ mod tests {
             session_id,
             family_id,
             true,
+            None,
             secret,
         )
         .unwrap();
@@ -162,6 +163,7 @@ mod tests {
             session_id,
             family_id,
             true,
+            None,
             secret,
         )
         .unwrap();
@@ -197,6 +199,7 @@ mod tests {
             session_id,
             family_id,
             true,
+            None,
             secret,
         )
         .unwrap();
@@ -236,6 +239,7 @@ mod tests {
             session_id,
             family_id,
             true,
+            None,
             secret,
         )
         .unwrap();
@@ -275,6 +279,7 @@ mod tests {
             session_id,
             family_id,
             true,
+            None,
             secret,
         )
         .unwrap();

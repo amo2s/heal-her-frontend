@@ -33,36 +33,13 @@ export default async function DashboardLayout({
       cookieStore.get("accessToken")?.value;
 
     if (token) {
-      // 1. Zero-Trust Legal Consent Verification: Extract claims directly from cryptographically minted JWT
+      // 1. Zero-Trust Legal Consent Verification & Edge Hydration
       const claims = parseTokenClaims(token);
       hasSigned = Boolean(claims?.tos_cleared ?? claims?.tosCleared);
       requiresReconsent = false;
 
-      // 2. Server-Side GraphQL Profile Fetch (Edge Cached)
-      const dashboardRoute = claims?.dashboard || "young-adults";
-      const graphqlPort = process.env.DASHBOARD_GRAPHQL_PORT || "8081";
-      const graphqlUrl = `http://127.0.0.1:${graphqlPort}/api/v1/dashboard/${dashboardRoute}/graphql`;
-
-      try {
-        const gqlResponse = await fetch(graphqlUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ query: `query { me { firstName } }` }),
-          next: { tags: ["user-profile"], revalidate: 3600 },
-        });
-
-        if (gqlResponse.ok) {
-          const gqlData = await gqlResponse.json();
-          if (gqlData?.data?.me?.firstName) {
-            fetchedFirstName = gqlData.data.me.firstName;
-          }
-        }
-      } catch (err) {
-        console.error("Network error fetching GraphQL profile:", err);
-      }
+      // Instantly hydrate the user's name from the JWT payload in-memory
+      fetchedFirstName = claims?.first_name || claims?.firstName || "";
     }
   } catch (error) {
     console.error("[SSR Layout Check] Error evaluating session claims:", error);
