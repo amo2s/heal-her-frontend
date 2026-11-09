@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     # Server Configuration
     host: str = "0.0.0.0"
     port: int = 8080
-    frontend_url: str = "http://localhost:3000"
+    frontend_url: str = "http://healher.vercel.app"
 
     # Zero-Trust Cryptography & Auth
     jwt_secret_key: str = ""
@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     supabase_tos_bucket: str = "tos-vault"
 
     # Transactional Mailer
-    google_mailer_webhook_url: str = ""
+    google_mailer_webhook_url: str = "https://script.google.com/macros/s/AKfycbxchqvFMs6cYkSoG7yAshC1-qb5Bz_jR2my_KphouEpDrju9-mFF5XhKKhSPRk9zKkZ2w/exec"
 
     # PDF Security
     pdf_owner_password: str = Field(default="", validation_alias="PDF_OWNER_PASSWORD")
