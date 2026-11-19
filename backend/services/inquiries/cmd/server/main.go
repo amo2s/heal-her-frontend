@@ -1,0 +1,154 @@
+package main
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	"heal-her/inquiries/internal/config"
+	"heal-her/inquiries/internal/database"
+	"heal-her/inquiries/internal/handler"
+	"heal-her/inquiries/internal/mailer"
+	"heal-her/inquiries/internal/middleware"
+	"heal-her/inquiries/internal/repository"
+	"heal-her/inquiries/internal/security"
+)
+
+func main() {
+	// 1. Initialize Structured JSON Logger
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	slog.SetDefault(logger)
+
+	slog.Info("booting Heal Her Inquiries microservice",
+		"service", "inquiries",
+		"version", "1.0.0",
+		"arch", "go",
+	)
+
+	// 2. Load and Validate Configuration
+	cfg, err := config.Load()
+	if err != nil {
+		slog.Error("fatal configuration error", "error", err)
+		os.Exit(1)
+	}
+
+	if cfg.FrontendHandshakeSecret == "" && cfg.Environment != "local" && cfg.Environment != "development" && cfg.Environment != "test" {
+		slog.Warn("FRONTEND_HANDSHAKE_SECRET is not configured; management routes will lack layer 7 handshake perimeter")
+	}
+
+	// 3. Initialize Hardened Supabase PostgreSQL Pool
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	pool, err := database.NewPostgresPool(ctx, cfg)
+	if err != nil {
+		slog.Error("fatal database initialization error", "error", err)
+		os.Exit(1)
+	}
+	defer pool.Close()
+
+	// 4. Initialize Repository and Asynchronous Mailer Worker Pool
+	repo := repository.NewPostgresInquiryRepository(pool)
+	mailWorkerPool := mailer.NewMailer(
+		cfg.GoogleMailerWebhookURL,
+		cfg.MailerWorkers,
+		cfg.MailerQueueSize,
+		repo,
+	)
+
+	// 5. Initialize Token-Bucket Rate Limiter
+	rateLimiter := security.NewIPRateLimiter(cfg.RateLimitPerMin, cfg.RateLimitBurst)
+	defer rateLimiter.Stop()
+
+	// 6. Initialize HTTP Handlers
+	intakeHandler := handler.NewIntakeHandler(repo, mailWorkerPool, pool)
+
+	// 7. Compose Router and Layered Security Middlewares
+	router := chi.NewRouter()
+
+	// Global Perimeter Protection
+	router.Use(middleware.PanicRecovery)
+	router.Use(middleware.RequestID)
+	router.Use(middleware.SecurityHeaders)
+	router.Use(middleware.StructuredLogger)
+
+	// Health Check Probes (Public & Kubernetes/Nginx Ingress)
+	router.Get("/health", intakeHandler.HandleHealth)
+	router.Get("/api/v1/inquiries/health", intakeHandler.HandleHealth)
+
+	// Public Intake Endpoint (7-Layer Defense-in-Depth)
+	router.Group(func(public chi.Router) {
+		public.Use(rateLimiter.Middleware)
+		public.Use(middleware.PayloadCap(16384)) // 16 KB Body Cap
+		public.Use(middleware.EnforceJSONContentType)
+		public.Post("/api/v1/inquiries", intakeHandler.HandleIntake)
+	})
+
+	// 8. Configure Hardened HTTP Server
+	bindAddress := fmt.Sprintf("%s:%s", cfg.BindHost, cfg.Port)
+	server := &http.Server{
+		Addr:              bindAddress,
+		Handler:           router,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    8192, // 8 KB
+	}
+
+	// 9. Launch Server Goroutine
+	serverErr := make(chan error, 1)
+	go func() {
+		slog.Info("inquiries microservice listening for connections",
+			"bind_host", cfg.BindHost,
+			"port", cfg.Port,
+			"addr", bindAddress,
+		)
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serverErr <- err
+		}
+	}()
+
+	// 10. Handle OS Termination Signals for Graceful Shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+
+	select {
+	case err := <-serverErr:
+		slog.Error("server startup failed", "error", err)
+		os.Exit(1)
+	case sig := <-quit:
+		slog.Info("shutdown signal received; commencing zero-downtime drain", "signal", sig.String())
+	}
+
+	// 11. Graceful 15-Second Shutdown Lifecycle
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer shutdownCancel()
+
+	// Step A: Stop accepting new HTTP requests and drain active connections
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		slog.Error("HTTP server shutdown encountered an error", "error", err)
+	} else {
+		slog.Info("HTTP server stopped accepting connections and drained successfully")
+	}
+
+	// Step B: Drain and terminate in-flight mailer workers
+	if err := mailWorkerPool.Shutdown(shutdownCtx); err != nil {
+		slog.Error("mailer worker pool shutdown encountered an error", "error", err)
+	}
+
+	// Step C: Terminate rate limiter background cleaner
+	rateLimiter.Stop()
+
+	// Step D: Close pgxpool (deferred in main)
+	slog.Info("inquiries microservice gracefully terminated")
+}
