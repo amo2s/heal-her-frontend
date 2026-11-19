@@ -30,7 +30,7 @@ func main() {
 
 	slog.Info("booting Heal Her Inquiries microservice",
 		"service", "inquiries",
-		"version", "1.0.0",
+		"version", "1.1.0",
 		"arch", "go",
 	)
 
@@ -71,6 +71,7 @@ func main() {
 
 	// 6. Initialize HTTP Handlers
 	intakeHandler := handler.NewIntakeHandler(repo, mailWorkerPool, pool)
+	mgmtHandler := handler.NewManagementHandler(repo, mailWorkerPool)
 
 	// 7. Compose Router and Layered Security Middlewares
 	router := chi.NewRouter()
@@ -81,16 +82,45 @@ func main() {
 	router.Use(middleware.SecurityHeaders)
 	router.Use(middleware.StructuredLogger)
 
-	// Health Check Probes (Public & Kubernetes/Nginx Ingress)
+	// Root Health Probe
 	router.Get("/health", intakeHandler.HandleHealth)
-	router.Get("/api/v1/inquiries/health", intakeHandler.HandleHealth)
 
-	// Public Intake Endpoint (7-Layer Defense-in-Depth)
-	router.Group(func(public chi.Router) {
-		public.Use(rateLimiter.Middleware)
-		public.Use(middleware.PayloadCap(16384)) // 16 KB Body Cap
-		public.Use(middleware.EnforceJSONContentType)
-		public.Post("/api/v1/inquiries", intakeHandler.HandleIntake)
+	// Inquiries Namespace (/api/v1/inquiries)
+	router.Route("/api/v1/inquiries", func(inq chi.Router) {
+		// Ingress Health Probe
+		inq.Get("/health", intakeHandler.HandleHealth)
+
+		// Public Intake Endpoint (7-Layer Defense-in-Depth)
+		inq.With(
+			rateLimiter.Middleware,
+			middleware.PayloadCap(16384), // 16 KB Body Cap
+			middleware.EnforceJSONContentType,
+		).Post("/", intakeHandler.HandleIntake)
+
+		// Protected Management Operations (HS256 JWT + Handshake Guard)
+		inq.Group(func(mgmt chi.Router) {
+			mgmt.Use(middleware.Authenticate(cfg))
+
+			// Tier 1: Executive Oversight & Read Access (super_admin, admin, staff)
+			mgmt.Group(func(read chi.Router) {
+				read.Use(middleware.RequireReadAccess(cfg))
+
+				// Static routes registered before UUID route
+				read.Get("/stats", mgmtHandler.GetStats)
+				read.Get("/", mgmtHandler.ListInquiries)
+				read.Get("/{id}", mgmtHandler.GetInquiry)
+			})
+
+			// Tier 2: Operational Action Access (admin, staff; super_admin blocked)
+			mgmt.Group(func(action chi.Router) {
+				action.Use(middleware.RequireActionAccess(cfg))
+				action.Use(middleware.PayloadCap(16384))
+				action.Use(middleware.EnforceJSONContentType)
+
+				action.Post("/{id}/reply", mgmtHandler.CreateReply)
+				action.Patch("/{id}/status", mgmtHandler.UpdateStatus)
+			})
+		})
 	})
 
 	// 8. Configure Hardened HTTP Server

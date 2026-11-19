@@ -1,8 +1,10 @@
 package security
 
 import (
+	"errors"
 	"fmt"
 	"net/mail"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -42,7 +44,6 @@ func IsHoneypotTriggered(website string) bool {
 }
 
 // SanitizeAndValidate validates and cleans all fields of a CreateInquiryRequest.
-// It returns the sanitized input or a structured ValidationErrors map.
 func SanitizeAndValidate(req domain.CreateInquiryRequest) (*SanitizedInquiryInput, ValidationErrors) {
 	errs := make(ValidationErrors)
 
@@ -96,6 +97,113 @@ func SanitizeAndValidate(req domain.CreateInquiryRequest) (*SanitizedInquiryInpu
 	}, nil
 }
 
+// ValidateAndSanitizeReply sanitizes staff reply text and enforces bounds (2 to 10,000 runes).
+func ValidateAndSanitizeReply(rawBody string) (string, ValidationErrors) {
+	errs := make(ValidationErrors)
+	cleanBody := sanitizeMessageBody(rawBody)
+	bodyLen := utf8.RuneCountInString(cleanBody)
+
+	if bodyLen < 2 || bodyLen > 10000 {
+		errs["body"] = "Staff reply body must be between 2 and 10,000 characters"
+		return "", errs
+	}
+
+	return cleanBody, nil
+}
+
+// ValidateStatus validates and normalizes ticket status transitions.
+// Strictly allows only OPEN, REPLIED, or CLOSED.
+func ValidateStatus(rawStatus string) (string, ValidationErrors) {
+	errs := make(ValidationErrors)
+	normalized := strings.ToUpper(strings.TrimSpace(rawStatus))
+
+	switch normalized {
+	case domain.StatusOpen, domain.StatusReplied, domain.StatusClosed:
+		return normalized, nil
+	default:
+		errs["status"] = "Invalid ticket status; must strictly be OPEN, REPLIED, or CLOSED"
+		return "", errs
+	}
+}
+
+// EscapeSQLLike escapes %, _, and \ characters for safe ILIKE wildcard searches.
+func EscapeSQLLike(s string) string {
+	var sb strings.Builder
+	sb.Grow(len(s) * 2)
+	for _, r := range s {
+		if r == '\\' || r == '%' || r == '_' {
+			sb.WriteRune('\\')
+		}
+		sb.WriteRune(r)
+	}
+	return sb.String()
+}
+
+// SanitizeSearchQuery strips nulls and control characters, caps to 100 runes, and escapes SQL LIKE wildcards.
+func SanitizeSearchQuery(raw string) string {
+	trimmed := strings.TrimSpace(raw)
+	var sb strings.Builder
+	sb.Grow(len(trimmed))
+
+	for _, r := range trimmed {
+		if r == 0 || (r < 32 && r != ' ') || r == 127 {
+			continue
+		}
+		sb.WriteRune(r)
+	}
+
+	cleaned := sb.String()
+	if utf8.RuneCountInString(cleaned) > 100 {
+		runes := []rune(cleaned)
+		cleaned = string(runes[:100])
+	}
+
+	return EscapeSQLLike(cleaned)
+}
+
+// ValidateListParams checks and normalizes query parameters for the inbox listing endpoint.
+func ValidateListParams(rawStatus, rawLimit, rawOffset, rawSearch string) (status string, limit int, offset int, search string, err error) {
+	// Status (optional)
+	if strings.TrimSpace(rawStatus) != "" {
+		normalizedStatus := strings.ToUpper(strings.TrimSpace(rawStatus))
+		if normalizedStatus != domain.StatusOpen && normalizedStatus != domain.StatusReplied && normalizedStatus != domain.StatusClosed {
+			return "", 0, 0, "", errors.New("query param 'status' must be OPEN, REPLIED, or CLOSED")
+		}
+		status = normalizedStatus
+	}
+
+	// Limit (default 20, clamp between 1 and 100)
+	limit = 20
+	if strings.TrimSpace(rawLimit) != "" {
+		parsedLimit, parseErr := strconv.Atoi(strings.TrimSpace(rawLimit))
+		if parseErr != nil || parsedLimit <= 0 {
+			return "", 0, 0, "", errors.New("query param 'limit' must be a positive integer between 1 and 100")
+		}
+		if parsedLimit > 100 {
+			limit = 100
+		} else {
+			limit = parsedLimit
+		}
+	}
+
+	// Offset (default 0, must be >= 0)
+	offset = 0
+	if strings.TrimSpace(rawOffset) != "" {
+		parsedOffset, parseErr := strconv.Atoi(strings.TrimSpace(rawOffset))
+		if parseErr != nil || parsedOffset < 0 {
+			return "", 0, 0, "", errors.New("query param 'offset' must be a non-negative integer")
+		}
+		offset = parsedOffset
+	}
+
+	// Search (optional, sanitized)
+	if strings.TrimSpace(rawSearch) != "" {
+		search = SanitizeSearchQuery(rawSearch)
+	}
+
+	return status, limit, offset, search, nil
+}
+
 // stripControlAndCRLF replaces \r and \n with spaces, strips null bytes and control chars,
 // enabling collapseWhitespace to ensure no CRLF header injection while preserving word separation.
 func stripControlAndCRLF(s string) string {
@@ -129,27 +237,21 @@ func validateAndNormalizeEmail(raw string) (string, string) {
 		return "", "Email must be between 5 and 254 characters"
 	}
 
-	// Reject any internal whitespace, null byte, \r, or \n
 	for _, r := range trimmed {
 		if r == 0 || r == '\r' || r == '\n' || unicode.IsSpace(r) {
 			return "", "Email contains invalid characters or whitespace"
 		}
 	}
 
-	// Parse with standard library net/mail
 	parsed, err := mail.ParseAddress(trimmed)
 	if err != nil {
 		return "", "Invalid email address format"
 	}
 
-	// Strict display-name smuggling check:
-	// If the user input was `Evil <admin@org.com>`, parsed.Address is `admin@org.com`,
-	// but trimmed is `Evil <admin@org.com>`. They must match exactly!
 	if strings.ToLower(parsed.Address) != strings.ToLower(trimmed) {
 		return "", "Display-name smuggling in email address is prohibited"
 	}
 
-	// Verify domain structure: must have exactly one '@' and a dot in domain with non-empty TLD
 	parts := strings.Split(trimmed, "@")
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
 		return "", "Invalid email address structure"
@@ -166,14 +268,12 @@ func validateAndNormalizeEmail(raw string) (string, string) {
 		return "", "Email top-level domain is invalid"
 	}
 
-	// Normalized to lowercase
 	return strings.ToLower(trimmed), ""
 }
 
 // sanitizeMessageBody strips null bytes and non-printable control characters,
 // normalizes CRLF and lone CR to standard \n, and preserves tabs and valid multi-line structure.
 func sanitizeMessageBody(s string) string {
-	// Normalize \r\n to \n, then lone \r to \n
 	normalized := strings.ReplaceAll(s, "\r\n", "\n")
 	normalized = strings.ReplaceAll(normalized, "\r", "\n")
 
@@ -181,16 +281,13 @@ func sanitizeMessageBody(s string) string {
 	sb.Grow(len(normalized))
 
 	for _, r := range normalized {
-		// Null byte
 		if r == 0 {
 			continue
 		}
-		// Preserve line feeds and horizontal tabs
 		if r == '\n' || r == '\t' {
 			sb.WriteRune(r)
 			continue
 		}
-		// Strip unprintable control characters
 		if (r < 32 && r != ' ') || r == 127 {
 			continue
 		}

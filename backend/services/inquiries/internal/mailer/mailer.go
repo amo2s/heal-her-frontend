@@ -15,14 +15,23 @@ import (
 	"heal-her/inquiries/internal/repository"
 )
 
-// MailJob encapsulates the payload needed to dispatch an asynchronous confirmation email.
+// Supported asynchronous mail job kinds.
+const (
+	JobKindConfirmation = "confirmation"
+	JobKindStaffReply   = "staff_reply"
+)
+
+// MailJob encapsulates the payload needed to dispatch an asynchronous email.
 type MailJob struct {
+	Kind         string
 	MessageID    uuid.UUID
 	Recipient    string
 	Subject      string
 	FullName     string
 	Organization string
 	ReferenceID  string
+	StaffName    string
+	ReplyBody    string
 }
 
 // Mailer manages a bounded asynchronous worker pool for relaying emails via Google Apps Script.
@@ -47,7 +56,6 @@ type googleAppsScriptPayload struct {
 func NewMailer(webhookURL string, workers int, queueSize int, repo repository.InquiryRepository) *Mailer {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// Standard redirect-following http.Client with strict 15s timeout
 	client := &http.Client{
 		Timeout: 15 * time.Second,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -67,7 +75,6 @@ func NewMailer(webhookURL string, workers int, queueSize int, repo repository.In
 		cancel:     cancel,
 	}
 
-	// Launch persistent bounded worker goroutines
 	for i := 0; i < workers; i++ {
 		m.wg.Add(1)
 		go m.workerLoop(i + 1)
@@ -82,13 +89,13 @@ func NewMailer(webhookURL string, workers int, queueSize int, repo repository.In
 }
 
 // Enqueue pushes an email job onto the bounded channel via non-blocking select.
-// If the buffer is momentarily saturated, it drops the notification safely without failing the HTTP request.
 func (m *Mailer) Enqueue(job MailJob) bool {
 	select {
 	case m.jobQueue <- job:
 		return true
 	default:
-		slog.Warn("mailer job queue saturated; confirmation email dropped from async dispatch",
+		slog.Warn("mailer job queue saturated; email dropped from async dispatch",
+			"kind", job.Kind,
 			"message_id", job.MessageID,
 			"recipient", job.Recipient,
 		)
@@ -125,23 +132,38 @@ func (m *Mailer) workerLoop(workerID int) {
 }
 
 func (m *Mailer) processJob(job MailJob, workerID int) {
-	// 1. Render safe HTML
-	htmlBody, err := RenderConfirmationEmail(ConfirmationEmailData{
-		FullName:     job.FullName,
-		Organization: job.Organization,
-		Subject:      job.Subject,
-		ReferenceID:  job.ReferenceID,
-	})
+	var htmlBody string
+	var emailSubject string
+	var err error
+
+	if job.Kind == JobKindStaffReply {
+		emailSubject = FormatStaffReplySubject(job.Subject, job.ReferenceID)
+		htmlBody, err = RenderStaffReplyEmail(StaffReplyEmailData{
+			RecipientName: job.FullName,
+			StaffName:     job.StaffName,
+			Subject:       job.Subject,
+			ReferenceID:   job.ReferenceID,
+			ReplyBody:     job.ReplyBody,
+		})
+	} else {
+		emailSubject = fmt.Sprintf("Heal Her — We Received Your Inquiry [%s]", job.ReferenceID)
+		htmlBody, err = RenderConfirmationEmail(ConfirmationEmailData{
+			FullName:     job.FullName,
+			Organization: job.Organization,
+			Subject:      job.Subject,
+			ReferenceID:  job.ReferenceID,
+		})
+	}
+
 	if err != nil {
-		slog.Error("failed to render confirmation email template",
+		slog.Error("failed to render email template",
+			"kind", job.Kind,
 			"worker_id", workerID,
 			"message_id", job.MessageID,
 			"error", err,
 		)
 		return
 	}
-
-	emailSubject := fmt.Sprintf("Heal Her — We Received Your Inquiry [%s]", job.ReferenceID)
 
 	payload := googleAppsScriptPayload{
 		Recipient: job.Recipient,
@@ -158,7 +180,6 @@ func (m *Mailer) processJob(job MailJob, workerID int) {
 		return
 	}
 
-	// 2. Dispatch HTTP POST to Google Apps Script Webhook
 	reqCtx, reqCancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer reqCancel()
 
@@ -175,6 +196,7 @@ func (m *Mailer) processJob(job MailJob, workerID int) {
 	resp, err := m.client.Do(req)
 	if err != nil {
 		slog.Error("mailer relay transmission failed",
+			"kind", job.Kind,
 			"worker_id", workerID,
 			"message_id", job.MessageID,
 			"error", err,
@@ -188,6 +210,7 @@ func (m *Mailer) processJob(job MailJob, workerID int) {
 
 	if resp.StatusCode != http.StatusOK {
 		slog.Error("mailer relay returned non-200 status code",
+			"kind", job.Kind,
 			"worker_id", workerID,
 			"status_code", resp.StatusCode,
 			"message_id", job.MessageID,
@@ -210,7 +233,8 @@ func (m *Mailer) processJob(job MailJob, workerID int) {
 		}
 	}
 
-	slog.Info("inquiry confirmation email successfully dispatched and recorded",
+	slog.Info("email successfully dispatched and recorded",
+		"kind", job.Kind,
 		"worker_id", workerID,
 		"message_id", job.MessageID,
 		"recipient", job.Recipient,

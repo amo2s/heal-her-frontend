@@ -64,6 +64,26 @@ func (m *mockRepo) MarkMessageEmailDispatched(ctx context.Context, messageID uui
 	return nil
 }
 
+func (m *mockRepo) ListInquiries(ctx context.Context, filter repository.ListInquiriesFilter) ([]domain.InquirySummary, int, error) {
+	return nil, 0, nil
+}
+
+func (m *mockRepo) GetInquiryDetail(ctx context.Context, id uuid.UUID) (*domain.ContactInquiry, []domain.InquiryMessage, error) {
+	return nil, nil, nil
+}
+
+func (m *mockRepo) GetInquiryStats(ctx context.Context) (*domain.InquiryStatsResponse, error) {
+	return nil, nil
+}
+
+func (m *mockRepo) CreateStaffReply(ctx context.Context, params repository.CreateStaffReplyParams) (*domain.InquiryMessage, *domain.ContactInquiry, error) {
+	return nil, nil, nil
+}
+
+func (m *mockRepo) UpdateInquiryStatus(ctx context.Context, id uuid.UUID, newStatus string) (*domain.ContactInquiry, error) {
+	return nil, nil
+}
+
 type mockMailer struct {
 	mu       sync.Mutex
 	enqueued []mailer.MailJob

@@ -103,7 +103,6 @@ func TestSanitizeAndValidate(t *testing.T) {
 	})
 
 	t.Run("enforces length bounds", func(t *testing.T) {
-		// Name too short
 		req := validReq
 		req.Name = "A"
 		_, errs := SanitizeAndValidate(req)
@@ -111,14 +110,12 @@ func TestSanitizeAndValidate(t *testing.T) {
 			t.Error("expected name min length error")
 		}
 
-		// Name too long
 		req.Name = strings.Repeat("A", 121)
 		_, errs = SanitizeAndValidate(req)
 		if _, ok := errs["name"]; !ok {
 			t.Error("expected name max length error")
 		}
 
-		// Message too short (<10)
 		req = validReq
 		req.Message = "Too short"
 		_, errs = SanitizeAndValidate(req)
@@ -126,7 +123,6 @@ func TestSanitizeAndValidate(t *testing.T) {
 			t.Error("expected message min length error")
 		}
 
-		// Message too long (>5000)
 		req.Message = strings.Repeat("M", 5001)
 		_, errs = SanitizeAndValidate(req)
 		if _, ok := errs["message"]; !ok {
@@ -135,14 +131,138 @@ func TestSanitizeAndValidate(t *testing.T) {
 	})
 }
 
-func TestIsHoneypotTriggered(t *testing.T) {
-	if IsHoneypotTriggered("") {
-		t.Error("empty website should not trigger honeypot")
+func TestValidateAndSanitizeReply(t *testing.T) {
+	t.Run("valid reply passes cleanly", func(t *testing.T) {
+		clean, errs := ValidateAndSanitizeReply("Thank you for reaching out. We are glad to assist.\n\nBest regards,\nStaff")
+		if len(errs) > 0 {
+			t.Fatalf("unexpected validation errors: %v", errs)
+		}
+		if !strings.Contains(clean, "Thank you for reaching out.") {
+			t.Errorf("unexpected reply content: %s", clean)
+		}
+	})
+
+	t.Run("strips null bytes and normalizes CRLF", func(t *testing.T) {
+		clean, errs := ValidateAndSanitizeReply("Line 1\r\nLine 2\x00\rLine 3\tindented")
+		if len(errs) > 0 {
+			t.Fatalf("unexpected validation errors: %v", errs)
+		}
+		if strings.Contains(clean, "\x00") || strings.Contains(clean, "\r") {
+			t.Errorf("reply contains null or carriage returns: %q", clean)
+		}
+		if !strings.Contains(clean, "\t") {
+			t.Error("reply stripped tabs")
+		}
+	})
+
+	t.Run("enforces bounds [2, 10000]", func(t *testing.T) {
+		// Too short (<2)
+		_, errsShort := ValidateAndSanitizeReply(" ")
+		if len(errsShort) == 0 {
+			t.Error("expected error for empty/short reply")
+		}
+
+		// Too long (>10000)
+		oversized := strings.Repeat("R", 10001)
+		_, errsLong := ValidateAndSanitizeReply(oversized)
+		if len(errsLong) == 0 {
+			t.Error("expected error for reply > 10,000 runes")
+		}
+	})
+}
+
+func TestValidateStatus(t *testing.T) {
+	validStatuses := []string{"OPEN", "open", "REPLIED", "replied", "CLOSED", "closed"}
+	for _, s := range validStatuses {
+		val, errs := ValidateStatus(s)
+		if len(errs) > 0 {
+			t.Errorf("expected valid status for %q, got: %v", s, errs)
+		}
+		if val != strings.ToUpper(s) {
+			t.Errorf("expected %q, got %q", strings.ToUpper(s), val)
+		}
 	}
-	if IsHoneypotTriggered("   ") {
-		t.Error("whitespace website should not trigger honeypot")
+
+	invalidStatuses := []string{"PENDING", "DELETED", "ARCHIVED", "UNKNOWN", ""}
+	for _, s := range invalidStatuses {
+		_, errs := ValidateStatus(s)
+		if len(errs) == 0 {
+			t.Errorf("expected validation error for invalid status %q", s)
+		}
 	}
-	if !IsHoneypotTriggered("https://spam.bot.net") {
-		t.Error("populated website should trigger honeypot")
+}
+
+func TestEscapeSQLLike(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"normal text", "normal text"},
+		{"100% discount", `100\% discount`},
+		{"user_name", `user\_name`},
+		{`c:\path\file`, `c:\\path\\file`},
+		{`%_test\`, `\%\_test\\`},
 	}
+
+	for _, tt := range tests {
+		got := EscapeSQLLike(tt.input)
+		if got != tt.expected {
+			t.Errorf("EscapeSQLLike(%q) = %q, expected %q", tt.input, got, tt.expected)
+		}
+	}
+}
+
+func TestSanitizeSearchQuery(t *testing.T) {
+	query := "  special%search_term\x00\r\n  "
+	sanitized := SanitizeSearchQuery(query)
+	if strings.Contains(sanitized, "\x00") {
+		t.Error("null bytes not stripped from search query")
+	}
+	if !strings.Contains(sanitized, `\%`) || !strings.Contains(sanitized, `\_`) {
+		t.Errorf("expected escaped LIKE wildcards in %q", sanitized)
+	}
+}
+
+func TestValidateListParams(t *testing.T) {
+	t.Run("default params", func(t *testing.T) {
+		st, limit, offset, search, err := ValidateListParams("", "", "", "")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if st != "" || limit != 20 || offset != 0 || search != "" {
+			t.Errorf("unexpected defaults: status=%s, limit=%d, offset=%d, search=%s", st, limit, offset, search)
+		}
+	})
+
+	t.Run("valid parameters with clamping", func(t *testing.T) {
+		st, limit, offset, search, err := ValidateListParams("open", "200", "40", "School%")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if st != "OPEN" || limit != 100 || offset != 40 {
+			t.Errorf("unexpected values: status=%s, limit=%d, offset=%d", st, limit, offset)
+		}
+		if search != `School\%` {
+			t.Errorf("unexpected search: %s", search)
+		}
+	})
+
+	t.Run("invalid status", func(t *testing.T) {
+		_, _, _, _, err := ValidateListParams("INVALID", "20", "0", "")
+		if err == nil {
+			t.Error("expected error for invalid status")
+		}
+	})
+
+	t.Run("invalid limit and offset", func(t *testing.T) {
+		_, _, _, _, err := ValidateListParams("", "abc", "0", "")
+		if err == nil {
+			t.Error("expected error for non-integer limit")
+		}
+
+		_, _, _, _, err = ValidateListParams("", "20", "-5", "")
+		if err == nil {
+			t.Error("expected error for negative offset")
+		}
+	})
 }

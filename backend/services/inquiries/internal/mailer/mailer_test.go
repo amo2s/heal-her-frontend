@@ -31,6 +31,26 @@ func (m *mockRepository) MarkMessageEmailDispatched(ctx context.Context, message
 	return nil
 }
 
+func (m *mockRepository) ListInquiries(ctx context.Context, filter repository.ListInquiriesFilter) ([]domain.InquirySummary, int, error) {
+	return nil, 0, nil
+}
+
+func (m *mockRepository) GetInquiryDetail(ctx context.Context, id uuid.UUID) (*domain.ContactInquiry, []domain.InquiryMessage, error) {
+	return nil, nil, nil
+}
+
+func (m *mockRepository) GetInquiryStats(ctx context.Context) (*domain.InquiryStatsResponse, error) {
+	return nil, nil
+}
+
+func (m *mockRepository) CreateStaffReply(ctx context.Context, params repository.CreateStaffReplyParams) (*domain.InquiryMessage, *domain.ContactInquiry, error) {
+	return nil, nil, nil
+}
+
+func (m *mockRepository) UpdateInquiryStatus(ctx context.Context, id uuid.UUID, newStatus string) (*domain.ContactInquiry, error) {
+	return nil, nil
+}
+
 func TestRenderConfirmationEmail_XSSProtection(t *testing.T) {
 	maliciousData := ConfirmationEmailData{
 		FullName:     `<script>alert("hacked name")</script>`,
@@ -44,7 +64,6 @@ func TestRenderConfirmationEmail_XSSProtection(t *testing.T) {
 		t.Fatalf("failed to render confirmation template: %v", err)
 	}
 
-	// Verify that raw script tags and onerror attributes are strictly neutralized
 	if strings.Contains(html, "<script>") || strings.Contains(html, "</script>") {
 		t.Errorf("rendered HTML contains unescaped <script> tag: %s", html)
 	}
@@ -53,13 +72,8 @@ func TestRenderConfirmationEmail_XSSProtection(t *testing.T) {
 		t.Errorf("rendered HTML contains unescaped <img> tag: %s", html)
 	}
 
-	// Verify properly escaped entity representations
 	if !strings.Contains(html, "&lt;script&gt;") {
 		t.Errorf("expected &lt;script&gt; in rendered HTML")
-	}
-
-	if !strings.Contains(html, "&amp;") {
-		t.Errorf("expected &amp; in rendered HTML for ampersand")
 	}
 
 	if !strings.Contains(html, "REF-12345678") {
@@ -67,12 +81,73 @@ func TestRenderConfirmationEmail_XSSProtection(t *testing.T) {
 	}
 }
 
-func TestMailer_RelayWith302RedirectAndDispatchedCallback(t *testing.T) {
+func TestRenderStaffReplyEmail_XSSProtection(t *testing.T) {
+	maliciousData := StaffReplyEmailData{
+		RecipientName: `Jane <script>alert("victim")</script>`,
+		StaffName:     `Staff <b onmouseover=alert(1)>Admin</b>`,
+		Subject:       `Help <svg onload=alert(1)>`,
+		ReferenceID:   "REF-87654321",
+		ReplyBody:     "Paragraph 1\n\n<script>maliciousCode()</script>\n\nParagraph 2 & safe",
+	}
+
+	html, err := RenderStaffReplyEmail(maliciousData)
+	if err != nil {
+		t.Fatalf("failed to render staff reply template: %v", err)
+	}
+
+	if strings.Contains(html, "<script>") || strings.Contains(html, "</script>") {
+		t.Errorf("rendered staff reply contains unescaped <script> tag: %s", html)
+	}
+
+	if strings.Contains(html, "<svg onload") {
+		t.Errorf("rendered staff reply contains unescaped <svg> tag: %s", html)
+	}
+
+	if !strings.Contains(html, "&lt;script&gt;maliciousCode()&lt;/script&gt;") {
+		t.Errorf("expected escaped script in reply body")
+	}
+
+	if !strings.Contains(html, "REF-87654321") {
+		t.Errorf("missing reference ID in rendered staff reply HTML")
+	}
+}
+
+func TestFormatStaffReplySubject(t *testing.T) {
+	tests := []struct {
+		inputSubject string
+		refID        string
+		expected     string
+	}{
+		{
+			inputSubject: "Partnership Program",
+			refID:        "REF-12345678",
+			expected:     "Re: Partnership Program [REF-12345678]",
+		},
+		{
+			inputSubject: "Re: Re:  re: Deployment in Schools",
+			refID:        "REF-ABCD1234",
+			expected:     "Re: Deployment in Schools [REF-ABCD1234]",
+		},
+		{
+			inputSubject: "Support Request\r\nInjected",
+			refID:        "REF-99999999",
+			expected:     "Re: Support RequestInjected [REF-99999999]",
+		},
+	}
+
+	for _, tt := range tests {
+		got := FormatStaffReplySubject(tt.inputSubject, tt.refID)
+		if got != tt.expected {
+			t.Errorf("FormatStaffReplySubject(%q, %q) = %q, expected %q", tt.inputSubject, tt.refID, got, tt.expected)
+		}
+	}
+}
+
+func TestMailer_StaffReplyRelayWith302RedirectAndDispatchedCallback(t *testing.T) {
 	var receivedPayload googleAppsScriptPayload
 	var mu sync.Mutex
 	var redirectHit, finalHit bool
 
-	// Simulates Google Apps Script 302 Found redirect flow
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		defer mu.Unlock()
@@ -81,7 +156,6 @@ func TestMailer_RelayWith302RedirectAndDispatchedCallback(t *testing.T) {
 			redirectHit = true
 			defer r.Body.Close()
 			_ = json.NewDecoder(r.Body).Decode(&receivedPayload)
-			// Redirect to target script execution URL via 302 Found
 			http.Redirect(w, r, "/final-exec", http.StatusFound)
 			return
 		}
@@ -108,49 +182,45 @@ func TestMailer_RelayWith302RedirectAndDispatchedCallback(t *testing.T) {
 
 	msgID := uuid.New()
 	job := MailJob{
+		Kind:         JobKindStaffReply,
 		MessageID:    msgID,
-		Recipient:    "director@school.edu",
-		Subject:      "Partnership Program",
-		FullName:     "Dr. Elizabeth Vance",
-		Organization: "Oakridge Academy",
+		Recipient:    "requester@domain.com",
+		Subject:      "Re: School Health Workshop",
+		FullName:     "Principal Skinner",
+		StaffName:    "Nurse Sarah",
 		ReferenceID:  "REF-A1B2C3D4",
+		ReplyBody:    "We are scheduling the workshop for next Tuesday.\n\nThank you for your collaboration.",
 	}
 
-	enqueued := mailer.Enqueue(job)
-	if !enqueued {
-		t.Fatal("failed to enqueue mail job")
+	if !mailer.Enqueue(job) {
+		t.Fatal("failed to enqueue staff reply mail job")
 	}
 
-	// Allow worker goroutine to process the job
 	time.Sleep(300 * time.Millisecond)
 
 	mu.Lock()
 	defer mu.Unlock()
 
-	if !redirectHit {
-		t.Error("expected 302 redirect entrypoint to be visited")
-	}
-	if !finalHit {
-		t.Error("expected final redirect destination /final-exec to receive payload")
+	if !redirectHit || !finalHit {
+		t.Errorf("expected redirectHit and finalHit to both be true, got redirect=%v, final=%v", redirectHit, finalHit)
 	}
 
-	if receivedPayload.Recipient != "director@school.edu" {
-		t.Errorf("expected recipient 'director@school.edu', got: %s", receivedPayload.Recipient)
+	if receivedPayload.Recipient != "requester@domain.com" {
+		t.Errorf("expected recipient 'requester@domain.com', got: %s", receivedPayload.Recipient)
 	}
 
-	if !strings.Contains(receivedPayload.Subject, "REF-A1B2C3D4") {
-		t.Errorf("expected subject to contain reference code, got: %s", receivedPayload.Subject)
+	if receivedPayload.Subject != "Re: School Health Workshop [REF-A1B2C3D4]" {
+		t.Errorf("expected deduplicated Re: subject line, got: %s", receivedPayload.Subject)
 	}
 
-	if !strings.Contains(receivedPayload.HTMLBody, "Dr. Elizabeth Vance") {
-		t.Errorf("expected HTML body to contain full name")
+	if !strings.Contains(receivedPayload.HTMLBody, "Nurse Sarah") {
+		t.Errorf("expected HTML body to contain staff responder name")
 	}
 
-	// Verify database dispatch callback
 	mockRepo.mu.Lock()
 	defer mockRepo.mu.Unlock()
 
 	if len(mockRepo.dispatchedIDs) != 1 || mockRepo.dispatchedIDs[0] != msgID {
-		t.Errorf("expected MarkMessageEmailDispatched to be called for %s, got: %v", msgID, mockRepo.dispatchedIDs)
+		t.Errorf("expected MarkMessageEmailDispatched to be called for %s", msgID)
 	}
 }

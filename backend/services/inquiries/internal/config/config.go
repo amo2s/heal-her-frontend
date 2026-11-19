@@ -10,8 +10,11 @@ import (
 	"strings"
 )
 
-// DefaultAdminRoles contains the administrative roles discovered from repository inspection.
-const DefaultAdminRoles = "admin,owner,super_admin,superadmin,teacher,counselor,staff,principal,management"
+// Default RBAC allowlists enforcing strict three-role consolidation.
+const (
+	DefaultReadRoles   = "super_admin,admin,staff"
+	DefaultActionRoles = "admin,staff"
+)
 
 // Config encapsulates validated runtime configuration for the Inquiries service.
 type Config struct {
@@ -21,8 +24,10 @@ type Config struct {
 	JWTSecretKey            string
 	FrontendHandshakeSecret string
 	GoogleMailerWebhookURL  string
-	AdminRoles              []string
-	AdminRoleMap            map[string]struct{}
+	ReadRoles               []string
+	ReadRoleMap             map[string]struct{}
+	ActionRoles             []string
+	ActionRoleMap           map[string]struct{}
 	RateLimitPerMin         float64
 	RateLimitBurst          int
 	MailerWorkers           int
@@ -74,17 +79,24 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("GOOGLE_MAILER_WEBHOOK_URL must be a valid https:// URL, got: %q", mailerWebhookURL)
 	}
 
-	rawAdminRoles := getEnv("INQUIRIES_ADMIN_ROLES", DefaultAdminRoles)
-	roleSlice := strings.Split(rawAdminRoles, ",")
-	adminRoles := make([]string, 0, len(roleSlice))
-	adminRoleMap := make(map[string]struct{}, len(roleSlice))
-	for _, r := range roleSlice {
-		cleaned := strings.ToLower(strings.TrimSpace(r))
-		if cleaned != "" {
-			if _, exists := adminRoleMap[cleaned]; !exists {
-				adminRoles = append(adminRoles, cleaned)
-				adminRoleMap[cleaned] = struct{}{}
-			}
+	// 1. Parse Tier 1: Oversight & Read Roles (Default: super_admin, admin, staff)
+	rawReadRoles := getEnv("INQUIRIES_READ_ROLES", DefaultReadRoles)
+	readRoles, readRoleMap := parseRoleSet(rawReadRoles)
+	if len(readRoles) == 0 {
+		return nil, errors.New("INQUIRIES_READ_ROLES must contain at least one valid authorized role")
+	}
+
+	// 2. Parse Tier 2: Operational Action Roles (Default: admin, staff)
+	rawActionRoles := getEnv("INQUIRIES_ACTION_ROLES", DefaultActionRoles)
+	actionRoles, actionRoleMap := parseRoleSet(rawActionRoles)
+	if len(actionRoles) == 0 {
+		return nil, errors.New("INQUIRIES_ACTION_ROLES must contain at least one valid operational role")
+	}
+
+	// Startup Invariant: every action role must be valid, non-empty, and included in the read roles
+	for _, ar := range actionRoles {
+		if _, ok := readRoleMap[ar]; !ok {
+			return nil, fmt.Errorf("action role %q must also be authorized in INQUIRIES_READ_ROLES", ar)
 		}
 	}
 
@@ -117,8 +129,10 @@ func Load() (*Config, error) {
 		JWTSecretKey:            jwtSecret,
 		FrontendHandshakeSecret: frontendHandshake,
 		GoogleMailerWebhookURL:  mailerWebhookURL,
-		AdminRoles:              adminRoles,
-		AdminRoleMap:            adminRoleMap,
+		ReadRoles:               readRoles,
+		ReadRoleMap:             readRoleMap,
+		ActionRoles:             actionRoles,
+		ActionRoleMap:           actionRoleMap,
 		RateLimitPerMin:         rateLimitPerMin,
 		RateLimitBurst:          rateLimitBurst,
 		MailerWorkers:           mailerWorkers,
@@ -127,11 +141,34 @@ func Load() (*Config, error) {
 	}, nil
 }
 
-// IsAuthorizedRole checks if a normalized role string is present in the admin allowlist.
-func (c *Config) IsAuthorizedRole(role string) bool {
+// IsReadAuthorized checks if a role has executive oversight / read clearance.
+func (c *Config) IsReadAuthorized(role string) bool {
 	normalized := strings.ToLower(strings.TrimSpace(role))
-	_, ok := c.AdminRoleMap[normalized]
+	_, ok := c.ReadRoleMap[normalized]
 	return ok
+}
+
+// IsActionAuthorized checks if a role has operational reply / ticket management authority.
+func (c *Config) IsActionAuthorized(role string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(role))
+	_, ok := c.ActionRoleMap[normalized]
+	return ok
+}
+
+func parseRoleSet(raw string) ([]string, map[string]struct{}) {
+	slice := strings.Split(raw, ",")
+	roles := make([]string, 0, len(slice))
+	roleMap := make(map[string]struct{}, len(slice))
+	for _, r := range slice {
+		cleaned := strings.ToLower(strings.TrimSpace(r))
+		if cleaned != "" {
+			if _, exists := roleMap[cleaned]; !exists {
+				roles = append(roles, cleaned)
+				roleMap[cleaned] = struct{}{}
+			}
+		}
+	}
+	return roles, roleMap
 }
 
 func getEnv(key, defaultVal string) string {

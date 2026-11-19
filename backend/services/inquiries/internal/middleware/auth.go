@@ -19,8 +19,9 @@ const (
 	actorContextKey authContextKey = "authenticated_actor"
 )
 
-// ManagementAuth creates the Zero-Trust Management RBAC & Handshake middleware.
-func ManagementAuth(cfg *config.Config) func(http.Handler) http.Handler {
+// Authenticate verifies the incoming JWT and internal handshake,
+// injecting the AuthenticatedActor into the request context.
+func Authenticate(cfg *config.Config) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// 1. Internal Handshake Verification (if configured)
@@ -45,14 +46,13 @@ func ManagementAuth(cfg *config.Config) func(http.Handler) http.Handler {
 				rawToken,
 				claims,
 				func(t *jwt.Token) (interface{}, error) {
-					// Verify signing method is explicitly HMAC-SHA256
 					if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 						return nil, fmt.Errorf("unexpected signing algorithm: %v", t.Header["alg"])
 					}
 					return []byte(cfg.JWTSecretKey), nil
 				},
 				jwt.WithValidMethods([]string{"HS256"}),
-				jwt.WithoutClaimsValidation(), // We perform targeted strict manual checks below
+				jwt.WithoutClaimsValidation(),
 			)
 
 			if err != nil || !token.Valid {
@@ -72,13 +72,7 @@ func ManagementAuth(cfg *config.Config) func(http.Handler) http.Handler {
 				return
 			}
 
-			// 5. Strict Management RBAC Enforcement
-			if !cfg.IsAuthorizedRole(claims.Role) {
-				renderJSONError(w, http.StatusForbidden, "Forbidden: insufficient administrative clearance")
-				return
-			}
-
-			// 6. Context Propagation
+			// 5. Context Propagation
 			firstName := ""
 			if claims.FirstName != nil {
 				firstName = *claims.FirstName
@@ -96,6 +90,53 @@ func ManagementAuth(cfg *config.Config) func(http.Handler) http.Handler {
 	}
 }
 
+// RequireReadAccess enforces Tier 1: Executive Oversight & Read permission (super_admin, admin, staff).
+func RequireReadAccess(cfg *config.Config) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			actor, ok := ActorFromContext(r.Context())
+			if !ok || actor == nil {
+				renderJSONError(w, http.StatusUnauthorized, "Unauthorized: authentication required")
+				return
+			}
+
+			if !cfg.IsReadAuthorized(actor.Role) {
+				renderJSONError(w, http.StatusForbidden, "Forbidden: insufficient administrative clearance")
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// RequireActionAccess enforces Tier 2: Operational Action permission (admin, staff).
+// super_admin accounts are explicitly blocked with a clear non-leaking read-only oversight notice.
+func RequireActionAccess(cfg *config.Config) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			actor, ok := ActorFromContext(r.Context())
+			if !ok || actor == nil {
+				renderJSONError(w, http.StatusUnauthorized, "Unauthorized: authentication required")
+				return
+			}
+
+			normalizedRole := strings.ToLower(strings.TrimSpace(actor.Role))
+			if normalizedRole == "super_admin" {
+				renderJSONError(w, http.StatusForbidden, "Forbidden: executive oversight accounts have read-only access to inquiries")
+				return
+			}
+
+			if !cfg.IsActionAuthorized(actor.Role) {
+				renderJSONError(w, http.StatusForbidden, "Forbidden: insufficient administrative clearance")
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // ActorFromContext retrieves the authenticated administrative actor from the request context.
 func ActorFromContext(ctx context.Context) (*domain.AuthenticatedActor, bool) {
 	actor, ok := ctx.Value(actorContextKey).(*domain.AuthenticatedActor)
@@ -104,7 +145,6 @@ func ActorFromContext(ctx context.Context) (*domain.AuthenticatedActor, bool) {
 
 // extractToken retrieves the raw JWT string prioritizing Authorization header over cookies.
 func extractToken(r *http.Request) string {
-	// 1. Authorization: Bearer <token>
 	authHeader := r.Header.Get("Authorization")
 	if strings.HasPrefix(authHeader, "Bearer ") {
 		token := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
@@ -113,12 +153,10 @@ func extractToken(r *http.Request) string {
 		}
 	}
 
-	// 2. Cookie: admin-access-token
 	if cookie, err := r.Cookie("admin-access-token"); err == nil && strings.TrimSpace(cookie.Value) != "" {
 		return strings.TrimSpace(cookie.Value)
 	}
 
-	// 3. Cookie: sb-access-token
 	if cookie, err := r.Cookie("sb-access-token"); err == nil && strings.TrimSpace(cookie.Value) != "" {
 		return strings.TrimSpace(cookie.Value)
 	}

@@ -45,6 +45,16 @@ COPY backend/services/dashboard .
 RUN cargo build --release --bin dashboard
 
 # ------------------------------------------------------------------------------
+# STAGE 2.5: Build Go Inquiries & Helpdesk Microservice
+# ------------------------------------------------------------------------------
+FROM golang:1.26-bookworm AS inquiries-builder
+WORKDIR /build/inquiries
+COPY backend/services/inquiries/go.mod backend/services/inquiries/go.sum ./
+RUN go mod download
+COPY backend/services/inquiries/ .
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/inquiries ./cmd/server
+
+# ------------------------------------------------------------------------------
 # STAGE 3: Unified Runtime Environment (Debian Bookworm Slim + Python 3.12)
 # ------------------------------------------------------------------------------
 FROM python:3.12-slim-bookworm AS runtime
@@ -77,11 +87,12 @@ COPY backend/legal_service/uv.lock* .
 RUN uv pip install --system --no-cache -r pyproject.toml
 COPY backend/legal_service/ .
 
-# Install compiled Rust microservice binaries
+# Install compiled microservice binaries
 WORKDIR /app/bin
 COPY --from=auth-builder /app/target/release/auth /app/bin/auth
 COPY --from=dashboard-builder /app/target/release/dashboard /app/bin/dashboard
-RUN chmod +x /app/bin/auth /app/bin/dashboard
+COPY --from=inquiries-builder /out/inquiries /app/bin/inquiries
+RUN chmod +x /app/bin/auth /app/bin/dashboard /app/bin/inquiries
 
 # Copy Nginx and Supervisord configurations
 WORKDIR /app

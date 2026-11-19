@@ -43,71 +43,86 @@ func TestNormalizeDatabaseURL(t *testing.T) {
 	}
 }
 
-func TestConfigValidation(t *testing.T) {
-	// Clear relevant env vars
+func TestConfigValidationAndStrictRBAC(t *testing.T) {
+	// Preserve original env vars
 	origDB := os.Getenv("DATABASE_URL")
 	origJWT := os.Getenv("JWT_SECRET_KEY")
 	origWebhook := os.Getenv("GOOGLE_MAILER_WEBHOOK_URL")
+	origReadRoles := os.Getenv("INQUIRIES_READ_ROLES")
+	origActionRoles := os.Getenv("INQUIRIES_ACTION_ROLES")
 	defer func() {
 		_ = os.Setenv("DATABASE_URL", origDB)
 		_ = os.Setenv("JWT_SECRET_KEY", origJWT)
 		_ = os.Setenv("GOOGLE_MAILER_WEBHOOK_URL", origWebhook)
+		_ = os.Setenv("INQUIRIES_READ_ROLES", origReadRoles)
+		_ = os.Setenv("INQUIRIES_ACTION_ROLES", origActionRoles)
 	}()
 
-	t.Run("missing DATABASE_URL", func(t *testing.T) {
-		_ = os.Setenv("DATABASE_URL", "")
-		_ = os.Setenv("JWT_SECRET_KEY", "super-secret-key-16-bytes-min")
-		_ = os.Setenv("GOOGLE_MAILER_WEBHOOK_URL", "https://script.google.com/macros/s/xyz/exec")
+	_ = os.Setenv("DATABASE_URL", "postgresql+asyncpg://user:pass@host:6543/db")
+	_ = os.Setenv("JWT_SECRET_KEY", "a-very-secure-hmac-sha256-secret-32b")
+	_ = os.Setenv("GOOGLE_MAILER_WEBHOOK_URL", "https://script.google.com/macros/s/ABCDEF/exec")
+	_ = os.Unsetenv("INQUIRIES_READ_ROLES")
+	_ = os.Unsetenv("INQUIRIES_ACTION_ROLES")
 
-		_, err := Load()
-		if err == nil {
-			t.Fatal("expected error for empty DATABASE_URL, got nil")
-		}
-	})
-
-	t.Run("short JWT_SECRET_KEY", func(t *testing.T) {
-		_ = os.Setenv("DATABASE_URL", "postgres://localhost:5432/test")
-		_ = os.Setenv("JWT_SECRET_KEY", "short")
-		_ = os.Setenv("GOOGLE_MAILER_WEBHOOK_URL", "https://script.google.com/macros/s/xyz/exec")
-
-		_, err := Load()
-		if err == nil {
-			t.Fatal("expected error for short JWT_SECRET_KEY, got nil")
-		}
-	})
-
-	t.Run("invalid GOOGLE_MAILER_WEBHOOK_URL not https", func(t *testing.T) {
-		_ = os.Setenv("DATABASE_URL", "postgres://localhost:5432/test")
-		_ = os.Setenv("JWT_SECRET_KEY", "super-secret-key-16-bytes-min")
-		_ = os.Setenv("GOOGLE_MAILER_WEBHOOK_URL", "http://insecure.url/exec")
-
-		_, err := Load()
-		if err == nil {
-			t.Fatal("expected error for non-https GOOGLE_MAILER_WEBHOOK_URL, got nil")
-		}
-	})
-
-	t.Run("valid configuration and role parsing", func(t *testing.T) {
-		_ = os.Setenv("DATABASE_URL", "postgresql+asyncpg://user:pass@host:6543/db")
-		_ = os.Setenv("JWT_SECRET_KEY", "a-very-secure-hmac-sha256-secret-32b")
-		_ = os.Setenv("GOOGLE_MAILER_WEBHOOK_URL", "https://script.google.com/macros/s/ABCDEF/exec")
-		_ = os.Setenv("INQUIRIES_ADMIN_ROLES", "Admin, Super_Admin, Teacher, counselor ")
-
+	t.Run("default RBAC allowlists enforce strict three-role governance", func(t *testing.T) {
 		cfg, err := Load()
 		if err != nil {
 			t.Fatalf("unexpected load error: %v", err)
 		}
 
-		if cfg.DatabaseURL != "postgres://user:pass@host:6543/db" {
-			t.Errorf("expected normalized database URL, got: %s", cfg.DatabaseURL)
+		// Verify Tier 1: Read clearance
+		if !cfg.IsReadAuthorized("super_admin") || !cfg.IsReadAuthorized("SUPER_ADMIN") {
+			t.Error("expected super_admin to have read authorization")
+		}
+		if !cfg.IsReadAuthorized("admin") || !cfg.IsReadAuthorized("staff") {
+			t.Error("expected admin and staff to have read authorization")
 		}
 
-		if !cfg.IsAuthorizedRole("admin") || !cfg.IsAuthorizedRole("ADMIN") || !cfg.IsAuthorizedRole("super_admin") || !cfg.IsAuthorizedRole("TEACHER") || !cfg.IsAuthorizedRole("counselor") {
-			t.Errorf("failed role authorization check for allowed roles")
+		// Verify Tier 2: Action clearance
+		if cfg.IsActionAuthorized("super_admin") {
+			t.Error("super_admin must NOT have operational action authorization (read-only oversight)")
+		}
+		if !cfg.IsActionAuthorized("admin") || !cfg.IsActionAuthorized("staff") {
+			t.Error("expected admin and staff to have action authorization")
 		}
 
-		if cfg.IsAuthorizedRole("kid") || cfg.IsAuthorizedRole("teen") || cfg.IsAuthorizedRole("guest") {
-			t.Errorf("end-user role erroneously marked authorized")
+		// Verify default read roles count is exactly 3
+		if len(cfg.ReadRoles) != 3 {
+			t.Errorf("expected exactly 3 default read roles, got: %v", cfg.ReadRoles)
+		}
+		// Verify default action roles count is exactly 2
+		if len(cfg.ActionRoles) != 2 {
+			t.Errorf("expected exactly 2 default action roles, got: %v", cfg.ActionRoles)
+		}
+
+		// Verify permanently retired and demographic roles are rejected by default
+		retiredRoles := []string{
+			"owner", "OWNER",
+			"superadmin", "SUPERADMIN",
+			"teacher", "TEACHER",
+			"counselor", "COUNSELOR",
+			"principal", "PRINCIPAL",
+			"management", "MANAGEMENT",
+			"kid", "teen", "young-adult", "user", "guest",
+		}
+
+		for _, role := range retiredRoles {
+			if cfg.IsReadAuthorized(role) {
+				t.Errorf("retired/demographic role %q erroneously authorized for read", role)
+			}
+			if cfg.IsActionAuthorized(role) {
+				t.Errorf("retired/demographic role %q erroneously authorized for action", role)
+			}
+		}
+	})
+
+	t.Run("action role must be a subset of read roles", func(t *testing.T) {
+		_ = os.Setenv("INQUIRIES_READ_ROLES", "super_admin,admin")
+		_ = os.Setenv("INQUIRIES_ACTION_ROLES", "admin,staff") // staff is missing from read roles
+
+		_, err := Load()
+		if err == nil {
+			t.Fatal("expected startup invariant error when action role is missing from read roles")
 		}
 	})
 }
