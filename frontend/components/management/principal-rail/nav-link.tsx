@@ -26,6 +26,7 @@ import {
   LogOut,
   Activity,
   AlertTriangle,
+  Inbox,
   LucideIcon 
 } from "lucide-react";
 
@@ -36,6 +37,7 @@ import {
  */
 const ICON_MAP: Record<string, LucideIcon> = {
   dashboard: LayoutDashboard,
+  inquiries: Inbox,
   kids: Smile,
   teens: Zap,
   adults: GraduationCap,

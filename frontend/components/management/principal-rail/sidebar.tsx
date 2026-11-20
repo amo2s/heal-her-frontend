@@ -12,6 +12,7 @@ import { LogoutButton } from "./logout-button";
 // Includes the core Heal Her Segments and your Infrastructure Shell
 const allNavItems = [
   { icon: "dashboard", label: "Dashboard", href: "/management/dashboard", permKey: "dashboard" },
+  { icon: "inquiries", label: "Inquiries", href: "/management/dashboard/inquiries", permKey: "inquiries" },
   
   // --- HEAL HER DOMAIN SEGMENTS ---
   { icon: "kids", label: "Kids (7-12)", href: "/management/dashboard/kids", permKey: "kids" },
@@ -83,7 +84,7 @@ export default async function Sidebar() {
     }
     
     // Fallback for basic staff
-    return ["dashboard", "settings", "security"].includes(item.permKey);
+    return ["dashboard", "settings", "security", "inquiries"].includes(item.permKey);
   });
 
   return (
