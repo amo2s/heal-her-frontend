@@ -1,8 +1,7 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import Image from "next/image"
-import Link from "next/link"
 import { motion, useMotionTemplate, useMotionValue, Variants, AnimatePresence } from "framer-motion"
 import { Navigation } from "@/components/layout/navigation"
 import { Footer } from "@/components/layout/footer"
@@ -22,9 +21,22 @@ import {
   Lock as LockIcon,
   Phone,
   MessageCircle,
-  X,
-  AlertCircle
+  AlertCircle,
+  CheckCircle2,
+  Copy,
+  Check,
+  Loader2,
+  Clock,
 } from "lucide-react"
+import {
+  ContactFieldKey,
+  ContactFieldLimits,
+  ContactIntakePayload,
+  ContactReceipt,
+  ContactTimingConfig,
+  countRunes,
+  validateContactInput,
+} from "@/lib/contact-intake"
 
 // ============================================================================
 // ULTRA-PREMIUM PHYSICS & UTILITIES
@@ -55,7 +67,7 @@ const scaleIn: Variants = {
   visible: { 
     opacity: 1, 
     scale: 1, 
-    filter: "blur(0px)",
+    filter: "blur(0px)", 
     transition: { duration: 1.2, ease: premiumSmooth } 
   }
 }
@@ -104,192 +116,664 @@ function SpotlightCard({ children, className = "" }: { children: React.ReactNode
   )
 }
 
-function GlossyButton({ onClick, children, className = "", type = "button" }: { onClick?: () => void, children: React.ReactNode, className?: string, type?: "button" | "submit" }) {
+function GlossyButton({
+  onClick,
+  children,
+  className = "",
+  type = "button",
+  disabled = false,
+}: {
+  onClick?: () => void
+  children: React.ReactNode
+  className?: string
+  type?: "button" | "submit"
+  disabled?: boolean
+}) {
   return (
     <button 
       type={type}
+      disabled={disabled}
       onClick={onClick}
       className={cn(
         "group relative inline-flex items-center justify-center gap-2 px-6 py-3.5 md:px-8 md:py-4 rounded-full bg-gradient-to-b from-[#DA8CA0] to-[#b86981] text-[#1C1246] font-extrabold text-xs md:text-sm lg:text-base tracking-wide overflow-hidden shadow-[0_10px_40px_rgba(218,140,160,0.3)] hover:shadow-[0_10px_50px_rgba(218,140,160,0.6)] transition-all duration-500 will-change-transform hover:-translate-y-1",
+        disabled && "opacity-60 cursor-not-allowed hover:translate-y-0 hover:shadow-[0_10px_40px_rgba(218,140,160,0.3)]",
         className
       )}
     >
       <div className="absolute top-0 inset-x-0 h-[45%] bg-gradient-to-b from-white/50 to-transparent rounded-t-full pointer-events-none" />
       <div className="absolute inset-0 rounded-full border border-white/40 mix-blend-overlay pointer-events-none" />
-      <motion.div 
-        className="absolute top-0 left-0 w-[150%] h-[150%] bg-gradient-to-r from-transparent via-white/60 to-transparent skew-x-[-45deg]"
-        initial={{ x: "-150%" }}
-        whileHover={{ x: "150%" }}
-        transition={{ duration: 0.7, ease: "easeInOut" }}
-      />
+      {!disabled && (
+        <motion.div 
+          className="absolute top-0 left-0 w-[150%] h-[150%] bg-gradient-to-r from-transparent via-white/60 to-transparent skew-x-[-45deg]"
+          initial={{ x: "-150%" }}
+          whileHover={{ x: "150%" }}
+          transition={{ duration: 0.7, ease: "easeInOut" }}
+        />
+      )}
       <span className="relative z-10 flex items-center gap-2">{children}</span>
     </button>
   )
 }
 
 // ============================================================================
-// ENTERPRISE FORM COMPONENT WITH MODAL
+// HARDENED LIVE CONTACT FORM COMPONENT
 // ============================================================================
 function ContactForm() {
-  const [formData, setFormData] = useState({ name: "", org: "", email: "", subject: "", message: "" })
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [formData, setFormData] = useState<ContactIntakePayload>({
+    name: "",
+    org: "",
+    email: "",
+    subject: "",
+    message: "",
+    website: "",
+  })
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsModalOpen(true)
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<ContactFieldKey, string>>>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const inFlightRef = useRef(false)
+  const mountedAtRef = useRef<number>(Date.now())
+
+  const [submitStatus, setSubmitStatus] = useState<{
+    type: "error" | "timing_guard"
+    message: string
+  } | null>(null)
+
+  const [retryCountdown, setRetryCountdown] = useState<number>(0)
+  const [fallbackAvailable, setFallbackAvailable] = useState(false)
+  const [receipt, setReceipt] = useState<{
+    receipt: ContactReceipt
+    submittedEmail: string
+  } | null>(null)
+
+  const [copied, setCopied] = useState(false)
+
+  // 1-second countdown timer for HTTP 429 rate limit cooldown
+  useEffect(() => {
+    if (retryCountdown <= 0) return
+    const timer = setInterval(() => {
+      setRetryCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [retryCountdown])
+
+  const handleFieldChange = (key: ContactFieldKey, value: string) => {
+    setFormData((prev) => ({ ...prev, [key]: value }))
+    if (fieldErrors[key]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+    }
+    if (submitStatus) setSubmitStatus(null)
   }
 
-  return (
-    <>
-      <form onSubmit={handleSubmit} className="space-y-5 md:space-y-6 relative z-10">
-        <div className="grid gap-5 md:gap-6 md:grid-cols-2">
-          <div className="space-y-2">
-            <label className="text-[10px] md:text-xs font-bold text-[#DA8CA0] uppercase tracking-widest ml-1">Full Name</label>
-            <input
-              type="text" required
-              className="w-full bg-[#1C1246] border border-white/10 rounded-xl px-4 py-3 text-sm text-[#FAFAFA] outline-none focus:border-[#DA8CA0]/50 focus:ring-1 focus:ring-[#DA8CA0]/50 transition-all placeholder:text-slate-500"
-              placeholder="Jane Doe"
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-            />
+  const handleCopyReference = async (refCode: string) => {
+    try {
+      await navigator.clipboard.writeText(refCode)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Clipboard fallback
+    }
+  }
+
+  const handleResetForm = () => {
+    setReceipt(null)
+    setFormData({ name: "", org: "", email: "", subject: "", message: "", website: "" })
+    setFieldErrors({})
+    setSubmitStatus(null)
+    setFallbackAvailable(false)
+    setRetryCountdown(0)
+    mountedAtRef.current = Date.now()
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    // 1. Synchronous double-submit lock & rate-limit guard
+    if (inFlightRef.current || isSubmitting || retryCountdown > 0) {
+      return
+    }
+
+    // 2. Stealth Bot Human Timing Guard
+    const elapsed = Date.now() - mountedAtRef.current
+    if (elapsed < ContactTimingConfig.minElapsedMs) {
+      setSubmitStatus({
+        type: "timing_guard",
+        message: "Please take a moment before submitting your inquiry.",
+      })
+      return
+    }
+
+    // 3. Client-Side Pre-Flight Validation
+    const { isValid, fieldErrors: validationErrors } = validateContactInput(formData)
+    if (!isValid) {
+      setFieldErrors(validationErrors)
+      setSubmitStatus({
+        type: "error",
+        message: "Please correct the highlighted fields before submitting.",
+      })
+
+      // Focus first invalid input field
+      const firstInvalidKey = (["name", "org", "email", "subject", "message"] as ContactFieldKey[]).find(
+        (k) => validationErrors[k]
+      )
+      if (firstInvalidKey) {
+        const el = document.getElementById(`contact-field-${firstInvalidKey}`)
+        if (el) el.focus()
+      }
+      return
+    }
+
+    inFlightRef.current = true
+    setIsSubmitting(true)
+    setSubmitStatus(null)
+    setFallbackAvailable(false)
+
+    // 4. Timeout-Bounded BFF Request (15 seconds)
+    const abortController = new AbortController()
+    const timeoutId = setTimeout(() => {
+      abortController.abort()
+    }, ContactTimingConfig.clientTimeoutMs)
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        cache: "no-store",
+        signal: abortController.signal,
+        body: JSON.stringify({
+          name: formData.name,
+          org: formData.org,
+          email: formData.email,
+          subject: formData.subject,
+          message: formData.message,
+          website: formData.website,
+        }),
+      })
+
+      clearTimeout(timeoutId)
+
+      let data: any = null
+      try {
+        data = await response.json()
+      } catch {
+        data = null
+      }
+
+      // 5. Success Handling (HTTP 201)
+      if (response.status === 201 && data?.status === "success") {
+        setReceipt({
+          receipt: data as ContactReceipt,
+          submittedEmail: formData.email,
+        })
+        setFormData({ name: "", org: "", email: "", subject: "", message: "", website: "" })
+        setFieldErrors({})
+        setFallbackAvailable(false)
+        return
+      }
+
+      // 6. Validation Error (HTTP 422)
+      if (response.status === 422) {
+        setFieldErrors(data?.fieldErrors || {})
+        setSubmitStatus({
+          type: "error",
+          message: data?.message || "Validation failed on one or more submitted fields.",
+        })
+        setFallbackAvailable(false)
+        return
+      }
+
+      // 7. Rate Limited (HTTP 429)
+      if (response.status === 429) {
+        const retrySec = data?.retryAfterSeconds || 60
+        setRetryCountdown(retrySec)
+        setSubmitStatus({
+          type: "error",
+          message: data?.message || `Too many inquiries submitted. Please wait ${retrySec} seconds before trying again.`,
+        })
+        setFallbackAvailable(false)
+        return
+      }
+
+      // 8. Service Outage or 5xx Failures
+      const shouldFallback = Boolean(data?.fallbackAvailable) || response.status >= 500
+      setFallbackAvailable(shouldFallback)
+      setSubmitStatus({
+        type: "error",
+        message:
+          data?.message ||
+          (shouldFallback
+            ? "Our direct intake system is temporarily unreachable. Please reach us via our emergency fallback channels below."
+            : "Submission could not be completed. Please review your input and try again."),
+      })
+    } catch (networkErr: any) {
+      clearTimeout(timeoutId)
+      const isTimeout = networkErr?.name === "AbortError"
+      setFallbackAvailable(true)
+      setSubmitStatus({
+        type: "error",
+        message: isTimeout
+          ? "The request timed out. Our secure gateway may be starting up. Please try again or use our direct priority channels below."
+          : "Network connection lost. Please reach us via our emergency fallback channels below.",
+      })
+    } finally {
+      clearTimeout(timeoutId)
+      setIsSubmitting(false)
+      inFlightRef.current = false
+    }
+  }
+
+  const messageRunes = countRunes(formData.message)
+  const maxMessageRunes = ContactFieldLimits.message.max
+
+  // --- RENDER CONFIRMATION RECEIPT UPON SUCCESS ---
+  if (receipt) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: premiumSmooth }}
+        className="space-y-6 relative z-10"
+      >
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/30 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+            <CheckCircle2 className="h-7 w-7" />
           </div>
-          <div className="space-y-2">
-            <label className="text-[10px] md:text-xs font-bold text-[#DA8CA0] uppercase tracking-widest ml-1">Organization / School</label>
-            <input
-              type="text" required
-              className="w-full bg-[#1C1246] border border-white/10 rounded-xl px-4 py-3 text-sm text-[#FAFAFA] outline-none focus:border-[#DA8CA0]/50 focus:ring-1 focus:ring-[#DA8CA0]/50 transition-all placeholder:text-slate-500"
-              placeholder="Official Institution Name"
-              onChange={(e) => setFormData({...formData, org: e.target.value})}
-            />
+          <div>
+            <h3 className="text-xl md:text-2xl font-bold text-white">Inquiry Logged Securely</h3>
+            <p className="text-xs text-[#CCCCD9]">Dispatched to Heal Her Executive & Support Team</p>
           </div>
         </div>
-        <div className="grid gap-5 md:gap-6 md:grid-cols-2">
-          <div className="space-y-2">
-            <label className="text-[10px] md:text-xs font-bold text-[#DA8CA0] uppercase tracking-widest ml-1">Official Email</label>
-            <input
-              type="email" required
-              className="w-full bg-[#1C1246] border border-white/10 rounded-xl px-4 py-3 text-sm text-[#FAFAFA] outline-none focus:border-[#DA8CA0]/50 focus:ring-1 focus:ring-[#DA8CA0]/50 transition-all placeholder:text-slate-500"
-              placeholder="admin@institution.org"
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-            />
+
+        <div className="p-6 md:p-8 rounded-2xl bg-[#1C1246] border border-white/10 space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#DA8CA0]">
+                Official Ticket Reference
+              </span>
+              <p className="text-2xl md:text-3xl font-mono font-extrabold text-white tracking-wider mt-0.5">
+                {receipt.receipt.referenceCode}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleCopyReference(receipt.receipt.referenceCode)}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-white transition-all self-start sm:self-center"
+            >
+              {copied ? (
+                <>
+                  <Check className="h-3.5 w-3.5 text-emerald-400" />
+                  <span className="text-emerald-400 font-bold">Copied</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="h-3.5 w-3.5 text-[#DA8CA0]" />
+                  <span>Copy Reference</span>
+                </>
+              )}
+            </button>
           </div>
-          <div className="space-y-2">
-            <label className="text-[10px] md:text-xs font-bold text-[#DA8CA0] uppercase tracking-widest ml-1">Topic</label>
-            <input
-              type="text" required
-              className="w-full bg-[#1C1246] border border-white/10 rounded-xl px-4 py-3 text-sm text-[#FAFAFA] outline-none focus:border-[#DA8CA0]/50 focus:ring-1 focus:ring-[#DA8CA0]/50 transition-all placeholder:text-slate-500"
-              placeholder="Deployment / Support / Partnership"
-              onChange={(e) => setFormData({...formData, subject: e.target.value})}
-            />
+
+          <div className="pt-3 border-t border-white/5 space-y-2">
+            <p className="text-xs md:text-sm text-[#CCCCD9] leading-relaxed font-light">
+              An automated receipt has been dispatched to{" "}
+              <strong className="text-white font-medium">{receipt.submittedEmail}</strong>. Our support and compliance
+              team will review your requirements and respond directly to your correspondence.
+            </p>
+            <div className="flex items-center gap-2 text-[11px] text-emerald-400/90 font-mono pt-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              Status: {receipt.receipt.ticketStatus}
+            </div>
           </div>
         </div>
-        <div className="space-y-2">
-          <label className="text-[10px] md:text-xs font-bold text-[#DA8CA0] uppercase tracking-widest ml-1">Secure Message</label>
-          <textarea
-            rows={5} required
-            className="w-full bg-[#1C1246] border border-white/10 rounded-xl px-4 py-3 text-sm text-[#FAFAFA] outline-none focus:border-[#DA8CA0]/50 focus:ring-1 focus:ring-[#DA8CA0]/50 transition-all placeholder:text-slate-500 resize-none"
-            placeholder="Detail your institution's requirements..."
-            onChange={(e) => setFormData({...formData, message: e.target.value})}
-          />
-        </div>
-        
+
         <div className="pt-2">
-          <GlossyButton type="submit" className="w-full">
-            Transmit to Administration <Send className="h-4 w-4" />
+          <GlossyButton onClick={handleResetForm} className="w-full">
+            Send Another Inquiry <ArrowRight className="h-4 w-4" />
           </GlossyButton>
         </div>
+      </motion.div>
+    )
+  }
 
-        <div className="flex items-center justify-center gap-2 text-[10px] text-[#CCCCD9] pt-2">
-          <ShieldCheck className="h-3 w-3 text-emerald-500" />
-          <span>End-to-End Encrypted routing via <strong>nwakaamos95@gmail.com</strong></span>
-        </div>
-      </form>
+  // --- RENDER INTERACTIVE INTAKE FORM ---
+  return (
+    <form onSubmit={handleSubmit} noValidate className="space-y-5 md:space-y-6 relative z-10">
+      {/* Stealth Honeypot Field (Visually Hidden & Non-Tabable) */}
+      <div 
+        className="sr-only absolute -left-[9999px] h-0 w-0 overflow-hidden pointer-events-none" 
+        aria-hidden="true" 
+        tabIndex={-1}
+      >
+        <label htmlFor="contact-website-trap">Website</label>
+        <input
+          id="contact-website-trap"
+          type="text"
+          name="website"
+          tabIndex={-1}
+          autoComplete="off"
+          value={formData.website}
+          onChange={(e) => setFormData((prev) => ({ ...prev, website: e.target.value }))}
+        />
+      </div>
 
-      {/* Ultra-Premium Smart Maintenance Modal */}
+      {/* Top-Level Status Banner */}
       <AnimatePresence>
-        {isModalOpen && (
-          <motion.div 
-            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            animate={{ opacity: 1, backdropFilter: "blur(12px)" }}
-            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
-            onClick={() => setIsModalOpen(false)}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#1C1246]/80"
+        {submitStatus && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className={cn(
+              "p-4 rounded-xl border flex items-start gap-3 text-xs md:text-sm",
+              submitStatus.type === "timing_guard"
+                ? "bg-amber-500/10 border-amber-500/30 text-amber-200"
+                : "bg-rose-500/10 border-rose-500/30 text-rose-200"
+            )}
           >
-            <motion.div 
-              initial={{ scale: 0.9, y: 30, opacity: 0, rotateX: 10, filter: "blur(10px)" }}
-              animate={{ scale: 1, y: 0, opacity: 1, rotateX: 0, filter: "blur(0px)" }}
-              exit={{ scale: 0.95, y: 20, opacity: 0, rotateX: -5, filter: "blur(8px)" }}
-              transition={{ duration: 0.7, ease: premiumSmooth }}
-              onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-lg bg-[#231854] border border-white/10 rounded-3xl shadow-[0_40px_80px_rgba(0,0,0,0.8)] overflow-hidden perspective-1000"
-            >
-              <div className="absolute top-0 right-0 w-48 h-48 bg-[#DA8CA0]/10 blur-[60px] rounded-full pointer-events-none" />
-              
-              <div className="p-6 md:p-8 relative z-10">
-                <button 
-                  onClick={() => setIsModalOpen(false)}
-                  className="absolute top-6 right-6 p-2 rounded-full bg-white/5 hover:bg-white/10 text-[#CCCCD9] hover:text-white transition-all hover:rotate-90 duration-300"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-                
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-                    <AlertCircle className="h-6 w-6" />
-                  </div>
-                  <h3 className="text-xl md:text-2xl font-bold text-white">System Upgrade in Progress</h3>
-                </div>
-                
-                <p className="text-[#CCCCD9] text-sm md:text-base leading-relaxed font-light mb-8">
-                  Our direct intake form is currently undergoing scheduled security maintenance. To ensure your request is handled immediately, please use our active official channels below.
-                </p>
-                
-                <div className="space-y-4">
-                  <a href="https://wa.me/2349070594637" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 rounded-xl bg-[#1C1246] border border-white/5 hover:border-emerald-500/30 group transition-all duration-300 shadow-sm hover:shadow-[0_8px_20px_rgba(16,185,129,0.1)]">
-                    <div className="flex items-center gap-4">
-                      <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400">
-                        <MessageCircle className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="text-white font-bold text-sm group-hover:text-emerald-400 transition-colors">WhatsApp Priority Line</p>
-                        <p className="text-[#CCCCD9] text-xs font-mono">0907 059 4637</p>
-                      </div>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-[#CCCCD9] group-hover:text-emerald-400 group-hover:translate-x-1 transition-all" />
-                  </a>
-                  
-                  <a href="tel:+2349063877703" className="flex items-center justify-between p-4 rounded-xl bg-[#1C1246] border border-white/5 hover:border-indigo-500/30 group transition-all duration-300 shadow-sm hover:shadow-[0_8px_20px_rgba(99,102,241,0.1)]">
-                    <div className="flex items-center gap-4">
-                      <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
-                        <Phone className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="text-white font-bold text-sm group-hover:text-indigo-400 transition-colors">Direct Phone Line</p>
-                        <p className="text-[#CCCCD9] text-xs font-mono">0906 387 7703</p>
-                      </div>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-[#CCCCD9] group-hover:text-indigo-400 group-hover:translate-x-1 transition-all" />
-                  </a>
-
-                  <a href="mailto:nwakaamos95@gmail.com" className="flex items-center justify-between p-4 rounded-xl bg-[#1C1246] border border-white/5 hover:border-[#DA8CA0]/30 group transition-all duration-300 shadow-sm hover:shadow-[0_8px_20px_rgba(218,140,160,0.1)]">
-                    <div className="flex items-center gap-4">
-                      <div className="p-2 bg-[#DA8CA0]/10 rounded-lg text-[#DA8CA0]">
-                        <Mail className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="text-white font-bold text-sm group-hover:text-[#DA8CA0] transition-colors">Official Email</p>
-                        <p className="text-[#CCCCD9] text-xs font-mono">nwakaamos95@gmail.com</p>
-                      </div>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-[#CCCCD9] group-hover:text-[#DA8CA0] group-hover:translate-x-1 transition-all" />
-                  </a>
-                </div>
-              </div>
-            </motion.div>
+            <AlertCircle className="h-4 w-4 text-current flex-shrink-0 mt-0.5" />
+            <span className="leading-relaxed">{submitStatus.message}</span>
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+
+      {/* Full Name & Organization Fields */}
+      <div className="grid gap-5 md:gap-6 md:grid-cols-2">
+        <div className="space-y-1.5">
+          <label 
+            htmlFor="contact-field-name" 
+            className="text-[10px] md:text-xs font-bold text-[#DA8CA0] uppercase tracking-widest ml-1"
+          >
+            Full Name
+          </label>
+          <input
+            id="contact-field-name"
+            type="text"
+            required
+            disabled={isSubmitting}
+            aria-invalid={Boolean(fieldErrors.name)}
+            className={cn(
+              "w-full bg-[#1C1246] border rounded-xl px-4 py-3 text-sm text-[#FAFAFA] outline-none transition-all placeholder:text-slate-500",
+              fieldErrors.name
+                ? "border-rose-500/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500/40 text-rose-100"
+                : "border-white/10 focus:border-[#DA8CA0]/50 focus:ring-1 focus:ring-[#DA8CA0]/50",
+              isSubmitting && "opacity-60 cursor-not-allowed"
+            )}
+            placeholder="Jane Doe"
+            value={formData.name}
+            onChange={(e) => handleFieldChange("name", e.target.value)}
+          />
+          {fieldErrors.name && (
+            <p className="text-xs text-rose-400 font-medium ml-1 flex items-center gap-1.5 pt-0.5">
+              <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" /> {fieldErrors.name}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <label 
+            htmlFor="contact-field-org" 
+            className="text-[10px] md:text-xs font-bold text-[#DA8CA0] uppercase tracking-widest ml-1"
+          >
+            Organization / School
+          </label>
+          <input
+            id="contact-field-org"
+            type="text"
+            required
+            disabled={isSubmitting}
+            aria-invalid={Boolean(fieldErrors.org)}
+            className={cn(
+              "w-full bg-[#1C1246] border rounded-xl px-4 py-3 text-sm text-[#FAFAFA] outline-none transition-all placeholder:text-slate-500",
+              fieldErrors.org
+                ? "border-rose-500/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500/40 text-rose-100"
+                : "border-white/10 focus:border-[#DA8CA0]/50 focus:ring-1 focus:ring-[#DA8CA0]/50",
+              isSubmitting && "opacity-60 cursor-not-allowed"
+            )}
+            placeholder="Official Institution Name"
+            value={formData.org}
+            onChange={(e) => handleFieldChange("org", e.target.value)}
+          />
+          {fieldErrors.org && (
+            <p className="text-xs text-rose-400 font-medium ml-1 flex items-center gap-1.5 pt-0.5">
+              <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" /> {fieldErrors.org}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Official Email & Topic Fields */}
+      <div className="grid gap-5 md:gap-6 md:grid-cols-2">
+        <div className="space-y-1.5">
+          <label 
+            htmlFor="contact-field-email" 
+            className="text-[10px] md:text-xs font-bold text-[#DA8CA0] uppercase tracking-widest ml-1"
+          >
+            Official Email
+          </label>
+          <input
+            id="contact-field-email"
+            type="email"
+            required
+            disabled={isSubmitting}
+            aria-invalid={Boolean(fieldErrors.email)}
+            className={cn(
+              "w-full bg-[#1C1246] border rounded-xl px-4 py-3 text-sm text-[#FAFAFA] outline-none transition-all placeholder:text-slate-500",
+              fieldErrors.email
+                ? "border-rose-500/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500/40 text-rose-100"
+                : "border-white/10 focus:border-[#DA8CA0]/50 focus:ring-1 focus:ring-[#DA8CA0]/50",
+              isSubmitting && "opacity-60 cursor-not-allowed"
+            )}
+            placeholder="admin@institution.org"
+            value={formData.email}
+            onChange={(e) => handleFieldChange("email", e.target.value)}
+          />
+          {fieldErrors.email && (
+            <p className="text-xs text-rose-400 font-medium ml-1 flex items-center gap-1.5 pt-0.5">
+              <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" /> {fieldErrors.email}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <label 
+            htmlFor="contact-field-subject" 
+            className="text-[10px] md:text-xs font-bold text-[#DA8CA0] uppercase tracking-widest ml-1"
+          >
+            Topic
+          </label>
+          <input
+            id="contact-field-subject"
+            type="text"
+            required
+            disabled={isSubmitting}
+            aria-invalid={Boolean(fieldErrors.subject)}
+            className={cn(
+              "w-full bg-[#1C1246] border rounded-xl px-4 py-3 text-sm text-[#FAFAFA] outline-none transition-all placeholder:text-slate-500",
+              fieldErrors.subject
+                ? "border-rose-500/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500/40 text-rose-100"
+                : "border-white/10 focus:border-[#DA8CA0]/50 focus:ring-1 focus:ring-[#DA8CA0]/50",
+              isSubmitting && "opacity-60 cursor-not-allowed"
+            )}
+            placeholder="Deployment / Support / Partnership"
+            value={formData.subject}
+            onChange={(e) => handleFieldChange("subject", e.target.value)}
+          />
+          {fieldErrors.subject && (
+            <p className="text-xs text-rose-400 font-medium ml-1 flex items-center gap-1.5 pt-0.5">
+              <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" /> {fieldErrors.subject}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Secure Message Field with Live Unicode Rune Counter */}
+      <div className="space-y-1.5">
+        <label 
+          htmlFor="contact-field-message" 
+          className="text-[10px] md:text-xs font-bold text-[#DA8CA0] uppercase tracking-widest ml-1"
+        >
+          Secure Message
+        </label>
+        <textarea
+          id="contact-field-message"
+          rows={5}
+          required
+          disabled={isSubmitting}
+          aria-invalid={Boolean(fieldErrors.message)}
+          className={cn(
+            "w-full bg-[#1C1246] border rounded-xl px-4 py-3 text-sm text-[#FAFAFA] outline-none transition-all placeholder:text-slate-500 resize-none",
+            fieldErrors.message
+              ? "border-rose-500/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500/40 text-rose-100"
+              : "border-white/10 focus:border-[#DA8CA0]/50 focus:ring-1 focus:ring-[#DA8CA0]/50",
+            isSubmitting && "opacity-60 cursor-not-allowed"
+          )}
+          placeholder="Detail your institution's requirements..."
+          value={formData.message}
+          onChange={(e) => handleFieldChange("message", e.target.value)}
+        />
+        <div className="flex justify-between items-center text-[10px] md:text-xs text-[#CCCCD9] ml-1 pt-0.5">
+          {fieldErrors.message ? (
+            <p className="text-xs text-rose-400 font-medium flex items-center gap-1.5">
+              <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" /> {fieldErrors.message}
+            </p>
+          ) : (
+            <span />
+          )}
+          <span
+            className={cn(
+              "font-mono transition-colors",
+              messageRunes > maxMessageRunes
+                ? "text-rose-400 font-bold"
+                : messageRunes > maxMessageRunes * 0.9
+                ? "text-amber-400"
+                : "text-[#8F8FA3]"
+            )}
+          >
+            {messageRunes.toLocaleString()} / {maxMessageRunes.toLocaleString()}
+          </span>
+        </div>
+      </div>
+
+      {/* Outage-Only Fallback Channels Panel */}
+      <AnimatePresence>
+        {fallbackAvailable && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="p-5 md:p-6 rounded-2xl bg-[#1C1246] border border-amber-500/30 space-y-4"
+          >
+            <div className="flex items-center gap-2.5 text-amber-400">
+              <AlertCircle className="h-5 w-5 flex-shrink-0" />
+              <h4 className="font-bold text-sm text-white">Direct Priority Communication Channels</h4>
+            </div>
+            <p className="text-xs text-[#CCCCD9] leading-relaxed font-light">
+              Our direct intake server is temporarily unreachable. Your correspondence is important to us—please reach our administrative team immediately through any of the verified channels below:
+            </p>
+            <div className="space-y-2.5 pt-1">
+              <a
+                href="https://wa.me/2349070594637"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between p-3.5 rounded-xl bg-[#231854] border border-white/5 hover:border-emerald-500/30 group transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400">
+                    <MessageCircle className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-white font-bold text-xs group-hover:text-emerald-400 transition-colors">
+                      WhatsApp Priority Line
+                    </p>
+                    <p className="text-[#CCCCD9] text-[11px] font-mono">0907 059 4637</p>
+                  </div>
+                </div>
+                <ArrowRight className="h-3.5 w-3.5 text-[#CCCCD9] group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
+              </a>
+
+              <a
+                href="tel:+2349063877703"
+                className="flex items-center justify-between p-3.5 rounded-xl bg-[#231854] border border-white/5 hover:border-indigo-500/30 group transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
+                    <Phone className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-white font-bold text-xs group-hover:text-indigo-400 transition-colors">
+                      Direct Phone Line
+                    </p>
+                    <p className="text-[#CCCCD9] text-[11px] font-mono">0906 387 7703</p>
+                  </div>
+                </div>
+                <ArrowRight className="h-3.5 w-3.5 text-[#CCCCD9] group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all" />
+              </a>
+
+              <a
+                href="mailto:nwakaamos95@gmail.com"
+                className="flex items-center justify-between p-3.5 rounded-xl bg-[#231854] border border-white/5 hover:border-[#DA8CA0]/30 group transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-[#DA8CA0]/10 rounded-lg text-[#DA8CA0]">
+                    <Mail className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-white font-bold text-xs group-hover:text-[#DA8CA0] transition-colors">
+                      Official Email
+                    </p>
+                    <p className="text-[#CCCCD9] text-[11px] font-mono">nwakaamos95@gmail.com</p>
+                  </div>
+                </div>
+                <ArrowRight className="h-3.5 w-3.5 text-[#CCCCD9] group-hover:text-[#DA8CA0] group-hover:translate-x-0.5 transition-all" />
+              </a>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Submit Button */}
+      <div className="pt-2">
+        <GlossyButton
+          type="submit"
+          disabled={isSubmitting || retryCountdown > 0}
+          className="w-full"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin text-[#1C1246]" />
+              <span>Sending Inquiry...</span>
+            </>
+          ) : retryCountdown > 0 ? (
+            <>
+              <Clock className="h-4 w-4 text-[#1C1246]" />
+              <span>Submit Cooldown ({retryCountdown}s)</span>
+            </>
+          ) : (
+            <>
+              <span>Transmit to Administration</span>
+              <Send className="h-4 w-4" />
+            </>
+          )}
+        </GlossyButton>
+      </div>
+
+      <div className="flex items-center justify-center gap-2 text-[10px] text-[#CCCCD9] pt-2">
+        <ShieldCheck className="h-3 w-3 text-emerald-500" />
+        <span>End-to-End Encrypted routing via <strong>nwakaamos95@gmail.com</strong></span>
+      </div>
+    </form>
   )
 }
 
@@ -327,7 +811,10 @@ function FaqAccordion({ q, a }: { q: string, a: string }) {
       <AnimatePresence>
         {isOpen && (
           <motion.div 
-            initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.4, ease: premiumSmooth }}
+            initial={{ height: 0, opacity: 0 }} 
+            animate={{ height: "auto", opacity: 1 }} 
+            exit={{ height: 0, opacity: 0 }} 
+            transition={{ duration: 0.4, ease: premiumSmooth }}
             className="overflow-hidden"
           >
             <p className="pb-6 text-sm text-[#CCCCD9] font-light leading-relaxed pr-8">{a}</p>
@@ -555,10 +1042,10 @@ export default function InstitutionalContactPage() {
             </motion.div>
 
             <motion.div 
-               initial={{ opacity: 0 }}
-               whileInView={{ opacity: 1 }}
-               viewport={{ once: true, margin: "-50px" }}
-               transition={{ duration: 1.2, ease: premiumSmooth }}
+               initial={{ opacity: 0 }} 
+               whileInView={{ opacity: 1 }} 
+               viewport={{ once: true, margin: "-50px" }} 
+               transition={{ duration: 1.2, ease: premiumSmooth }} 
                className="bg-[#1C1246] rounded-[1.5rem] md:rounded-[2rem] border border-white/5 p-4 md:p-8 shadow-2xl"
             >
                <div className="flex flex-col">
