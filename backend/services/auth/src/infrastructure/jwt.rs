@@ -31,6 +31,8 @@ pub struct Claims {
     pub tos_cleared: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub first_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approval_status: Option<String>,
 }
 
 /// Backward compatibility alias
@@ -56,6 +58,7 @@ pub fn generate_token_pair(
     family_id: Uuid,
     tos_cleared: bool,
     first_name: Option<String>,
+    approval_status: Option<&str>,
     secret: &str,
 ) -> Result<GeneratedTokenPair, InternalAuthError> {
     let now_utc = Utc::now();
@@ -81,6 +84,7 @@ pub fn generate_token_pair(
         aud: Some(role.to_string()),
         tos_cleared,
         first_name: first_name.clone(),
+        approval_status: approval_status.map(|s| s.to_string()),
     };
 
     let refresh_claims = Claims {
@@ -96,6 +100,7 @@ pub fn generate_token_pair(
         aud: Some(role.to_string()),
         tos_cleared,
         first_name,
+        approval_status: approval_status.map(|s| s.to_string()),
     };
 
     let encoding_key = EncodingKey::from_secret(secret.as_ref());
@@ -140,7 +145,17 @@ pub fn forge_token_pair(
     let uid = user_id.parse::<Uuid>().unwrap_or_else(|_| Uuid::new_v4());
     let sid = Uuid::new_v4();
     let fid = Uuid::new_v4();
-    let pair = generate_token_pair(uid, role, Some(dashboard), sid, fid, false, None, secret)?;
+    let pair = generate_token_pair(
+        uid,
+        role,
+        Some(dashboard),
+        sid,
+        fid,
+        false,
+        None,
+        Some("APPROVED"),
+        secret,
+    )?;
     Ok((pair.access_token, pair.refresh_token))
 }
 
@@ -261,6 +276,7 @@ mod tests {
             family_id,
             true,
             Some("Amos".to_string()),
+            Some("APPROVED"),
             secret,
         )
         .expect("Token pair generation failed");
@@ -286,6 +302,10 @@ mod tests {
         assert_eq!(decoded_access.claims.exp - decoded_access.claims.iat, 600);
         assert!(decoded_access.claims.tos_cleared);
         assert_eq!(decoded_access.claims.first_name.as_deref(), Some("Amos"));
+        assert_eq!(
+            decoded_access.claims.approval_status.as_deref(),
+            Some("APPROVED")
+        );
 
         // Validate Refresh Token
         let decoded_refresh = decode::<Claims>(&pair.refresh_token, &decoding_key, &validation)
@@ -298,6 +318,10 @@ mod tests {
         assert_eq!(decoded_refresh.claims.token_type, "refresh");
         assert!(decoded_refresh.claims.tos_cleared);
         assert_eq!(decoded_refresh.claims.first_name.as_deref(), Some("Amos"));
+        assert_eq!(
+            decoded_refresh.claims.approval_status.as_deref(),
+            Some("APPROVED")
+        );
         assert_eq!(
             decoded_refresh.claims.exp - decoded_refresh.claims.iat,
             604800
@@ -313,6 +337,60 @@ mod tests {
 
         // Invalid secret must fail
         assert!(verify_token(&pair.access_token, "wrong_secret").is_err());
+    }
+
+    #[test]
+    fn test_claims_approval_status_round_trip() {
+        // 1. Legacy token JSON without approval_status field
+        let legacy_json = r#"{
+            "sub": "018f3a2c-7b44-7000-8000-000000000001",
+            "jti": "018f3a2c-7b44-7000-8000-000000000002",
+            "sid": "018f3a2c-7b44-7000-8000-000000000003",
+            "fid": "018f3a2c-7b44-7000-8000-000000000004",
+            "role": "staff",
+            "iat": 1700000000,
+            "exp": 1700000600,
+            "token_type": "access",
+            "tos_cleared": true
+        }"#;
+        let claims: Claims = serde_json::from_str(legacy_json).expect("Legacy claims deserialization must succeed");
+        assert_eq!(claims.approval_status, None);
+
+        // 2. Pending approval status token
+        let pending_json = r#"{
+            "sub": "018f3a2c-7b44-7000-8000-000000000001",
+            "jti": "018f3a2c-7b44-7000-8000-000000000002",
+            "sid": "018f3a2c-7b44-7000-8000-000000000003",
+            "fid": "018f3a2c-7b44-7000-8000-000000000004",
+            "role": "staff",
+            "iat": 1700000000,
+            "exp": 1700000600,
+            "token_type": "access",
+            "tos_cleared": true,
+            "approval_status": "PENDING"
+        }"#;
+        let claims_pending: Claims = serde_json::from_str(pending_json).expect("Pending claims deserialization must succeed");
+        assert_eq!(claims_pending.approval_status.as_deref(), Some("PENDING"));
+
+        // 3. Approved status token serialization and deserialization
+        let claims_approved = Claims {
+            sub: Uuid::now_v7(),
+            jti: Uuid::now_v7(),
+            sid: Uuid::now_v7(),
+            fid: Uuid::now_v7(),
+            role: "super_admin".to_string(),
+            dashboard: None,
+            iat: 1700000000,
+            exp: 1700000600,
+            token_type: "access".to_string(),
+            aud: Some("super_admin".to_string()),
+            tos_cleared: true,
+            first_name: Some("Super".to_string()),
+            approval_status: Some("APPROVED".to_string()),
+        };
+        let serialized = serde_json::to_string(&claims_approved).expect("Serialization must succeed");
+        let deserialized: Claims = serde_json::from_str(&serialized).expect("Deserialization must succeed");
+        assert_eq!(deserialized.approval_status.as_deref(), Some("APPROVED"));
     }
 
     #[test]

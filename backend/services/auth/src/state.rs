@@ -17,6 +17,7 @@ pub struct AppState {
     pub jit_cache: Arc<TosJitCache>,
     pub jit_ed25519_private_key: String,
     pub tos_execution_public_key: String,
+    pub frontend_handshake_secret: String,
 }
 
 impl AppState {
@@ -27,6 +28,10 @@ impl AppState {
         let tos_execution_public_key = std::env::var("TOS_EXECUTION_PUBLIC_KEY")
             .map(|k| k.replace("\\n", "\n"))
             .unwrap_or_default();
+        let frontend_handshake_secret = std::env::var("FRONTEND_HANDSHAKE_SECRET").unwrap_or_default();
+        if frontend_handshake_secret.is_empty() {
+            tracing::warn!("FRONTEND_HANDSHAKE_SECRET is unset; management handshake verification is bypassed");
+        }
 
         Self {
             pool,
@@ -36,6 +41,7 @@ impl AppState {
             jit_cache: Arc::new(TosJitCache::new()),
             jit_ed25519_private_key,
             tos_execution_public_key,
+            frontend_handshake_secret,
         }
     }
 

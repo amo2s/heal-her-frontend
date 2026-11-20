@@ -26,6 +26,13 @@ pub struct UserType {
     pub dashboard: String,
     #[serde(rename = "tos_cleared", alias = "tosCleared")]
     pub tos_cleared: bool,
+    #[serde(
+        rename = "approval_status",
+        alias = "approvalStatus",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub approval_status: Option<String>,
 }
 
 /// Successful authentication response returned to the Next.js gateway / client.

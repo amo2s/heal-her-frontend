@@ -14,14 +14,19 @@ import (
 )
 
 func createTestToken(t *testing.T, secret string, role string, tokenType string, expOffset time.Duration, method jwt.SigningMethod) string {
+	return createTestTokenWithApproval(t, secret, role, "APPROVED", tokenType, expOffset, method)
+}
+
+func createTestTokenWithApproval(t *testing.T, secret string, role string, approvalStatus string, tokenType string, expOffset time.Duration, method jwt.SigningMethod) string {
 	t.Helper()
 	now := time.Now()
 	claims := domain.Claims{
-		Sub:       uuid.New(),
-		Role:      role,
-		TokenType: tokenType,
-		IAT:       now.Unix(),
-		EXP:       now.Add(expOffset).Unix(),
+		Sub:            uuid.New(),
+		Role:           role,
+		TokenType:      tokenType,
+		IAT:            now.Unix(),
+		EXP:            now.Add(expOffset).Unix(),
+		ApprovalStatus: approvalStatus,
 	}
 
 	token := jwt.NewWithClaims(method, claims)
@@ -199,4 +204,78 @@ func TestTwoTierRBACMatrix(t *testing.T) {
 			t.Errorf("expected 403 for bad handshake, got: %d", rrBadHandshake.Code)
 		}
 	})
+}
+
+func TestFailClosedApprovalGate(t *testing.T) {
+	jwtSecret := "super-secure-test-jwt-secret-key-32b"
+	handshakeSecret := "internal-test-handshake-secret"
+
+	cfg := &config.Config{
+		JWTSecretKey:            jwtSecret,
+		FrontendHandshakeSecret: handshakeSecret,
+		ReadRoles:               []string{"super_admin", "admin", "staff"},
+		ReadRoleMap: map[string]struct{}{
+			"super_admin": {},
+			"admin":       {},
+			"staff":       {},
+		},
+		ActionRoles: []string{"admin", "staff"},
+		ActionRoleMap: map[string]struct{}{
+			"admin": {},
+			"staff": {},
+		},
+	}
+
+	authMiddleware := Authenticate(cfg)
+	readGuard := RequireReadAccess(cfg)
+	actionGuard := RequireActionAccess(cfg)
+
+	readHandler := authMiddleware(readGuard(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("read_ok"))
+	})))
+
+	actionHandler := authMiddleware(actionGuard(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("action_ok"))
+	})))
+
+	invalidStatuses := []string{"PENDING", "pending", "REJECTED", "rejected", "", "UNKNOWN"}
+	roles := []string{"super_admin", "admin", "staff"}
+
+	for _, role := range roles {
+		for _, status := range invalidStatuses {
+			t.Run(role+" with status '"+status+"' is rejected with 403 on Read and Action endpoints", func(t *testing.T) {
+				token := createTestTokenWithApproval(t, jwtSecret, role, status, "access", 10*time.Minute, jwt.SigningMethodHS256)
+
+				// Test Read endpoint
+				reqRead := httptest.NewRequest(http.MethodGet, "/api/v1/inquiries/stats", nil)
+				reqRead.Header.Set("Authorization", "Bearer "+token)
+				reqRead.Header.Set("x-healher-handshake", handshakeSecret)
+				rrRead := httptest.NewRecorder()
+				readHandler.ServeHTTP(rrRead, reqRead)
+
+				if rrRead.Code != http.StatusForbidden {
+					t.Errorf("expected 403 Forbidden for Read tier with status %q, got: %d", status, rrRead.Code)
+				}
+				if !strings.Contains(rrRead.Body.String(), "Account approval required to access management inquiries") {
+					t.Errorf("expected approval error message, got: %s", rrRead.Body.String())
+				}
+
+				// Test Action endpoint
+				reqAction := httptest.NewRequest(http.MethodPost, "/api/v1/inquiries/123/reply", nil)
+				reqAction.Header.Set("Authorization", "Bearer "+token)
+				reqAction.Header.Set("x-healher-handshake", handshakeSecret)
+				rrAction := httptest.NewRecorder()
+				actionHandler.ServeHTTP(rrAction, reqAction)
+
+				if rrAction.Code != http.StatusForbidden {
+					t.Errorf("expected 403 Forbidden for Action tier with status %q, got: %d", status, rrAction.Code)
+				}
+				if !strings.Contains(rrAction.Body.String(), "Account approval required to access management inquiries") {
+					t.Errorf("expected approval error message, got: %s", rrAction.Body.String())
+				}
+			})
+		}
+	}
 }

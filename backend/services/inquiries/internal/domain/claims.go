@@ -19,8 +19,9 @@ type Claims struct {
 	IAT        int64      `json:"iat"`
 	EXP        int64      `json:"exp"`
 	Aud        *string    `json:"aud,omitempty"`
-	TosCleared bool       `json:"tos_cleared"`
-	FirstName  *string    `json:"first_name,omitempty"`
+	TosCleared     bool       `json:"tos_cleared"`
+	FirstName      *string    `json:"first_name,omitempty"`
+	ApprovalStatus string     `json:"approval_status,omitempty"`
 }
 
 // GetExpirationTime satisfies jwt.Claims interface for golang-jwt/jwt/v5.

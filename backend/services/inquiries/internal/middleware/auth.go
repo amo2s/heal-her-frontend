@@ -72,7 +72,13 @@ func Authenticate(cfg *config.Config) func(http.Handler) http.Handler {
 				return
 			}
 
-			// 5. Context Propagation
+			// 5. Fail-Closed Approval Status Gate
+			if !strings.EqualFold(strings.TrimSpace(claims.ApprovalStatus), "APPROVED") {
+				renderJSONError(w, http.StatusForbidden, "Forbidden: Account approval required to access management inquiries")
+				return
+			}
+
+			// 6. Context Propagation
 			firstName := ""
 			if claims.FirstName != nil {
 				firstName = *claims.FirstName

@@ -28,6 +28,15 @@ pub enum InternalAuthError {
     #[error("Account is suspended")]
     AccountSuspended,
 
+    #[error("Account registration was not approved")]
+    AccountRejected,
+
+    #[error("Account approval required")]
+    AccountPendingApproval,
+
+    #[error("Insufficient administrative permissions")]
+    InsufficientPermissions,
+
     #[error("JWT signing error: {0}")]
     JwtSigningError(String),
 
@@ -112,6 +121,15 @@ impl From<InternalAuthError> for ApiError {
             }
             InternalAuthError::AccountSuspended => {
                 ApiError::Forbidden("This account has been suspended.".to_string())
+            }
+            InternalAuthError::AccountRejected => {
+                ApiError::Forbidden("Account registration was not approved.".to_string())
+            }
+            InternalAuthError::AccountPendingApproval => {
+                ApiError::Forbidden("Account approval required to access management governance.".to_string())
+            }
+            InternalAuthError::InsufficientPermissions => {
+                ApiError::Forbidden("Insufficient administrative permissions.".to_string())
             }
             InternalAuthError::TokenRevoked => {
                 ApiError::Unauthorized("Token has been revoked".to_string())

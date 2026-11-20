@@ -1,5 +1,11 @@
 use crate::{
     api::handlers::{
+        governance::{
+            handle_approve_management_user, handle_delete_management_user, handle_get_audit_logs,
+            handle_list_management_users, handle_management_me, handle_management_signup,
+            handle_reactivate_management_user, handle_reject_management_user,
+            handle_suspend_management_user,
+        },
         login::login_handler,
         logout::logout_handler,
         password_reset::{confirm_reset_handler, request_otp_handler, verify_otp_handler},
@@ -14,7 +20,7 @@ use crate::{
 use axum::{
     http::StatusCode,
     response::IntoResponse,
-    routing::{get, post},
+    routing::{delete, get, post},
     Json, Router,
 };
 use serde_json::json;
@@ -112,6 +118,40 @@ pub fn create_router(state: AppState) -> Router {
             post(confirm_reset_handler),
         )
         .route("/password-reset/confirm", post(confirm_reset_handler))
+        // Governance routes: 3-Tier Management Architecture
+        .route(
+            "/api/v1/auth/management/signup",
+            post(handle_management_signup),
+        )
+        .route("/api/v1/auth/management/me", get(handle_management_me))
+        .route(
+            "/api/v1/auth/management/users",
+            get(handle_list_management_users),
+        )
+        .route(
+            "/api/v1/auth/management/users/{id}/approve",
+            post(handle_approve_management_user),
+        )
+        .route(
+            "/api/v1/auth/management/users/{id}/reject",
+            post(handle_reject_management_user),
+        )
+        .route(
+            "/api/v1/auth/management/users/{id}/suspend",
+            post(handle_suspend_management_user),
+        )
+        .route(
+            "/api/v1/auth/management/users/{id}/reactivate",
+            post(handle_reactivate_management_user),
+        )
+        .route(
+            "/api/v1/auth/management/users/{id}",
+            delete(handle_delete_management_user),
+        )
+        .route(
+            "/api/v1/auth/management/audit-logs",
+            get(handle_get_audit_logs),
+        )
         // Health check endpoint
         .route("/health", get(health_check))
         // Layer order: executed outside-in on request, inside-out on response

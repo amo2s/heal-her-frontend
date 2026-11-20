@@ -69,7 +69,7 @@ pub fn extract_token_from_parts(parts: &Parts) -> Option<String> {
         }
     }
 
-    // 2. Fallback to Cookie header: sb-access-token or accessToken
+    // 2. Fallback to Cookie header: admin-access-token, sb-access-token, or accessToken
     if let Some(cookie_header) = parts
         .headers
         .get(header::COOKIE)
@@ -77,6 +77,12 @@ pub fn extract_token_from_parts(parts: &Parts) -> Option<String> {
     {
         for cookie in cookie_header.split(';') {
             let cookie = cookie.trim();
+            if let Some(val) = cookie.strip_prefix("admin-access-token=") {
+                let token = val.trim();
+                if !token.is_empty() {
+                    return Some(token.to_string());
+                }
+            }
             if let Some(val) = cookie.strip_prefix("sb-access-token=") {
                 let token = val.trim();
                 if !token.is_empty() {
@@ -125,6 +131,7 @@ mod tests {
             family_id,
             true,
             None,
+            Some("APPROVED"),
             secret,
         )
         .unwrap();
@@ -164,6 +171,7 @@ mod tests {
             family_id,
             true,
             None,
+            Some("APPROVED"),
             secret,
         )
         .unwrap();
@@ -200,6 +208,7 @@ mod tests {
             family_id,
             true,
             None,
+            Some("APPROVED"),
             secret,
         )
         .unwrap();
@@ -240,6 +249,7 @@ mod tests {
             family_id,
             true,
             None,
+            Some("APPROVED"),
             secret,
         )
         .unwrap();
@@ -280,6 +290,7 @@ mod tests {
             family_id,
             true,
             None,
+            Some("APPROVED"),
             secret,
         )
         .unwrap();

@@ -1,3 +1,4 @@
+pub mod governance;
 pub mod login;
 pub mod logout;
 pub mod password_reset;

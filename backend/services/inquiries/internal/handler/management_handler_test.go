@@ -179,14 +179,19 @@ func createManagementTestRouter(cfg *config.Config, repo repository.InquiryRepos
 }
 
 func makeToken(secret string, role string, firstName string) string {
+	return makeTokenWithApproval(secret, role, firstName, "APPROVED")
+}
+
+func makeTokenWithApproval(secret string, role string, firstName string, approvalStatus string) string {
 	now := time.Now()
 	claims := domain.Claims{
-		Sub:       uuid.New(),
-		Role:      role,
-		TokenType: "access",
-		IAT:       now.Unix(),
-		EXP:       now.Add(15 * time.Minute).Unix(),
-		FirstName: &firstName,
+		Sub:            uuid.New(),
+		Role:           role,
+		TokenType:      "access",
+		IAT:            now.Unix(),
+		EXP:            now.Add(15 * time.Minute).Unix(),
+		FirstName:      &firstName,
+		ApprovalStatus: approvalStatus,
 	}
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenStr, _ := t.SignedString([]byte(secret))
@@ -454,6 +459,46 @@ func TestManagementEndpoints(t *testing.T) {
 
 		if rrBadStatus.Code != http.StatusUnprocessableEntity {
 			t.Errorf("expected 422 for invalid status enum, got %d", rrBadStatus.Code)
+		}
+	})
+
+	t.Run("pending and rejected management tokens are rejected on all management endpoints", func(t *testing.T) {
+		repo := newMockManagementRepo()
+		inqID := uuid.New()
+		repo.inquiries[inqID] = &domain.ContactInquiry{
+			ID:       inqID,
+			FullName: "Jane Test",
+			Status:   domain.StatusOpen,
+		}
+
+		mailer := &mockMailer{}
+		router := createManagementTestRouter(cfg, repo, mailer)
+
+		for _, status := range []string{"PENDING", "pending", "REJECTED", "rejected", ""} {
+			token := makeTokenWithApproval(jwtSecret, "staff", "PendingStaff", status)
+
+			// Read stats
+			reqStats := httptest.NewRequest(http.MethodGet, "/api/v1/inquiries/stats", nil)
+			reqStats.Header.Set("Authorization", "Bearer "+token)
+			reqStats.Header.Set("x-healher-handshake", handshakeSecret)
+			rrStats := httptest.NewRecorder()
+			router.ServeHTTP(rrStats, reqStats)
+
+			if rrStats.Code != http.StatusForbidden {
+				t.Errorf("expected 403 on stats for status %q, got %d", status, rrStats.Code)
+			}
+
+			// Action reply
+			reqReply := httptest.NewRequest(http.MethodPost, "/api/v1/inquiries/"+inqID.String()+"/reply", strings.NewReader(`{"body":"test reply"}`))
+			reqReply.Header.Set("Content-Type", "application/json")
+			reqReply.Header.Set("Authorization", "Bearer "+token)
+			reqReply.Header.Set("x-healher-handshake", handshakeSecret)
+			rrReply := httptest.NewRecorder()
+			router.ServeHTTP(rrReply, reqReply)
+
+			if rrReply.Code != http.StatusForbidden {
+				t.Errorf("expected 403 on reply for status %q, got %d", status, rrReply.Code)
+			}
 		}
 	})
 }

@@ -23,6 +23,10 @@ struct UserAuthRecord {
     role: String,
     is_active: bool,
     pub tos_cleared: bool,
+    #[sqlx(default)]
+    pub approval_status: Option<String>,
+    #[sqlx(default)]
+    pub deleted_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 /// Orchestrates the authentication lifecycle with strict timing-attack immunity,
@@ -43,7 +47,7 @@ pub async fn authenticate_user(
     // 2. Query user credentials and state from PostgreSQL
     let user_opt: Option<UserAuthRecord> = sqlx::query_as(
         r#"
-        SELECT id, email, full_name, password_hash, role, is_active, tos_cleared
+        SELECT id, email, full_name, password_hash, role, is_active, tos_cleared, approval_status, deleted_at
         FROM users
         WHERE email = $1
         "#,
@@ -73,7 +77,16 @@ pub async fn authenticate_user(
         return Err(err);
     }
 
-    // 5. Account Suspension Guard
+    // 5. Account Lifecycle & Suspension Guards
+    if record.deleted_at.is_some() {
+        tracing::warn!(
+            target: "auth::service",
+            user_id = %record.id,
+            "Authentication failed: account is soft-deleted"
+        );
+        return Err(InternalAuthError::AccountSuspended);
+    }
+
     if !record.is_active {
         tracing::warn!(
             target: "auth::service",
@@ -81,6 +94,20 @@ pub async fn authenticate_user(
             "Authentication failed: account is suspended"
         );
         return Err(InternalAuthError::AccountSuspended);
+    }
+
+    let approval_status_str = record
+        .approval_status
+        .as_deref()
+        .unwrap_or("APPROVED");
+
+    if approval_status_str.eq_ignore_ascii_case("REJECTED") {
+        tracing::warn!(
+            target: "auth::service",
+            user_id = %record.id,
+            "Authentication failed: account registration was rejected"
+        );
+        return Err(InternalAuthError::AccountRejected);
     }
 
     // 6. Password verified and account active: clear login attempts before minting token pair
@@ -116,6 +143,7 @@ pub async fn authenticate_user(
         family_id,
         record.tos_cleared,
         extracted_first_name,
+        Some(approval_status_str),
         secret,
     )?;
 
@@ -155,6 +183,7 @@ pub async fn authenticate_user(
             is_active: record.is_active,
             dashboard,
             tos_cleared: record.tos_cleared,
+            approval_status: Some(approval_status_str.to_string()),
         },
     })
 }
@@ -194,10 +223,10 @@ pub async fn refresh_user_session(
         return Err(InternalAuthError::TokenRevoked);
     }
 
-    // 4. Query user record from PostgreSQL to ensure account active
+    // 4. Query user record from PostgreSQL to ensure account active and get latest governance state
     let user_opt: Option<UserAuthRecord> = sqlx::query_as(
         r#"
-        SELECT id, email, full_name, password_hash, role, is_active, tos_cleared
+        SELECT id, email, full_name, password_hash, role, is_active, tos_cleared, approval_status, deleted_at
         FROM users
         WHERE id = $1
         "#,
@@ -211,6 +240,15 @@ pub async fn refresh_user_session(
         None => return Err(InternalAuthError::UserNotFoundInPostgres),
     };
 
+    if user.deleted_at.is_some() {
+        tracing::warn!(
+            target: "auth::service",
+            user_id = %user.id,
+            "Rejected rotation attempt: account is soft-deleted"
+        );
+        return Err(InternalAuthError::AccountSuspended);
+    }
+
     if !user.is_active {
         tracing::warn!(
             target: "auth::service",
@@ -218,6 +256,20 @@ pub async fn refresh_user_session(
             "Rejected rotation attempt: account suspended"
         );
         return Err(InternalAuthError::AccountSuspended);
+    }
+
+    let current_approval_status = user
+        .approval_status
+        .as_deref()
+        .unwrap_or("APPROVED");
+
+    if current_approval_status.eq_ignore_ascii_case("REJECTED") {
+        tracing::warn!(
+            target: "auth::service",
+            user_id = %user.id,
+            "Rejected rotation attempt: account registration was rejected"
+        );
+        return Err(InternalAuthError::AccountRejected);
     }
 
     // 5. Algorithmic Demographic Dashboard Routing
@@ -252,6 +304,7 @@ pub async fn refresh_user_session(
         claims.fid,
         user.tos_cleared,
         extracted_first_name,
+        Some(current_approval_status),
         secret,
     )?;
 
@@ -299,6 +352,7 @@ pub async fn refresh_user_session(
                     is_active: user.is_active,
                     dashboard,
                     tos_cleared: user.tos_cleared,
+                    approval_status: Some(current_approval_status.to_string()),
                 },
             })
         }
