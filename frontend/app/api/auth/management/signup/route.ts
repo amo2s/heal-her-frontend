@@ -1,100 +1,205 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import {
+  validateManagementSignupInput,
+  ManagementSignupResult,
+} from "@/lib/management-governance";
+import {
+  buildGovernanceError,
+  buildGovernanceResponse,
+  extractVisitorIP,
+  isSameOriginRequest,
+  parseBoundedJsonBody,
+} from "@/lib/management-governance-server";
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    
-    // 1. EXTRACTION: Catch 'fullName' from UI. 
-    // We alias it to 'full_name' internally just for clear variable separation.
-    const { fullName: full_name, email, password, website } = body;
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-    // 2. BASIC PERIMETER CHECK
-    if (!email || !password || !full_name) {
-      return NextResponse.json(
-        { detail: "All security parameters are required." }, 
-        { status: 400 }
-      );
-    }
+const ALLOWED_SIGNUP_KEYS = new Set([
+  "fullName",
+  "full_name",
+  "email",
+  "password",
+  "requestedRole",
+  "requested_role",
+  "botTrap",
+  "bot_trap",
+  "website",
+]);
 
-    // 3. THE DUAL-LAYER HONEYPOT (Frontend Trap)
-    // If a bot fills out the hidden 'website' field, silently drop them and return fake success.
-    if (website) {
-      console.warn(`[BOT TRAPPED] Honeypot triggered by IP: ${request.headers.get("x-forwarded-for") || "unknown"}`);
-      return NextResponse.json({
+export async function POST(req: NextRequest) {
+  // 1. Same-Origin CSRF Guard
+  if (!isSameOriginRequest(req)) {
+    return buildGovernanceError("FORBIDDEN", "Cross-origin request rejected", 403);
+  }
+
+  // 2. Streamed 16 KB body cap & strict allowlist filtering
+  const parsedResult = await parseBoundedJsonBody(req, ALLOWED_SIGNUP_KEYS);
+  if (!parsedResult.ok) {
+    return parsedResult.errorResponse;
+  }
+
+  const rawData = parsedResult.data;
+
+  // 3. Honeypot check (Bot Trap Defense)
+  const botTrapValue =
+    (typeof rawData.botTrap === "string" && rawData.botTrap.trim()) ||
+    (typeof rawData.bot_trap === "string" && rawData.bot_trap.trim()) ||
+    (typeof rawData.website === "string" && rawData.website.trim());
+
+  if (botTrapValue) {
+    const clientIP = extractVisitorIP(req) || "unknown";
+    console.warn(`[MANAGEMENT SIGNUP BOT TRAPPED] IP: ${clientIP}`);
+    // Return fake generic 201 so bot does not realize it was trapped
+    return buildGovernanceResponse(
+      {
         status: "success",
-        message: "Application Submitted. The system administrator will review your credentials."
-      });
-    }
-
-    // 4. TARGET ACQUISITION
-    const backendUrl = process.env.BACKEND_URL || "https://sliverboy-healher-backend.hf.space/graphql";
-
-    // 5. AUDIT LOG EXTRACTION (Passing Intel to the Python Guards)
-    const forwardedFor = request.headers.get("x-forwarded-for");
-    const realIp = forwardedFor ? forwardedFor.split(",")[0].trim() : "127.0.0.1";
-    const userAgent = request.headers.get("user-agent") || "unknown";
-
-    // 6. THE GRAPHQL CONTRACT
-    // Perfectly matched to your Strawberry 'StaffAuthMutation' schema
-    const query = `
-      mutation RegisterStaffApplication($input: StaffSignUpInput!) {
-        registerStaffApplication(input: $input) {
-          success
-          message
-        }
-      }
-    `;
-
-    // 7. THE HANDSHAKE TRANSMISSION
-    const response = await fetch(backendUrl, {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        // --- SECURITY ALIGNMENT FIX ---
-        // Swapped NEXT_PUBLIC_ for FRONTEND_ to match the universal proxy
-        // and keep the cryptographic signature completely hidden from the browser.
-        "x-healher-handshake": process.env.FRONTEND_HANDSHAKE_SECRET || "",
-        // Passing the audit intel directly to the backend
-        "x-forwarded-for": realIp,
-        "user-agent": userAgent,
+        message: "Management account registered and awaiting approval.",
       },
-      body: JSON.stringify({
-        query,
-        variables: { 
-          input: {
-            // THE FIX: Sending 'fullName' to satisfy Strawberry's auto-camelCase schema
-            fullName: full_name.trim(),
-            email: email.trim().toLowerCase(),
-            password: password,
-            website: "" // Hardcoded empty string because bots are already trapped
-          }
-        },
-      }),
-    });
-
-    const result = await response.json();
-
-    // 8. TOTAL ERROR MASKING
-    if (result.errors || !response.ok) {
-      const errorMsg = result.errors?.[0]?.message || "Authentication Service Unavailable.";
-      return NextResponse.json({ detail: errorMsg }, { status: 400 });
-    }
-
-    // 9. THE STERILE EGRESS
-    // Map backend boolean to frontend string status
-    return NextResponse.json({
-      status: result.data.registerStaffApplication.success ? "success" : "error",
-      message: result.data.registerStaffApplication.message
-    });
-
-  } catch (error: unknown) {
-    // CRITICAL FAILURE: Node.js server crashed or Python backend is completely offline
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    console.error("[PROXY FATAL ERROR]:", errorMessage);
-    
-    return NextResponse.json(
-      { detail: "Fortress Gateway is currently offline. Try again later." }, 
-      { status: 500 }
+      201
     );
   }
+
+  // 4. Mirrored Validation
+  const validation = validateManagementSignupInput(rawData);
+  if (!validation.isValid || !validation.sanitized) {
+    return buildGovernanceError(
+      "VALIDATION_ERROR",
+      "Registration failed validation constraints",
+      422,
+      validation.fieldErrors
+    );
+  }
+
+  const sanitized = validation.sanitized;
+
+  // 5. Upstream Dispatch to Rust Auth Microservice
+  const rawBackendUrl = process.env.BACKEND_URL || "https://sliverboy-healher-backend.hf.space";
+  const backendBase = rawBackendUrl.replace(/\/graphql$/, "").replace(/\/$/, "");
+  const targetUrl = `${backendBase}/api/v1/auth/management/signup`;
+
+  const clientIP = extractVisitorIP(req);
+  const userAgent = req.headers.get("user-agent") || "HealHer-NextJS-Management-Signup-BFF/1.0";
+
+  const headers = new Headers({
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    "User-Agent": userAgent,
+  });
+
+  const handshake = process.env.FRONTEND_HANDSHAKE_SECRET;
+  if (handshake && handshake.trim() !== "") {
+    headers.set("x-healher-handshake", handshake.trim());
+  }
+
+  if (clientIP) {
+    headers.set("X-Real-IP", clientIP);
+    headers.set("X-Forwarded-For", clientIP);
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+  let upstreamResponse: Response;
+  try {
+    upstreamResponse = await fetch(targetUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        full_name: sanitized.fullName,
+        email: sanitized.email,
+        password: sanitized.password,
+        requested_role: sanitized.requestedRole,
+        bot_trap: "",
+      }),
+      signal: controller.signal,
+      cache: "no-store",
+    });
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    const isTimeout = err?.name === "AbortError";
+    console.error("[MANAGEMENT SIGNUP UPSTREAM ERROR]", {
+      isTimeout,
+      errorName: err?.name,
+    });
+    return buildGovernanceError(
+      "SERVICE_UNAVAILABLE",
+      isTimeout
+        ? "The authentication service timed out. Please try again."
+        : "The authentication service is temporarily unreachable.",
+      isTimeout ? 504 : 503
+    );
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  let rawText = "";
+  try {
+    rawText = await upstreamResponse.text();
+    if (rawText.length > 65536) {
+      rawText = rawText.substring(0, 65536);
+    }
+  } catch {
+    return buildGovernanceError("SERVICE_UNAVAILABLE", "Failed to read upstream response", 503);
+  }
+
+  let jsonPayload: any = null;
+  try {
+    jsonPayload = JSON.parse(rawText);
+  } catch {
+    console.warn(`[MANAGEMENT SIGNUP NON-JSON UPSTREAM] status: ${upstreamResponse.status}`);
+    return buildGovernanceError(
+      "SERVICE_UNAVAILABLE",
+      "The authentication service is temporarily unavailable.",
+      503
+    );
+  }
+
+  if (upstreamResponse.status === 201 || upstreamResponse.status === 200) {
+    const rawUser = jsonPayload?.data ?? jsonPayload?.user ?? jsonPayload;
+    const resultData: ManagementSignupResult = {
+      id: rawUser.id,
+      fullName: rawUser.full_name ?? rawUser.fullName ?? sanitized.fullName,
+      email: rawUser.email ?? sanitized.email,
+      role: (rawUser.role ?? sanitized.requestedRole) as any,
+      approvalStatus: "PENDING",
+    };
+    return buildGovernanceResponse(
+      {
+        status: "success",
+        message: "Management account registered and awaiting approval.",
+        data: resultData,
+      },
+      201
+    );
+  }
+
+  const errorMsg =
+    jsonPayload?.message ||
+    jsonPayload?.detail ||
+    jsonPayload?.error ||
+    "Registration failed. Please check your credentials.";
+
+  if (upstreamResponse.status === 409) {
+    return buildGovernanceError(
+      "CONFLICT",
+      "An account with this email already exists",
+      409,
+      { email: "An account with this email already exists" }
+    );
+  }
+
+  if (upstreamResponse.status === 422 || upstreamResponse.status === 400) {
+    return buildGovernanceError(
+      "VALIDATION_ERROR",
+      errorMsg,
+      upstreamResponse.status,
+      jsonPayload?.errors
+    );
+  }
+
+  return buildGovernanceError(
+    "SERVICE_UNAVAILABLE",
+    errorMsg,
+    upstreamResponse.status >= 500 ? 503 : upstreamResponse.status
+  );
 }

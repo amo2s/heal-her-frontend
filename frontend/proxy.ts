@@ -21,9 +21,16 @@ export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
   // =====================================================================
-  // 1. THE RADAR & BYPASS (Allow public login pages through)
+  // 1. THE RADAR & BYPASS (Allow public login & onboarding pages through)
   // =====================================================================
-  if (path.startsWith('/management/auth/login') || path === '/login') {
+  if (
+    path.startsWith('/management/auth/login') ||
+    path === '/management/login' ||
+    path.startsWith('/management/login/') ||
+    path === '/management/signup' ||
+    path.startsWith('/management/signup/') ||
+    path === '/login'
+  ) {
     return NextResponse.next();
   }
 
@@ -168,8 +175,17 @@ export async function proxy(request: NextRequest) {
   // =====================================================================
   // At this point, activeAccessToken is mathematically guaranteed to be valid.
   
-  // Rule A: Enforce the Management Exact Path
+  // Rule A: Enforce the Management Exact Path with 3-Tier Canonical Role Routing
   if (path === '/management' || path === '/management/') {
+    const activePayload = parseJwt(activeAccessToken as string);
+    const rawRole = (activePayload?.role || activePayload?.dashboard || '').trim().toLowerCase();
+    if (rawRole === 'super_admin') {
+      return NextResponse.redirect(new URL('/management/super-admin', request.url));
+    } else if (rawRole === 'admin') {
+      return NextResponse.redirect(new URL('/management/admin', request.url));
+    } else if (rawRole === 'staff') {
+      return NextResponse.redirect(new URL('/management/staff', request.url));
+    }
     return NextResponse.redirect(new URL('/management/dashboard', request.url));
   }
 
