@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -13,6 +15,15 @@ import (
 	"heal-her/inquiries/internal/domain"
 )
 
+type testSessionVerifier struct {
+	active bool
+	err    error
+}
+
+func (m *testSessionVerifier) VerifyActiveSession(ctx context.Context, sessionID, userID, role string) (bool, error) {
+	return m.active, m.err
+}
+
 func createTestToken(t *testing.T, secret string, role string, tokenType string, expOffset time.Duration, method jwt.SigningMethod) string {
 	return createTestTokenWithApproval(t, secret, role, "APPROVED", tokenType, expOffset, method)
 }
@@ -20,8 +31,10 @@ func createTestToken(t *testing.T, secret string, role string, tokenType string,
 func createTestTokenWithApproval(t *testing.T, secret string, role string, approvalStatus string, tokenType string, expOffset time.Duration, method jwt.SigningMethod) string {
 	t.Helper()
 	now := time.Now()
+	sid := uuid.New()
 	claims := domain.Claims{
 		Sub:            uuid.New(),
+		SID:            &sid,
 		Role:           role,
 		TokenType:      tokenType,
 		IAT:            now.Unix(),
@@ -57,7 +70,7 @@ func TestTwoTierRBACMatrix(t *testing.T) {
 		},
 	}
 
-	authMiddleware := Authenticate(cfg)
+	authMiddleware := Authenticate(cfg, &testSessionVerifier{active: true})
 	readGuard := RequireReadAccess(cfg)
 	actionGuard := RequireActionAccess(cfg)
 
@@ -226,7 +239,7 @@ func TestFailClosedApprovalGate(t *testing.T) {
 		},
 	}
 
-	authMiddleware := Authenticate(cfg)
+	authMiddleware := Authenticate(cfg, &testSessionVerifier{active: true})
 	readGuard := RequireReadAccess(cfg)
 	actionGuard := RequireActionAccess(cfg)
 
@@ -279,3 +292,118 @@ func TestFailClosedApprovalGate(t *testing.T) {
 		}
 	}
 }
+
+func TestZeroWindowSessionRevocation(t *testing.T) {
+	jwtSecret := "super-secure-test-jwt-secret-key-32b"
+	handshakeSecret := "internal-test-handshake-secret"
+
+	cfg := &config.Config{
+		JWTSecretKey:            jwtSecret,
+		FrontendHandshakeSecret: handshakeSecret,
+		ReadRoles:               []string{"super_admin", "admin", "staff"},
+		ReadRoleMap: map[string]struct{}{
+			"super_admin": {},
+			"admin":       {},
+			"staff":       {},
+		},
+		ActionRoles: []string{"admin", "staff"},
+		ActionRoleMap: map[string]struct{}{
+			"admin": {},
+			"staff": {},
+		},
+	}
+
+	okHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	})
+
+	t.Run("active session succeeds with 200", func(t *testing.T) {
+		auth := Authenticate(cfg, &testSessionVerifier{active: true, err: nil})
+		handler := auth(okHandler)
+
+		token := createTestTokenWithApproval(t, jwtSecret, "staff", "APPROVED", "access", 10*time.Minute, jwt.SigningMethodHS256)
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("x-healher-handshake", handshakeSecret)
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+
+		if rr.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK, got: %d (%s)", rr.Code, rr.Body.String())
+		}
+	})
+
+	t.Run("revoked or inactive session fails with 401", func(t *testing.T) {
+		auth := Authenticate(cfg, &testSessionVerifier{active: false, err: nil})
+		handler := auth(okHandler)
+
+		token := createTestTokenWithApproval(t, jwtSecret, "staff", "APPROVED", "access", 10*time.Minute, jwt.SigningMethodHS256)
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("x-healher-handshake", handshakeSecret)
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+
+		if rr.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401 Unauthorized, got: %d (%s)", rr.Code, rr.Body.String())
+		}
+		if !strings.Contains(rr.Body.String(), "Session revoked or account inactive") {
+			t.Fatalf("expected revocation error message, got: %s", rr.Body.String())
+		}
+	})
+
+	t.Run("verifier database error fails with 503", func(t *testing.T) {
+		auth := Authenticate(cfg, &testSessionVerifier{active: false, err: errors.New("db connection failure")})
+		handler := auth(okHandler)
+
+		token := createTestTokenWithApproval(t, jwtSecret, "staff", "APPROVED", "access", 10*time.Minute, jwt.SigningMethodHS256)
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("x-healher-handshake", handshakeSecret)
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+
+		if rr.Code != http.StatusServiceUnavailable {
+			t.Fatalf("expected 503 Service Unavailable, got: %d (%s)", rr.Code, rr.Body.String())
+		}
+		if !strings.Contains(rr.Body.String(), "session verification unavailable") {
+			t.Fatalf("expected service unavailable error message, got: %s", rr.Body.String())
+		}
+	})
+
+	t.Run("missing or nil sid fails with 401", func(t *testing.T) {
+		auth := Authenticate(cfg, &testSessionVerifier{active: true, err: nil})
+		handler := auth(okHandler)
+
+		now := time.Now()
+		claims := domain.Claims{
+			Sub:            uuid.New(),
+			SID:            nil, // Missing SID
+			Role:           "staff",
+			TokenType:      "access",
+			IAT:            now.Unix(),
+			EXP:            now.Add(10 * time.Minute).Unix(),
+			ApprovalStatus: "APPROVED",
+		}
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		tokenStr, err := token.SignedString([]byte(jwtSecret))
+		if err != nil {
+			t.Fatalf("failed to sign token: %v", err)
+		}
+
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set("Authorization", "Bearer "+tokenStr)
+		req.Header.Set("x-healher-handshake", handshakeSecret)
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+
+		if rr.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401 Unauthorized for missing SID, got: %d (%s)", rr.Code, rr.Body.String())
+		}
+		if !strings.Contains(rr.Body.String(), "missing or invalid session ID") {
+			t.Fatalf("expected missing SID error message, got: %s", rr.Body.String())
+		}
+	})
+}
+

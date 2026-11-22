@@ -8,7 +8,11 @@ use crate::{
         },
         login::login_handler,
         logout::logout_handler,
-        password_reset::{confirm_reset_handler, request_otp_handler, verify_otp_handler},
+        password_reset::{
+            confirm_reset_handler, management_confirm_reset_handler,
+            management_request_otp_handler, management_verify_otp_handler, request_otp_handler,
+            verify_otp_handler,
+        },
         refresh::refresh_handler,
         signup::handle_signup,
         terminate::terminate_session_handler,
@@ -151,6 +155,19 @@ pub fn create_router(state: AppState) -> Router {
         .route(
             "/api/v1/auth/management/audit-logs",
             get(handle_get_audit_logs),
+        )
+        // Dedicated Management Password Reset routes (3-Tier Governance)
+        .route(
+            "/api/v1/auth/management/password-reset/request",
+            post(management_request_otp_handler),
+        )
+        .route(
+            "/api/v1/auth/management/password-reset/verify",
+            post(management_verify_otp_handler),
+        )
+        .route(
+            "/api/v1/auth/management/password-reset/confirm",
+            post(management_confirm_reset_handler),
         )
         // Health check endpoint
         .route("/health", get(health_check))

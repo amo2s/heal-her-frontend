@@ -1,20 +1,26 @@
-import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import {
+  buildPublicAuthError,
+  buildPublicAuthResponse,
+  extractVisitorIP,
+  isSameOriginPublicRequest,
+  parseBoundedPublicJsonBody,
+  UPSTREAM_AUTH_TIMEOUT_MS,
+} from "@/lib/public-auth-server";
 
-// Define strict types so your frontend knows exactly what is coming back
 interface LoginResponse {
   data?: {
     login: {
       status: string;
       message: string;
       accessToken: string;
-      refreshToken: string; // <--- ADDED THE 7-DAY KEY HERE
+      refreshToken: string;
       user: {
         id: string;
         email: string;
         fullName: string;
-        isActive: boolean; 
-        dashboard: string; 
+        isActive: boolean;
+        dashboard: string;
       };
     };
   };
@@ -23,21 +29,35 @@ interface LoginResponse {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { email, password } = body;
+    // 1. Same-Origin CSRF Guard (SEC-006)
+    if (!isSameOriginPublicRequest(request)) {
+      return buildPublicAuthError("Cross-origin requests are forbidden.", 403);
+    }
 
-    // Quick check before we even disturb the backend
+    // 2. Streamed 16 KB Bounded Body & Strict Key Allowlist (SEC-006)
+    const allowedKeys = new Set(["email", "password", "website", "bot_trap", "botTrap"]);
+    const parseResult = await parseBoundedPublicJsonBody(request, allowedKeys);
+    if (!parseResult.ok) {
+      return parseResult.errorResponse;
+    }
+
+    const raw = parseResult.data;
+
+    // 3. Honeypot check for automated bots
+    if (raw.website || raw.bot_trap || raw.botTrap) {
+      return buildPublicAuthError("Invalid credentials.", 401);
+    }
+
+    const email = typeof raw.email === "string" ? raw.email.trim().toLowerCase() : "";
+    const password = typeof raw.password === "string" ? raw.password : "";
+
     if (!email || !password) {
-      return NextResponse.json({ detail: "Email and password are required." }, { status: 400 });
+      return buildPublicAuthError("Email and password are required.", 400);
     }
 
     const backendUrl = process.env.BACKEND_URL || "https://sliverboy-healher-backend.hf.space/graphql";
+    const realIp = extractVisitorIP(request);
 
-    // Extract the real user's IP so your backend Valkey Guard doesn't ban your Next.js server
-    const forwardedFor = request.headers.get("x-forwarded-for");
-    const realIp = forwardedFor ? forwardedFor.split(",")[0] : "127.0.0.1";
-
-    // CLEANED MUTATION: Added refreshToken to the query!
     const query = `
       mutation LoginMutation($inputData: LoginInput!) {
         login(inputData: $inputData) {
@@ -56,83 +76,79 @@ export async function POST(request: Request) {
       }
     `;
 
+    // 4. Upstream fetch with 12s timeout & internal handshake
     const response = await fetch(backendUrl, {
       method: "POST",
-      headers: { 
+      headers: {
         "Content-Type": "application/json",
-        // ALIGNED: Using the strict server-side secret to match the universal proxy securely
         "x-healher-handshake": process.env.FRONTEND_HANDSHAKE_SECRET || "",
-        // Pass the real IP to the backend for accurate rate limiting
         "x-forwarded-for": realIp,
       },
       body: JSON.stringify({
         query,
-        variables: { 
-          // Wrapped the credentials inside inputData
+        variables: {
           inputData: {
-            email: email.trim().toLowerCase(), 
-            password 
-          }
+            email,
+            password,
+          },
         },
       }),
+      signal: AbortSignal.timeout(UPSTREAM_AUTH_TIMEOUT_MS),
     });
 
     const result: LoginResponse = await response.json();
 
-    // Catch GraphQL errors properly (This stops the "Offline" 500 panic!)
     if (result.errors || !response.ok) {
       const errorMsg = result.errors?.[0]?.message || "Authentication failed.";
-      return NextResponse.json({ detail: errorMsg }, { status: 400 });
+      return buildPublicAuthError(errorMsg, 400);
     }
 
-    // Extract the clean data
-    const data = result.data!.login;
+    const data = result.data?.login;
+    if (!data || !data.accessToken || !data.refreshToken) {
+      return buildPublicAuthError("Authentication service returned an invalid session.", 502);
+    }
 
-    // THE VAULT: Set the HttpOnly Cookies
+    // 5. HttpOnly Cookies injection
     const cookieStore = await cookies();
 
-    // Cookie 1: The Short-Lived Access Token (15 Minutes)
     cookieStore.set({
       name: "sb-access-token",
       value: data.accessToken,
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production", 
+      secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: 15 * 60, // 15 Minutes (900 seconds)
-      path: "/", 
+      maxAge: 15 * 60, // 15 Minutes
+      path: "/",
     });
 
-    // Cookie 2: The Long-Lived Refresh Token (7 Days)
     cookieStore.set({
       name: "sb-refresh-token",
-      value: data.refreshToken, // <-- Storing the new Master Key
+      value: data.refreshToken,
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production", 
+      secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60, // 7 Days (604,800 seconds)
-      path: "/", 
+      maxAge: 7 * 24 * 60 * 60, // 7 Days
+      path: "/",
     });
 
-    // --- FRONTEND ALIGNMENT FIX ---
-    // Safely map the backend's strict 'young_adult' to the frontend's 'young-adults' router layout.
-    // Leaves 'teens' and 'kids' untouched.
     const mappedDashboard = data.user.dashboard === "young_adult" ? "young-adults" : data.user.dashboard;
 
-    // Return safe data without leaking EITHER token to the browser JS.
-    return NextResponse.json({
-      status: data.status,
-      message: data.message,
-      user: {
-        ...data.user,
-        dashboard: mappedDashboard
-      }
-    });
-
-  } catch (error: any) {
-    console.error("[PROXY ERROR]:", error.message);
-    return NextResponse.json(
-      { detail: "Internal Proxy Error. Security team notified." }, 
-      { status: 500 }
+    return buildPublicAuthResponse(
+      {
+        status: data.status,
+        message: data.message,
+        user: {
+          ...data.user,
+          dashboard: mappedDashboard,
+        },
+      },
+      200
     );
+  } catch (error: any) {
+    if (error?.name === "TimeoutError" || error?.name === "AbortError") {
+      return buildPublicAuthError("Authentication service timed out. Please try again.", 504);
+    }
+    console.error("[LOGIN PROXY ERROR]:", error?.message || error);
+    return buildPublicAuthError("Internal Proxy Error. Security team notified.", 500);
   }
 }

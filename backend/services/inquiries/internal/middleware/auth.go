@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"heal-her/inquiries/internal/config"
 	"heal-her/inquiries/internal/domain"
 )
@@ -19,9 +20,14 @@ const (
 	actorContextKey authContextKey = "authenticated_actor"
 )
 
-// Authenticate verifies the incoming JWT and internal handshake,
+// SessionVerifier validates live session and user standing in PostgreSQL.
+type SessionVerifier interface {
+	VerifyActiveSession(ctx context.Context, sessionID, userID, role string) (bool, error)
+}
+
+// Authenticate verifies the incoming JWT, internal handshake, and live PostgreSQL session standing,
 // injecting the AuthenticatedActor into the request context.
-func Authenticate(cfg *config.Config) func(http.Handler) http.Handler {
+func Authenticate(cfg *config.Config, verifier SessionVerifier) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// 1. Internal Handshake Verification (if configured)
@@ -78,7 +84,30 @@ func Authenticate(cfg *config.Config) func(http.Handler) http.Handler {
 				return
 			}
 
-			// 6. Context Propagation
+			// 6. Zero-Window Session & Account Standing Verification (SEC-003)
+			if claims.SID == nil || *claims.SID == uuid.Nil {
+				renderJSONError(w, http.StatusUnauthorized, "Unauthorized: missing or invalid session ID")
+				return
+			}
+
+			if claims.Sub == uuid.Nil {
+				renderJSONError(w, http.StatusUnauthorized, "Unauthorized: missing or invalid subject ID")
+				return
+			}
+
+			if verifier != nil {
+				active, err := verifier.VerifyActiveSession(r.Context(), claims.SID.String(), claims.Sub.String(), claims.Role)
+				if err != nil {
+					renderJSONError(w, http.StatusServiceUnavailable, "Service Unavailable: session verification unavailable")
+					return
+				}
+				if !active {
+					renderJSONError(w, http.StatusUnauthorized, "Unauthorized: Session revoked or account inactive")
+					return
+				}
+			}
+
+			// 7. Context Propagation
 			firstName := ""
 			if claims.FirstName != nil {
 				firstName = *claims.FirstName

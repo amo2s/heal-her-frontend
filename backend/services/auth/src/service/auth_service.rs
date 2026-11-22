@@ -71,43 +71,28 @@ pub async fn authenticate_user(
         }
     };
 
-    // 4. Verify password against stored Argon2id hash on Tokio blocking pool
-    if let Err(err) = verify_password(record.password_hash, req.password.clone()).await {
-        cache.record_failed_login(&normalized_email).await;
-        return Err(err);
-    }
-
-    // 5. Account Lifecycle & Suspension Guards
-    if record.deleted_at.is_some() {
-        tracing::warn!(
-            target: "auth::service",
-            user_id = %record.id,
-            "Authentication failed: account is soft-deleted"
-        );
-        return Err(InternalAuthError::AccountSuspended);
-    }
-
-    if !record.is_active {
-        tracing::warn!(
-            target: "auth::service",
-            user_id = %record.id,
-            "Authentication failed: account is suspended"
-        );
-        return Err(InternalAuthError::AccountSuspended);
-    }
-
+    // 4. Pre-Verification Deactivation Check (Eliminate Password Oracle for Inactive Accounts - SEC-007)
     let approval_status_str = record
         .approval_status
         .as_deref()
         .unwrap_or("APPROVED");
 
-    if approval_status_str.eq_ignore_ascii_case("REJECTED") {
+    if record.deleted_at.is_some() || !record.is_active || approval_status_str.eq_ignore_ascii_case("REJECTED") {
         tracing::warn!(
             target: "auth::service",
             user_id = %record.id,
-            "Authentication failed: account registration was rejected"
+            email = %normalized_email,
+            "Authentication rejected: account is deactivated, suspended, soft-deleted, or rejected; executing dummy hash"
         );
-        return Err(InternalAuthError::AccountRejected);
+        execute_dummy_hash().await?;
+        cache.record_failed_login(&normalized_email).await;
+        return Err(InternalAuthError::InvalidCredentials);
+    }
+
+    // 5. Verify password against stored Argon2id hash on Tokio blocking pool
+    if let Err(err) = verify_password(record.password_hash, req.password.clone()).await {
+        cache.record_failed_login(&normalized_email).await;
+        return Err(err);
     }
 
     // 6. Password verified and account active: clear login attempts before minting token pair

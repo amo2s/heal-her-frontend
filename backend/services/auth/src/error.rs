@@ -58,6 +58,12 @@ pub enum InternalAuthError {
     #[error("Invalid or expired authorization code")]
     InvalidAuthorizationCode,
 
+    #[error("Invalid credentials")]
+    InvalidCredentials,
+
+    #[error("Too many requests")]
+    TooManyRequests,
+
     #[error("Validation error: {0}")]
     ValidationError(String),
 
@@ -113,7 +119,9 @@ impl From<InternalAuthError> for ApiError {
             InternalAuthError::JwtSigningError(_) => {
                 ApiError::InternalServerError("An unexpected system error occurred.".to_string())
             }
-            InternalAuthError::UserNotFoundInPostgres | InternalAuthError::UserNotFound => {
+            InternalAuthError::UserNotFoundInPostgres
+            | InternalAuthError::UserNotFound
+            | InternalAuthError::InvalidCredentials => {
                 ApiError::Unauthorized("Invalid credentials".to_string())
             }
             InternalAuthError::Argon2HashMismatch => {
@@ -145,6 +153,9 @@ impl From<InternalAuthError> for ApiError {
             }
             InternalAuthError::AccountTemporarilyLocked => ApiError::TooManyRequests(
                 "Too many failed attempts. Account locked for 15 minutes.".to_string(),
+            ),
+            InternalAuthError::TooManyRequests => ApiError::TooManyRequests(
+                "Too many requests. Please try again later.".to_string(),
             ),
             InternalAuthError::InvalidAuthorizationCode => {
                 ApiError::Unauthorized("Invalid or expired authorization code.".to_string())

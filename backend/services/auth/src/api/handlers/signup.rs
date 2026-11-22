@@ -44,6 +44,9 @@ pub async fn handle_signup(
         return Err(ApiError::BadRequest(combined_msg));
     }
 
+    // 1b. Password Complexity Enforcement (SEC-004)
+    crate::domain::password::validate_password_complexity(&payload.password)?;
+
     // 2. Honeypot Trigger (Bot Defense)
     // If bot_trap contains any text, return fake success without database interaction
     if let Some(ref trap) = payload.bot_trap {

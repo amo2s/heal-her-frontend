@@ -149,12 +149,21 @@ func (m *mockManagementRepo) UpdateInquiryStatus(ctx context.Context, id uuid.UU
 	return inq, nil
 }
 
+type mockSessionVerifier struct {
+	active bool
+	err    error
+}
+
+func (m *mockSessionVerifier) VerifyActiveSession(ctx context.Context, sessionID, userID, role string) (bool, error) {
+	return m.active, m.err
+}
+
 func createManagementTestRouter(cfg *config.Config, repo repository.InquiryRepository, mailerMock EmailEnqueuer) http.Handler {
 	r := chi.NewRouter()
 	mgmtHandler := NewManagementHandler(repo, mailerMock)
 
 	r.Route("/api/v1/inquiries", func(inq chi.Router) {
-		inq.Use(middleware.Authenticate(cfg))
+		inq.Use(middleware.Authenticate(cfg, &mockSessionVerifier{active: true}))
 
 		// Tier 1: Read Access
 		inq.Group(func(read chi.Router) {
@@ -184,8 +193,10 @@ func makeToken(secret string, role string, firstName string) string {
 
 func makeTokenWithApproval(secret string, role string, firstName string, approvalStatus string) string {
 	now := time.Now()
+	sid := uuid.New()
 	claims := domain.Claims{
 		Sub:            uuid.New(),
+		SID:            &sid,
 		Role:           role,
 		TokenType:      "access",
 		IAT:            now.Unix(),

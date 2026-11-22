@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"heal-her/inquiries/internal/config"
 	"heal-her/inquiries/internal/database"
 	"heal-her/inquiries/internal/handler"
@@ -97,9 +99,10 @@ func main() {
 			middleware.EnforceJSONContentType,
 		).Post("/", intakeHandler.HandleIntake)
 
-		// Protected Management Operations (HS256 JWT + Handshake Guard)
+		// Protected Management Operations (HS256 JWT + Handshake Guard + Live Session Revocation Guard)
 		inq.Group(func(mgmt chi.Router) {
-			mgmt.Use(middleware.Authenticate(cfg))
+			sessionVerifier := NewPostgresSessionVerifier(pool)
+			mgmt.Use(middleware.Authenticate(cfg, sessionVerifier))
 
 			// Tier 1: Executive Oversight & Read Access (super_admin, admin, staff)
 			mgmt.Group(func(read chi.Router) {
@@ -182,3 +185,41 @@ func main() {
 	// Step D: Close pgxpool (deferred in main)
 	slog.Info("inquiries microservice gracefully terminated")
 }
+
+// PostgresSessionVerifier checks session and user standing in Supabase PostgreSQL (SEC-003).
+type PostgresSessionVerifier struct {
+	pool *pgxpool.Pool
+}
+
+// NewPostgresSessionVerifier constructs a PostgreSQL session validator.
+func NewPostgresSessionVerifier(pool *pgxpool.Pool) *PostgresSessionVerifier {
+	return &PostgresSessionVerifier{pool: pool}
+}
+
+// VerifyActiveSession validates that the session row exists, is not revoked, has not expired,
+// and that the associated user is active, not deleted, approved, and matches the presented role.
+func (v *PostgresSessionVerifier) VerifyActiveSession(ctx context.Context, sessionID, userID, role string) (bool, error) {
+	var dummy string
+	query := `
+		SELECT s.id::text
+		FROM sessions s
+		JOIN users u ON u.id = s.user_id
+		WHERE s.id = $1::uuid
+		  AND s.user_id = $2::uuid
+		  AND s.is_revoked = FALSE
+		  AND s.expires_at > NOW()
+		  AND u.is_active = TRUE
+		  AND u.deleted_at IS NULL
+		  AND u.approval_status = 'APPROVED'
+		  AND LOWER(TRIM(u.role)) = LOWER(TRIM($3))
+	`
+	err := v.pool.QueryRow(ctx, query, sessionID, userID, role).Scan(&dummy)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+

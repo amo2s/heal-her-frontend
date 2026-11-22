@@ -1,13 +1,41 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PasswordResetScope {
+    EndUser,
+    Management,
+}
+
+impl PasswordResetScope {
+    pub fn as_prefix(&self) -> &'static str {
+        match self {
+            Self::EndUser => "user",
+            Self::Management => "mgmt",
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RequestOtpInput {
+    pub email: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ManagementRequestOtpInput {
     pub email: String,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VerifyOtpInput {
+    pub email: String,
+    pub otp_code: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ManagementVerifyOtpInput {
     pub email: String,
     pub otp_code: String,
 }
@@ -22,6 +50,14 @@ pub struct VerifyOtpResponse {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ConfirmResetInput {
+    pub reset_token: String,
+    pub new_password: String,
+    pub confirm_password: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ManagementConfirmResetInput {
     pub reset_token: String,
     pub new_password: String,
     pub confirm_password: String,

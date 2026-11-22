@@ -70,10 +70,12 @@ mod tests {
 
         let claims = Claims {
             sub: user_id,
+            sid: Some(Uuid::new_v4()),
             role: "kid".to_string(),
             dashboard: Some("kids".to_string()),
             exp: 9999999999,
             token_type: "access".to_string(),
+            approval_status: Some("APPROVED".to_string()),
         };
 
         let req = Request::new("{ me { fullName firstName } }").data(AuthenticatedUser { claims });
@@ -98,10 +100,12 @@ mod tests {
 
         let claims = Claims {
             sub: user_id,
+            sid: Some(Uuid::new_v4()),
             role: "young-adult".to_string(),
             dashboard: Some("young-adults".to_string()),
             exp: 9999999999,
             token_type: "access".to_string(),
+            approval_status: Some("APPROVED".to_string()),
         };
 
         let req = Request::new("{ me { fullName firstName } }").data(AuthenticatedUser { claims });

@@ -86,6 +86,7 @@ impl GovernanceAction {
     pub const ACCOUNT_SUSPENDED: &'static str = "ACCOUNT_SUSPENDED";
     pub const ACCOUNT_REACTIVATED: &'static str = "ACCOUNT_REACTIVATED";
     pub const ACCOUNT_DELETED: &'static str = "ACCOUNT_DELETED";
+    pub const MANAGEMENT_PASSWORD_RESET: &'static str = "MANAGEMENT_PASSWORD_RESET";
 
     pub fn is_valid(action: &str) -> bool {
         matches!(
@@ -96,6 +97,7 @@ impl GovernanceAction {
                 | Self::ACCOUNT_SUSPENDED
                 | Self::ACCOUNT_REACTIVATED
                 | Self::ACCOUNT_DELETED
+                | Self::MANAGEMENT_PASSWORD_RESET
         )
     }
 }

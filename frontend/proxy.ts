@@ -82,8 +82,11 @@ export async function proxy(request: NextRequest) {
   // =====================================================================
   // 4. THE TWIN ENGINES: CONTEXT-AWARE SILENT REFRESH
   // =====================================================================
-  const backendUrl = process.env.BACKEND_URL || "https://sliverboy-healher-backend.hf.space/graphql";
-  const handshakeSecret = process.env.NEXT_PUBLIC_HANDSHAKE_SECRET || "";
+  const backendBase =
+    process.env.RUST_AUTH_URL ||
+    (process.env.BACKEND_URL ? process.env.BACKEND_URL.replace(/\/graphql\/?$/, "") : "http://127.0.0.1:8080");
+  const refreshUrl = `${backendBase}/api/v1/auth/refresh`;
+  const handshakeSecret = process.env.FRONTEND_HANDSHAKE_SECRET || "";
 
   if (isManagementRoute) {
     activeAccessToken = adminAccess;
@@ -92,11 +95,11 @@ export async function proxy(request: NextRequest) {
 
     if (isExpired && adminRefresh) {
       try {
-        // EXTREMIST REFRESH: Includes IP & User-Agent for Blood-Binding
+        // ROTATION VIA REST: Includes IP & User-Agent for Blood-Binding & Session Tracking
         const forwardedFor = request.headers.get("x-forwarded-for") || "127.0.0.1";
         const userAgent = request.headers.get("user-agent") || "unknown";
 
-        const refreshRes = await fetch(backendUrl, {
+        const refreshRes = await fetch(refreshUrl, {
           method: "POST",
           headers: { 
             "Content-Type": "application/json",
@@ -105,14 +108,18 @@ export async function proxy(request: NextRequest) {
             "user-agent": userAgent
           },
           body: JSON.stringify({
-            query: `mutation AdminRefresh($token: String!) { adminRefreshToken(refreshToken: $token) { accessToken refreshToken } }`,
-            variables: { token: adminRefresh }
+            refreshToken: adminRefresh
           }),
+          signal: AbortSignal.timeout(8000),
         });
 
+        if (!refreshRes.ok) {
+          throw new Error(`Admin refresh failed with upstream status ${refreshRes.status}`);
+        }
+
         const refreshData = await refreshRes.json();
-        const access = refreshData?.data?.adminRefreshToken?.accessToken;
-        const refresh = refreshData?.data?.adminRefreshToken?.refreshToken;
+        const access = refreshData?.accessToken || refreshData?.access_token;
+        const refresh = refreshData?.refreshToken || refreshData?.refresh_token;
 
         if (access && refresh) {
           activeAccessToken = access;
@@ -137,22 +144,30 @@ export async function proxy(request: NextRequest) {
 
     if (isExpired && userRefresh) {
       try {
-        // STANDARD REFRESH: Only requires Handshake
-        const refreshRes = await fetch(backendUrl, {
+        const forwardedFor = request.headers.get("x-forwarded-for") || "127.0.0.1";
+        const userAgent = request.headers.get("user-agent") || "unknown";
+
+        const refreshRes = await fetch(refreshUrl, {
           method: "POST",
           headers: { 
             "Content-Type": "application/json",
-            "x-healher-handshake": handshakeSecret 
+            "x-healher-handshake": handshakeSecret,
+            "x-forwarded-for": forwardedFor,
+            "user-agent": userAgent
           },
           body: JSON.stringify({
-            query: `mutation RefreshToken($token: String!) { refreshToken(token: $token) { accessToken refreshToken } }`,
-            variables: { token: userRefresh }
+            refreshToken: userRefresh
           }),
+          signal: AbortSignal.timeout(8000),
         });
 
+        if (!refreshRes.ok) {
+          throw new Error(`User refresh failed with upstream status ${refreshRes.status}`);
+        }
+
         const refreshData = await refreshRes.json();
-        const access = refreshData?.data?.refreshToken?.accessToken;
-        const refresh = refreshData?.data?.refreshToken?.refreshToken;
+        const access = refreshData?.accessToken || refreshData?.access_token;
+        const refresh = refreshData?.refreshToken || refreshData?.refresh_token;
 
         if (access && refresh) {
           activeAccessToken = access;

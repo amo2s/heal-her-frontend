@@ -1,26 +1,48 @@
-import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import {
+  buildPublicAuthError,
+  buildPublicAuthResponse,
+  isSameOriginPublicRequest,
+  parseBoundedPublicJsonBody,
+  UPSTREAM_AUTH_TIMEOUT_MS,
+} from "@/lib/public-auth-server";
 
 export async function POST(request: Request) {
   try {
+    // 1. Same-Origin CSRF Guard (SEC-006)
+    if (!isSameOriginPublicRequest(request)) {
+      return buildPublicAuthError("Cross-origin requests are forbidden.", 403);
+    }
+
     const cookieStore = await cookies();
     const accessToken = cookieStore.get("sb-access-token")?.value;
     const refreshToken = cookieStore.get("sb-refresh-token")?.value;
 
-    // 1. Dual-Mode Flag Parsing
+    // 2. Streamed 16 KB Bounded Body & Strict Key Allowlist (allow empty payload for logout)
+    const allowedKeys = new Set(["allDevices", "all_devices", "refreshToken", "refresh_token"]);
+    const parseResult = await parseBoundedPublicJsonBody(request, allowedKeys, true);
+
     let allDevices = false;
-    try {
-      const body = await request.json();
-      if (typeof body?.allDevices === "boolean") {
+    let requestRefreshToken = refreshToken;
+
+    if (parseResult.ok && parseResult.data) {
+      const body = parseResult.data;
+      if (typeof body.allDevices === "boolean") {
         allDevices = body.allDevices;
+      } else if (typeof body.all_devices === "boolean") {
+        allDevices = body.all_devices;
       }
-    } catch {
-      // Non-JSON or empty payload; default to single-device logout
+
+      if (typeof body.refreshToken === "string" && body.refreshToken.trim()) {
+        requestRefreshToken = body.refreshToken.trim();
+      } else if (typeof body.refresh_token === "string" && body.refresh_token.trim()) {
+        requestRefreshToken = body.refresh_token.trim();
+      }
+    } else if (!parseResult.ok) {
+      return parseResult.errorResponse;
     }
 
-    // 2. Direct REST Bridge to Rust Authentication Microservice
-    // If the access token exists, we notify the Rust service to revoke the session
-    // and record the jti / global revocation epoch in the L1 memory grid (moka + ahash).
+    // 3. Direct REST Bridge to Rust Authentication Microservice: POST /api/v1/auth/logout
     if (accessToken) {
       const backendBase =
         process.env.RUST_AUTH_URL ||
@@ -34,15 +56,16 @@ export async function POST(request: Request) {
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${accessToken}`,
+            "x-healher-handshake": process.env.FRONTEND_HANDSHAKE_SECRET || "",
           },
           body: JSON.stringify({
             allDevices,
-            refreshToken: refreshToken || null,
+            refreshToken: requestRefreshToken || null,
           }),
+          signal: AbortSignal.timeout(UPSTREAM_AUTH_TIMEOUT_MS),
         });
       } catch (backendError: any) {
-        // Failsafe Shield: If the Rust backend is offline, times out, or errors,
-        // log internally and proceed to cookie obliteration. Never trap the user.
+        // Failsafe Shield: If the backend is offline or times out, proceed to cookie obliteration
         console.error(
           "[PROXY SHIELD] Rust backend unreachable during logout revocation:",
           backendError?.message || backendError
@@ -50,8 +73,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // 3. Absolute Failsafe Cookie Obliteration (Zero Max-Age Vault Wrench)
-    // Unconditionally overwrite and terminate both session cookies.
+    // 4. Absolute Failsafe Cookie Obliteration (Zero Max-Age Vault Wrench)
     const secureEnv = process.env.NODE_ENV === "production";
 
     cookieStore.set({
@@ -60,8 +82,8 @@ export async function POST(request: Request) {
       httpOnly: true,
       secure: secureEnv,
       sameSite: "strict",
-      maxAge: 0, // Immediate invalidation
-      expires: new Date(0), // Epoch 1970
+      maxAge: 0,
+      expires: new Date(0),
       path: "/",
     });
 
@@ -71,19 +93,19 @@ export async function POST(request: Request) {
       httpOnly: true,
       secure: secureEnv,
       sameSite: "strict",
-      maxAge: 0, // Immediate invalidation
-      expires: new Date(0), // Epoch 1970
+      maxAge: 0,
+      expires: new Date(0),
       path: "/",
     });
 
-    return NextResponse.json(
+    return buildPublicAuthResponse(
       { status: "success", message: "Logged out securely." },
-      { status: 200 }
+      200
     );
   } catch (error: any) {
     console.error("[PROXY ERROR] Unhandled exception in logout route:", error?.message || error);
 
-    // Guaranteed failsafe: Even on internal exception, wipe cookies via cookieStore if possible
+    // Guaranteed failsafe: wipe cookies on exception
     try {
       const cookieStore = await cookies();
       const secureEnv = process.env.NODE_ENV === "production";
@@ -111,9 +133,9 @@ export async function POST(request: Request) {
       // Ignore fallback cookie wipe failure
     }
 
-    return NextResponse.json(
+    return buildPublicAuthResponse(
       { status: "forced_eject", message: "Session terminated via failsafe." },
-      { status: 200 }
+      200
     );
   }
 }

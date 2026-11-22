@@ -131,6 +131,9 @@ pub async fn handle_management_signup(
         .validate()
         .map_err(|e| ApiError::BadRequest(e.to_string()))?;
 
+    // Password Complexity Enforcement (SEC-004)
+    crate::domain::password::validate_password_complexity(&payload.password)?;
+
     // Check control characters in full_name
     if payload.full_name.chars().any(|c| c.is_control()) {
         return Err(ApiError::BadRequest(
@@ -176,6 +179,7 @@ pub async fn handle_management_signup(
         let _ = tx.rollback().await;
         if let Some(db_err) = err.as_database_error() {
             if db_err.code().as_deref() == Some("23505") {
+                crate::infrastructure::crypto::execute_dummy_hash().await?;
                 return Err(ApiError::Conflict(
                     "An account with this email already exists".to_string(),
                 ));

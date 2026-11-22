@@ -89,10 +89,12 @@ mod tests {
 
         let adult_claims = Claims {
             sub: Uuid::new_v4(),
+            sid: Some(Uuid::new_v4()),
             role: "young-adult".to_string(),
             dashboard: Some("young-adults".to_string()),
             exp: 9999999999,
             token_type: "access".to_string(),
+            approval_status: Some("APPROVED".to_string()),
         };
 
         let axum_req = axum::extract::Request::builder()
@@ -129,10 +131,12 @@ mod tests {
 
         let kid_claims = Claims {
             sub: Uuid::new_v4(),
+            sid: Some(Uuid::new_v4()),
             role: "kid".to_string(),
             dashboard: Some("kids".to_string()),
             exp: 9999999999,
             token_type: "access".to_string(),
+            approval_status: Some("APPROVED".to_string()),
         };
 
         let axum_req = axum::extract::Request::builder()
@@ -173,10 +177,12 @@ mod tests {
 
         let ya_claims = Claims {
             sub: user_id,
+            sid: Some(Uuid::new_v4()),
             role: "young-adult".to_string(),
             dashboard: Some("young-adults".to_string()),
             exp: 9999999999,
             token_type: "access".to_string(),
+            approval_status: Some("APPROVED".to_string()),
         };
 
         let axum_req = axum::extract::Request::builder()

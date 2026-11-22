@@ -39,7 +39,8 @@ export type GovernanceAction =
   | "ACCOUNT_REJECTED"
   | "ACCOUNT_SUSPENDED"
   | "ACCOUNT_REACTIVATED"
-  | "ACCOUNT_DELETED";
+  | "ACCOUNT_DELETED"
+  | "MANAGEMENT_PASSWORD_RESET";
 
 /**
  * Safely normalizes and validates an incoming management role string.
@@ -315,6 +316,31 @@ export function countGovernanceRunes(str: string): number {
   return Array.from(str).length;
 }
 
+export function validatePasswordEntropy(password: string): { isValid: boolean; error?: string } {
+  const pwdRunes = countGovernanceRunes(password);
+  if (pwdRunes < 8) {
+    return { isValid: false, error: "Password must be at least 8 characters long" };
+  }
+  if (pwdRunes > 128) {
+    return { isValid: false, error: "Password must not exceed 128 characters" };
+  }
+  if (/[\x00-\x1F\x7F]/.test(password)) {
+    return { isValid: false, error: "Password cannot contain null bytes or control characters" };
+  }
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  const hasDigit = /[0-9]/.test(password);
+  const hasSpecial = /[^A-Za-z0-9]/.test(password);
+  if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
+    return {
+      isValid: false,
+      error:
+        "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
+    };
+  }
+  return { isValid: true };
+}
+
 export function isValidGovernanceUuid(str: unknown): boolean {
   if (typeof str !== "string") return false;
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-7][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -355,10 +381,11 @@ export function validateManagementSignupInput(input: unknown): {
     errors.email = "Please provide a valid email address";
   }
 
-  // 3. password: min 8 characters
+  // 3. password: min 8 characters, complex
   const password = typeof raw.password === "string" ? raw.password : "";
-  if (password.length < 8) {
-    errors.password = "Password must be at least 8 characters long";
+  const pwdValidation = validatePasswordEntropy(password);
+  if (!pwdValidation.isValid) {
+    errors.password = pwdValidation.error || "Invalid password";
   }
 
   // 4. requestedRole: strictly "admin" or "staff" (reject "super_admin")
