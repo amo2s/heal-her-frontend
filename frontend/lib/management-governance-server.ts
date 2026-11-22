@@ -4,6 +4,7 @@ import net from "net";
 import {
   ApprovalStatus,
   AuditLogsListData,
+  getPortalBasePath,
   GovernanceErrorCode,
   GovernanceErrorResponse,
   GovernanceResult,
@@ -666,17 +667,19 @@ export async function getServerManagementIdentity(): Promise<
       return { authenticated: false, reason: "Invalid profile payload from upstream" };
     }
 
+    const role = rawData.role as ManagementRole;
     const identity: ManagementIdentityProfile = {
       id: rawData.id,
       fullName: rawData.full_name ?? rawData.fullName ?? "",
       firstName: rawData.first_name ?? rawData.firstName ?? "",
       email: rawData.email ?? "",
-      role: rawData.role as ManagementRole,
+      role,
       approvalStatus: (rawData.approval_status ?? rawData.approvalStatus ?? "PENDING") as ApprovalStatus,
       isActive: Boolean(rawData.is_active ?? rawData.isActive),
       approvedAt: rawData.approved_at ?? rawData.approvedAt ?? null,
       createdAt: rawData.created_at ?? rawData.createdAt ?? new Date().toISOString(),
       requiresTokenRefresh: Boolean(rawData.requires_token_refresh ?? rawData.requiresTokenRefresh),
+      portalPath: getPortalBasePath(role),
     };
 
     return { authenticated: true, identity };

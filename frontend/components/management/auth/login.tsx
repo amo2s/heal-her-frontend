@@ -170,13 +170,21 @@ export default function AdminLogin() {
         throw new Error(data.message || data.detail || "Access denied.")
       }
 
-      // Success state - The proxy will handle setting the HttpOnly cookies
-      setStatus({ type: 'success', message: "Authorized. Redirecting to Management Dashboard..." })
+      // Success state - The proxy sets the HttpOnly cookies
+      const portalTarget = data.user?.portalPath || "/management/dashboard"
+      const isPending = data.user?.approvalStatus === "PENDING"
+
+      setStatus({
+        type: 'success',
+        message: isPending
+          ? "Authorized. Routing to Pending Approval Shell..."
+          : "Authorized. Redirecting to your workspace..."
+      })
       
-      // Delay for UX, then route directly to the Management Domain
+      // Delay briefly for UX, then route directly to the designated portal
       setTimeout(() => {
-        router.push("/management/dashboard")
-      }, 1500)
+        router.push(portalTarget)
+      }, 900)
 
     } catch (error: unknown) {
       console.error("[LOGIN ERROR]:", error);
@@ -271,6 +279,15 @@ export default function AdminLogin() {
             </span>
           )}
         </Button>
+
+        <div className="text-center pt-2">
+          <Link
+            href="/management/signup"
+            className="text-[11px] text-white/40 hover:text-[#DA8CA0] transition-colors"
+          >
+            Need a Staff or Admin account? Request access
+          </Link>
+        </div>
       </form>
     </div>
   )

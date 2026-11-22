@@ -104,6 +104,22 @@ export function canAccessPortal(role: unknown, status: unknown): boolean {
 }
 
 /**
+ * Checks whether an account matches a portal's required role and may enter the portal shell
+ * (either unlocked if APPROVED, or into the Pending Approval Shell if PENDING).
+ */
+export function canEnterPortalShell(
+  actorRole: unknown,
+  targetPortalRole: unknown,
+  approvalStatus: unknown
+): boolean {
+  const normActor = normalizeGovernanceRole(actorRole);
+  const normTarget = normalizeGovernanceRole(targetPortalRole);
+  const normStatus = normalizeApprovalStatus(approvalStatus);
+  if (!normActor || !normTarget || !normStatus) return false;
+  return normActor === normTarget && (normStatus === "APPROVED" || normStatus === "PENDING");
+}
+
+/**
  * Returns true if the actor has permission to view the management users directory.
  * super_admin and admin only. Staff accounts are strictly forbidden.
  */
@@ -137,43 +153,41 @@ export function canApproveOrRejectTarget(actorRole: unknown, targetRole: unknown
 
 /**
  * Returns true if the actor has permission to suspend, reactivate, or delete a target role.
- * - super_admin can suspend, reactivate, or soft-delete admin and staff.
- * - admin can ONLY suspend or reactivate staff (admin CANNOT delete any accounts).
- * - staff cannot suspend, reactivate, or delete anyone.
+ * Strictly restricted to super_admin targeting non-self admin or staff accounts.
+ * Returns false unconditionally for admin and staff across all three lifecycle actions.
  */
 export function canSuspendReactivateOrDeleteTarget(
   actorRole: unknown,
+  actorId: unknown,
   targetRole: unknown,
-  action: "suspend" | "reactivate" | "delete"
+  targetId: unknown,
+  _action?: "suspend" | "reactivate" | "delete"
 ): boolean {
   const normActor = normalizeGovernanceRole(actorRole);
   const normTarget = normalizeGovernanceRole(targetRole);
 
   if (!normActor || !normTarget) return false;
 
-  if (action === "delete") {
-    // Only super_admin can delete, and only target admin or staff
-    return normActor === "super_admin" && (normTarget === "admin" || normTarget === "staff");
-  }
+  // Strictly super_admin only
+  if (normActor !== "super_admin") return false;
 
-  if (normActor === "super_admin") {
-    return normTarget === "admin" || normTarget === "staff";
-  }
+  // Cannot target super_admin (protected executive account)
+  if (normTarget === "super_admin") return false;
 
-  if (normActor === "admin") {
-    return normTarget === "staff";
-  }
+  // Cannot target self (self-protection)
+  if (actorId && targetId && String(actorId).trim() === String(targetId).trim()) return false;
 
-  return false;
+  // Only admin and staff can be suspended/reactivated/deleted
+  return normTarget === "admin" || normTarget === "staff";
 }
 
 /**
  * Returns true if the actor has permission to view governance audit logs.
- * super_admin and admin only.
+ * Strictly super_admin only (matching Rust Auth GET /api/v1/auth/management/audit-logs).
  */
 export function canViewAuditLogs(role: unknown): boolean {
   const norm = normalizeGovernanceRole(role);
-  return norm === "super_admin" || norm === "admin";
+  return norm === "super_admin";
 }
 
 // ============================================================================
@@ -191,6 +205,7 @@ export interface ManagementIdentityProfile {
   approvedAt: string | null;
   createdAt: string;
   requiresTokenRefresh: boolean;
+  portalPath?: string;
 }
 
 export interface ManagedUserRecord {
