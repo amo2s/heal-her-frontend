@@ -687,3 +687,165 @@ export async function getServerManagementIdentity(): Promise<
     return { authenticated: false, reason: err?.message || "Failed to reach upstream me endpoint" };
   }
 }
+
+// ============================================================================
+// 8. UNAUTHENTICATED MANAGEMENT RECOVERY DISPATCH & COOKIE EVICTION
+// ============================================================================
+
+export interface UnauthenticatedUpstreamOptions {
+  path: string;
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  body?: string;
+  clientIP?: string | null;
+}
+
+/**
+ * Dispatches unauthenticated recovery requests to Rust Auth with:
+ * - Server-only x-healher-handshake injection
+ * - Validated visitor IP forwarding (X-Real-IP / X-Forwarded-For)
+ * - 12-second abort timeout
+ * - Outage shielding against upstream 502/503/504 HTML pages
+ * - ZERO browser cookies or Authorization headers forwarded
+ */
+export async function dispatchUnauthenticatedManagementUpstream(
+  opts: UnauthenticatedUpstreamOptions
+): Promise<NextResponse> {
+  const rawBackendUrl = process.env.BACKEND_URL || "https://sliverboy-healher-backend.hf.space";
+  const backendBase = rawBackendUrl.replace(/\/graphql$/, "").replace(/\/$/, "");
+  const targetUrl = `${backendBase}${opts.path.startsWith("/") ? opts.path : `/${opts.path}`}`;
+
+  const headers = new Headers({
+    Accept: "application/json",
+    "User-Agent": "HealHer-NextJS-Governance-BFF/1.0",
+  });
+
+  const handshake = process.env.FRONTEND_HANDSHAKE_SECRET;
+  if (handshake && handshake.trim() !== "") {
+    headers.set("x-healher-handshake", handshake.trim());
+  }
+
+  if (opts.clientIP) {
+    headers.set("X-Real-IP", opts.clientIP);
+    headers.set("X-Forwarded-For", opts.clientIP);
+  }
+
+  if (opts.body) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+  let upstreamResponse: Response;
+  try {
+    upstreamResponse = await fetch(targetUrl, {
+      method: opts.method || "POST",
+      headers,
+      body: opts.body,
+      signal: controller.signal,
+      cache: "no-store",
+      redirect: "error",
+    });
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    const isTimeout = err?.name === "AbortError";
+    console.error("[UNAUTHENTICATED GOVERNANCE UPSTREAM ERROR]", {
+      isTimeout,
+      path: opts.path,
+      method: opts.method || "POST",
+      errorName: err?.name,
+    });
+    return buildGovernanceError(
+      "SERVICE_UNAVAILABLE",
+      isTimeout
+        ? "The governance service timed out. Please try again."
+        : "The governance service is temporarily unreachable.",
+      isTimeout ? 504 : 503
+    );
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  const status = upstreamResponse.status;
+
+  let rawText = "";
+  try {
+    rawText = await upstreamResponse.text();
+    if (rawText.length > 65536) {
+      rawText = rawText.substring(0, 65536);
+    }
+  } catch (readErr) {
+    console.error("[UNAUTHENTICATED GOVERNANCE READ ERROR]", readErr);
+    return buildGovernanceError(
+      "SERVICE_UNAVAILABLE",
+      "Failed to read upstream response",
+      503
+    );
+  }
+
+  let jsonPayload: any = null;
+  try {
+    jsonPayload = JSON.parse(rawText);
+  } catch {
+    console.warn(`[UNAUTHENTICATED GOVERNANCE NON-JSON UPSTREAM] status: ${status}, path: ${opts.path}`);
+    return buildGovernanceError(
+      "SERVICE_UNAVAILABLE",
+      "The governance service is temporarily unavailable.",
+      503
+    );
+  }
+
+  if (status === 200 || status === 201) {
+    return buildGovernanceResponse(jsonPayload, status);
+  }
+
+  const message = jsonPayload?.message || jsonPayload?.detail || "An unexpected error occurred.";
+  if (status === 429) {
+    const isLockout = message.toLowerCase().includes("locked");
+    return buildGovernanceError(
+      isLockout ? "ACCOUNT_LOCKED" : "RATE_LIMITED",
+      message,
+      429
+    );
+  }
+  if (status === 401) {
+    const isToken = message.toLowerCase().includes("token");
+    return buildGovernanceError(isToken ? "TOKEN_EXPIRED" : "INVALID_OTP", message, 401);
+  }
+  if (status === 403) {
+    return buildGovernanceError("FORBIDDEN", message, 403);
+  }
+  if (status === 400) {
+    return buildGovernanceError("VALIDATION_ERROR", message, 400);
+  }
+
+  return buildGovernanceError("INTERNAL_ERROR", message, status);
+}
+
+/**
+ * Explicitly terminates and expires admin session cookies (admin-access-token, admin-refresh-token).
+ */
+export function expireAdminSessionCookies(response: NextResponse): void {
+  const isProduction = process.env.NODE_ENV === "production";
+  response.cookies.set({
+    name: "admin-access-token",
+    value: "",
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: "strict",
+    maxAge: 0,
+    expires: new Date(0),
+    path: "/",
+  });
+  response.cookies.set({
+    name: "admin-refresh-token",
+    value: "",
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: "strict",
+    maxAge: 0,
+    expires: new Date(0),
+    path: "/",
+  });
+}
+

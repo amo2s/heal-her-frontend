@@ -295,7 +295,11 @@ export type GovernanceErrorCode =
   | "PAYLOAD_TOO_LARGE"
   | "UNSUPPORTED_MEDIA_TYPE"
   | "SERVICE_UNAVAILABLE"
-  | "INTERNAL_ERROR";
+  | "INTERNAL_ERROR"
+  | "RATE_LIMITED"
+  | "ACCOUNT_LOCKED"
+  | "INVALID_OTP"
+  | "TOKEN_EXPIRED";
 
 export interface GovernanceErrorResponse {
   status: "error";
@@ -307,6 +311,42 @@ export interface GovernanceErrorResponse {
 export type GovernanceResult<T> =
   | { ok: true; data: T }
   | { ok: false; error: GovernanceErrorResponse };
+
+// ============================================================================
+// 4B. MANAGEMENT PASSWORD RESET DOMAIN CONTRACTS
+// ============================================================================
+
+export interface ManagementPasswordResetRequestPayload {
+  email: string;
+  botTrap?: string;
+}
+
+export interface ManagementPasswordResetRequestResult {
+  message: string;
+}
+
+export interface ManagementPasswordResetVerifyPayload {
+  email: string;
+  otp: string;
+}
+
+export interface ManagementPasswordResetVerifyResult {
+  resetToken: string;
+  expiresInSeconds: number; // 300s (5-minute TTL)
+  message?: string;
+}
+
+export interface ManagementPasswordResetConfirmPayload {
+  email: string;
+  resetToken: string;
+  newPassword: string;
+  confirmPassword?: string;
+}
+
+export interface ManagementPasswordResetConfirmResult {
+  message: string;
+  sessionsRevoked: boolean;
+}
 
 // ============================================================================
 // 5. MIRRORED VALIDATION HELPERS
@@ -449,6 +489,162 @@ export function validateGovernanceReason(reason: unknown): {
   }
 
   return { isValid: true, sanitized: trimmed };
+}
+
+/**
+ * Validates and sanitizes a management password reset email address.
+ * Rejects whitespace, control characters, CRLF, angle brackets, and non-RFC email patterns.
+ */
+export function validateManagementResetEmail(raw: unknown): {
+  isValid: boolean;
+  sanitized?: string;
+  error?: string;
+} {
+  if (typeof raw !== "string") {
+    return { isValid: false, error: "Email must be a text string" };
+  }
+
+  const trimmed = raw.trim().toLowerCase();
+  if (!trimmed) {
+    return { isValid: false, error: "Please enter your work email address" };
+  }
+
+  if (trimmed.length > 254) {
+    return { isValid: false, error: "Email address exceeds maximum length of 254 characters" };
+  }
+
+  // Reject internal spaces, angle brackets, control characters, or CRLF
+  if (/[\s<>\r\n\x00-\x1F\x7F]/.test(trimmed)) {
+    return { isValid: false, error: "Email contains invalid characters or whitespace" };
+  }
+
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+  if (!emailRegex.test(trimmed)) {
+    return { isValid: false, error: "Please enter a valid work email address" };
+  }
+
+  return { isValid: true, sanitized: trimmed };
+}
+
+/**
+ * Validates a 6-digit management password reset OTP code.
+ * Enforces strictly 6 numeric ASCII digits.
+ */
+export function validateManagementResetOtp(raw: unknown): {
+  isValid: boolean;
+  sanitized?: string;
+  error?: string;
+} {
+  if (typeof raw !== "string") {
+    return { isValid: false, error: "Verification code must be a string" };
+  }
+
+  if (/[\r\n\x00-\x1F\x7F]/.test(raw)) {
+    return { isValid: false, error: "Verification code contains invalid characters" };
+  }
+
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return { isValid: false, error: "Please enter the 6-digit verification code" };
+  }
+
+  if (!/^[0-9]{6}$/.test(trimmed)) {
+    return { isValid: false, error: "Please enter the complete 6-digit verification code" };
+  }
+
+  return { isValid: true, sanitized: trimmed };
+}
+
+/**
+ * Validates full management password reset confirmation input.
+ * Verifies email, non-empty single-use resetToken, and password complexity via validatePasswordEntropy.
+ */
+export function validateManagementResetConfirmInput(raw: unknown): {
+  isValid: boolean;
+  sanitized?: {
+    email: string;
+    resetToken: string;
+    newPassword: string;
+  };
+  error?: string;
+  fieldErrors?: Record<string, string>;
+} {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return {
+      isValid: false,
+      error: "Invalid request payload format",
+      fieldErrors: { form: "Invalid request payload format" },
+    };
+  }
+
+  const data = raw as Record<string, unknown>;
+  const errors: Record<string, string> = {};
+
+  // 1. Email
+  const emailVal = validateManagementResetEmail(data.email);
+  if (!emailVal.isValid || !emailVal.sanitized) {
+    errors.email = emailVal.error || "Invalid email address";
+  }
+
+  // 2. Reset Token
+  const rawToken =
+    typeof data.resetToken === "string"
+      ? data.resetToken.trim()
+      : typeof data.reset_token === "string"
+      ? (data.reset_token as string).trim()
+      : "";
+
+  if (!rawToken) {
+    errors.resetToken = "Authorization reset token is required";
+  } else if (rawToken.length < 20 || rawToken.length > 256) {
+    errors.resetToken = "Authorization reset token is malformed or invalid";
+  } else if (/[\s\r\n\x00-\x1F\x7F]/.test(rawToken)) {
+    errors.resetToken = "Authorization reset token contains invalid characters";
+  }
+
+  // 3. New Password
+  const newPassword =
+    typeof data.newPassword === "string"
+      ? data.newPassword
+      : typeof data.new_password === "string"
+      ? (data.new_password as string)
+      : "";
+
+  const confirmPassword =
+    typeof data.confirmPassword === "string"
+      ? data.confirmPassword
+      : typeof data.confirm_password === "string"
+      ? (data.confirm_password as string)
+      : undefined;
+
+  const entropy = validatePasswordEntropy(newPassword);
+  if (!entropy.isValid) {
+    errors.newPassword = entropy.error || "Password does not meet complexity requirements";
+  } else if (confirmPassword !== undefined && newPassword !== confirmPassword) {
+    errors.confirmPassword = "Passwords do not match";
+  }
+
+  if (Object.keys(errors).length > 0) {
+    return {
+      isValid: false,
+      error:
+        errors.email ||
+        errors.resetToken ||
+        errors.newPassword ||
+        errors.confirmPassword ||
+        "Validation failed",
+      fieldErrors: errors,
+    };
+  }
+
+  return {
+    isValid: true,
+    sanitized: {
+      email: emailVal.sanitized!,
+      resetToken: rawToken,
+      newPassword,
+    },
+  };
 }
 
 // ============================================================================
@@ -674,3 +870,59 @@ export async function fetchGovernanceAuditLogs(filters?: {
     : "/api/management/governance/audit-logs";
   return governanceApiFetch<AuditLogsListData>(endpoint);
 }
+
+// ============================================================================
+// 7. MANAGEMENT PASSWORD RECOVERY CLIENT FETCHERS
+// ============================================================================
+
+/**
+ * Requests a management password reset OTP (POST /api/auth/management/password-reset/request).
+ * Ghost protocol: returns generic confirmation message regardless of whether the account exists.
+ */
+export async function requestManagementPasswordReset(
+  payload: ManagementPasswordResetRequestPayload
+): Promise<GovernanceResult<ManagementPasswordResetRequestResult>> {
+  return governanceApiFetch<ManagementPasswordResetRequestResult>(
+    "/api/auth/management/password-reset/request",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+/**
+ * Verifies a 6-digit management password reset OTP (POST /api/auth/management/password-reset/verify).
+ * Returns single-use reset token valid for 5 minutes.
+ */
+export async function verifyManagementPasswordResetOtp(
+  payload: ManagementPasswordResetVerifyPayload
+): Promise<GovernanceResult<ManagementPasswordResetVerifyResult>> {
+  return governanceApiFetch<ManagementPasswordResetVerifyResult>(
+    "/api/auth/management/password-reset/verify",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+/**
+ * Confirms final management password reset and revokes previous sessions (POST /api/auth/management/password-reset/confirm).
+ * Proactively clears administrative cookies upon success.
+ */
+export async function confirmManagementPasswordReset(
+  payload: ManagementPasswordResetConfirmPayload
+): Promise<GovernanceResult<ManagementPasswordResetConfirmResult>> {
+  return governanceApiFetch<ManagementPasswordResetConfirmResult>(
+    "/api/auth/management/password-reset/confirm",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
+}
+

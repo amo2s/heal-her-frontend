@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect, Suspense, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { 
   Mail, Lock, Eye, EyeOff, ArrowRight, 
@@ -9,7 +9,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 
 // --- TYPES ---
 type StatusType = {
@@ -25,6 +25,17 @@ interface InputFieldProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   name: string;
+}
+
+// Inner helper safely wrapped in Suspense to detect ?reset=success
+function ResetQueryDetector({ onDetected }: { onDetected: () => void }) {
+  const searchParams = useSearchParams()
+  useEffect(() => {
+    if (searchParams.get("reset") === "success") {
+      onDetected()
+    }
+  }, [searchParams, onDetected])
+  return null
 }
 
 // --- SUB-COMPONENTS ---
@@ -117,11 +128,16 @@ const InputField: React.FC<InputFieldProps> = ({
 
 // --- MAIN COMPONENT ---
 
-export default function AdminLogin() {
+export default function AdminLogin({ resetSuccess: initialResetSuccess = false }: { resetSuccess?: boolean }) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [status, setStatus] = useState<StatusType>(null)
+  const [showResetBanner, setShowResetBanner] = useState(initialResetSuccess)
   
+  const handleResetDetected = useCallback(() => {
+    setShowResetBanner(true)
+  }, [])
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -218,6 +234,32 @@ export default function AdminLogin() {
         )}
       </AnimatePresence>
 
+      <Suspense fallback={null}>
+        <ResetQueryDetector onDetected={handleResetDetected} />
+      </Suspense>
+
+      {showResetBanner && (
+        <motion.div
+          initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+          animate={{ opacity: 1, height: "auto", marginBottom: 20 }}
+          exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+          className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-200 text-xs flex items-start gap-2.5 shadow-lg"
+        >
+          <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+          <div className="flex-1 leading-relaxed">
+            Your password has been reset and all previous sessions were signed out. Sign in with your new password.
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowResetBanner(false)}
+            className="text-emerald-400/60 hover:text-emerald-300 transition-colors p-0.5 -mr-1"
+            aria-label="Dismiss reset confirmation"
+          >
+            <span className="text-base leading-none">×</span>
+          </button>
+        </motion.div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6" noValidate>
         {/* Honeypot Field */}
         <div className="hidden" aria-hidden="true">
@@ -253,10 +295,10 @@ export default function AdminLogin() {
           />
           <div className="flex justify-end px-1">
             <Link 
-              href="/forgot-password" 
+              href="/management/forgot-password" 
               className="text-[10px] uppercase tracking-widest text-[#DA8CA0] hover:text-[#f0abc0] transition-colors font-bold"
             >
-              Reset Credentials
+              Forgot password?
             </Link>
           </div>
         </div>

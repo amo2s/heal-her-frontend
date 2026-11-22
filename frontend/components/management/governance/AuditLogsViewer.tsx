@@ -94,6 +94,8 @@ export function AuditLogsViewer() {
         return "bg-rose-500/10 text-rose-300 border-rose-500/20";
       case "MANAGEMENT_SIGNUP":
         return "bg-indigo-500/10 text-indigo-300 border-indigo-500/20";
+      case "MANAGEMENT_PASSWORD_RESET":
+        return "bg-cyan-500/10 text-cyan-300 border-cyan-500/20";
       default:
         return "bg-white/10 text-white/70 border-white/15";
     }
@@ -112,7 +114,7 @@ export function AuditLogsViewer() {
           </div>
           <p className="text-xs text-[#8F8FA3]">
             Cryptographically sealed, immutable record of all administrative account signups,
-            approvals, rejections, suspensions, and soft-deletions.
+            approvals, rejections, suspensions, soft-deletions, and self-service password resets.
           </p>
         </div>
 
@@ -146,6 +148,7 @@ export function AuditLogsViewer() {
             { id: "ACCOUNT_REACTIVATED", label: "Reactivated" },
             { id: "ACCOUNT_DELETED", label: "Deleted" },
             { id: "MANAGEMENT_SIGNUP", label: "Signup" },
+            { id: "MANAGEMENT_PASSWORD_RESET", label: "Password Reset" },
           ].map((act) => (
             <button
               key={act.id}
@@ -252,7 +255,9 @@ export function AuditLogsViewer() {
                               log.action
                             )}`}
                           >
-                            {log.action.replace("ACCOUNT_", "").replace("_", " ")}
+                            {log.action === "MANAGEMENT_PASSWORD_RESET"
+                              ? "PASSWORD RESET"
+                              : log.action.replace("ACCOUNT_", "").replace(/_/g, " ")}
                           </span>
                         </td>
 

@@ -29,6 +29,10 @@ export async function proxy(request: NextRequest) {
     path.startsWith('/management/login/') ||
     path === '/management/signup' ||
     path.startsWith('/management/signup/') ||
+    path === '/management/forgot-password' ||
+    path.startsWith('/management/forgot-password/') ||
+    path === '/management/auth/forgot-password' ||
+    path.startsWith('/management/auth/forgot-password/') ||
     path === '/login'
   ) {
     return NextResponse.next();
